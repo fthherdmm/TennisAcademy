@@ -1,0 +1,12 @@
+C:\Users\erdem\OneDrive\Masaüstü\.net\proje\KirikkaleTenisAkademi\src\KirikkaleTenisAkademi.Domain\bin\Debug\net9.0\KirikkaleTenisAkademi.Domain.deps.json
+C:\Users\erdem\OneDrive\Masaüstü\.net\proje\KirikkaleTenisAkademi\src\KirikkaleTenisAkademi.Domain\bin\Debug\net9.0\KirikkaleTenisAkademi.Domain.dll
+C:\Users\erdem\OneDrive\Masaüstü\.net\proje\KirikkaleTenisAkademi\src\KirikkaleTenisAkademi.Domain\bin\Debug\net9.0\KirikkaleTenisAkademi.Domain.pdb
+C:\Users\erdem\OneDrive\Masaüstü\.net\proje\KirikkaleTenisAkademi\src\KirikkaleTenisAkademi.Domain\obj\Debug\net9.0\KirikkaleTenisAkademi.Domain.csproj.AssemblyReference.cache
+C:\Users\erdem\OneDrive\Masaüstü\.net\proje\KirikkaleTenisAkademi\src\KirikkaleTenisAkademi.Domain\obj\Debug\net9.0\KirikkaleTenisAkademi.Domain.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\erdem\OneDrive\Masaüstü\.net\proje\KirikkaleTenisAkademi\src\KirikkaleTenisAkademi.Domain\obj\Debug\net9.0\KirikkaleTenisAkademi.Domain.AssemblyInfoInputs.cache
+C:\Users\erdem\OneDrive\Masaüstü\.net\proje\KirikkaleTenisAkademi\src\KirikkaleTenisAkademi.Domain\obj\Debug\net9.0\KirikkaleTenisAkademi.Domain.AssemblyInfo.cs
+C:\Users\erdem\OneDrive\Masaüstü\.net\proje\KirikkaleTenisAkademi\src\KirikkaleTenisAkademi.Domain\obj\Debug\net9.0\KirikkaleTenisAkademi.Domain.csproj.CoreCompileInputs.cache
+C:\Users\erdem\OneDrive\Masaüstü\.net\proje\KirikkaleTenisAkademi\src\KirikkaleTenisAkademi.Domain\obj\Debug\net9.0\KirikkaleTenisAkademi.Domain.dll
+C:\Users\erdem\OneDrive\Masaüstü\.net\proje\KirikkaleTenisAkademi\src\KirikkaleTenisAkademi.Domain\obj\Debug\net9.0\refint\KirikkaleTenisAkademi.Domain.dll
+C:\Users\erdem\OneDrive\Masaüstü\.net\proje\KirikkaleTenisAkademi\src\KirikkaleTenisAkademi.Domain\obj\Debug\net9.0\KirikkaleTenisAkademi.Domain.pdb
+C:\Users\erdem\OneDrive\Masaüstü\.net\proje\KirikkaleTenisAkademi\src\KirikkaleTenisAkademi.Domain\obj\Debug\net9.0\ref\KirikkaleTenisAkademi.Domain.dll

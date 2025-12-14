@@ -1,0 +1,28 @@
+﻿@inject NavigationManager Navigation
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-10">
+    <div class="d-flex justify-between align-center mb-6">
+        <div>
+            <MudText Typo="Typo.h3">Hazır mısın?</MudText>
+            <MudText Typo="Typo.subtitle1" Color="Color.Secondary">Raketini kap, korta çık.</MudText>
+        </div>
+    </div>
+
+    <MudGrid>
+        <MudItem xs="12" md="6">
+            <MudPaper Class="pa-8 d-flex flex-column justify-center" Height="250px" Elevation="4" Style="background: linear-gradient(45deg, #2E7D32, #66BB6A); color: white;">
+                <MudText Typo="Typo.h4" Class="mb-4">Yeni Bir Ders Al</MudText>
+                <MudText Typo="Typo.body1" Class="mb-6">Uzman eğitmenlerimiz seni bekliyor.</MudText>
+                <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Large" OnClick="@(() => Navigation.NavigateTo("/coaches"))">Eğitmenleri İncele</MudButton>
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" md="6">
+            <MudPaper Class="pa-8" Height="250px" Elevation="4">
+                <MudText Typo="Typo.h5" Color="Color.Primary" Class="mb-4">Ders Programım</MudText>
+                <MudAlert Severity="Severity.Info" Class="mb-4">Planlanmış derslerinizi görmek için tıklayın.</MudAlert>
+                <MudButton Variant="Variant.Outlined" Color="Color.Primary" FullWidth="true" Href="/my-bookings">Derslerime Git</MudButton>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+</MudContainer>

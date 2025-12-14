@@ -1,0 +1,102 @@
+﻿@page "/login"
+@using KirikkaleTenisAkademi.Application.DTOs.Auth
+@using KirikkaleTenisAkademi.Web.Models
+@inject HttpClient Http
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+@inject AuthenticationStateProvider AuthStateProvider
+@inject ILocalStorageService LocalStorage
+
+<MudGrid Class="d-flex justify-center align-center" Style="height: 100vh; background-color: #f5f5f5;">
+    <MudItem xs="12" sm="8" md="4">
+        <MudCard Elevation="4" Class="pa-4">
+            <MudCardHeader>
+                <CardHeaderContent>
+                    <div class="d-flex justify-center mb-2">
+                        <MudIcon Icon="@Icons.Material.Filled.SportsTennis" Color="Color.Secondary" Size="Size.Large" style="font-size: 3rem;" />
+                    </div>
+                    <MudText Typo="Typo.h5" Align="Align.Center" Color="Color.Primary"><b>Kırıkkale Tenis</b></MudText>
+                    <MudText Typo="Typo.body2" Align="Align.Center">Akademi Girişi</MudText>
+                </CardHeaderContent>
+            </MudCardHeader>
+            <MudCardContent>
+                <MudTextField @bind-Value="loginModel.Email" 
+                              Label="E-Posta" 
+                              Variant="Variant.Outlined" 
+                              Margin="Margin.Dense" 
+                              Adornment="Adornment.Start" 
+                              AdornmentIcon="@Icons.Material.Filled.Email" />
+
+                <MudTextField @bind-Value="loginModel.Password" 
+                              Label="Şifre" 
+                              Variant="Variant.Outlined" 
+                              Margin="Margin.Dense" 
+                              Class="mt-3"
+                              InputType="@PasswordInput"
+                              Adornment="Adornment.End"
+                              AdornmentIcon="@PasswordInputIcon"
+                              OnAdornmentClick="TogglePasswordVisibility" />
+            </MudCardContent>
+            <MudCardActions Class="d-flex justify-center">
+                <MudButton Variant="Variant.Filled" 
+                           Color="Color.Primary" 
+                           Size="Size.Large" 
+                           FullWidth="true" 
+                           OnClick="HandleLogin">Giriş Yap</MudButton>
+            </MudCardActions>
+            <div class="d-flex justify-center pb-4 mt-2">
+                <MudText Typo="Typo.body2">Hesabın yok mu?</MudText>
+                <MudLink Href="/register" Color="Color.Secondary" Class="ml-2 font-weight-bold">Hemen Üye Ol</MudLink>
+            </div>
+        </MudCard>
+    </MudItem>
+</MudGrid>
+
+@code {
+    private LoginDto loginModel = new();
+    
+    // Şifre Göster/Gizle Mantığı
+    bool isShow;
+    InputType PasswordInput = InputType.Password;
+    string PasswordInputIcon = Icons.Material.Filled.VisibilityOff;
+
+    void TogglePasswordVisibility()
+    {
+        if (isShow)
+        {
+            isShow = false;
+            PasswordInputIcon = Icons.Material.Filled.VisibilityOff;
+            PasswordInput = InputType.Password;
+        }
+        else
+        {
+            isShow = true;
+            PasswordInputIcon = Icons.Material.Filled.Visibility;
+            PasswordInput = InputType.Text;
+        }
+    }
+
+    private async Task HandleLogin()
+    {
+        var response = await Http.PostAsJsonAsync("api/Auth/login", loginModel);
+
+        if (response.IsSuccessStatusCode)
+        {
+            // API'den gelen cevabı oku
+            var result = await response.Content.ReadFromJsonAsync<AuthResponse>();
+
+            // 1. Token'ı Tarayıcıya Kaydet 
+            await LocalStorage.SetItemAsync("authToken", result.Token);
+
+            // 2. Sisteme "Hey, giriş yaptık!" diye haber ver
+            await AuthStateProvider.GetAuthenticationStateAsync();
+
+            Snackbar.Add("Giriş Başarılı! Kortlara Hoşgeldiniz.", Severity.Success);
+            Navigation.NavigateTo("/");
+        }
+        else
+        {
+            Snackbar.Add("Hatalı E-posta veya Şifre!", Severity.Error);
+        }
+    }
+}

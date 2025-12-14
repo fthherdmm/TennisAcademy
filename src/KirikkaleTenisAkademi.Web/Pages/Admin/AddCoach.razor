@@ -1,0 +1,127 @@
+﻿@page "/admin/add-coach"
+@using KirikkaleTenisAkademi.Web.Models
+@using Microsoft.AspNetCore.Authorization
+@using System.IO
+@attribute [Authorize(Roles = "Admin")] 
+@inject HttpClient Http
+@inject ISnackbar Snackbar
+@inject NavigationManager Navigation
+
+<MudContainer MaxWidth="MaxWidth.Medium" Class="mt-5">
+    <MudText Typo="Typo.h4" Color="Color.Primary" Class="mb-4" Align="Align.Center">
+        <MudIcon Icon="@Icons.Material.Filled.PersonAdd" Size="Size.Large" Class="mr-2"/>
+        Yeni Eğitmen Ekle
+    </MudText>
+
+    <MudCard Elevation="4" Class="pa-4">
+        <EditForm Model="@coachModel" OnValidSubmit="HandleCreateCoach">
+            <DataAnnotationsValidator />
+            
+            <MudGrid>
+                <MudItem xs="12" sm="6">
+                    <MudTextField Label="Ad" @bind-Value="coachModel.FirstName" Variant="Variant.Outlined" Margin="Margin.Dense" For="@(() => coachModel.FirstName)" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField Label="Soyad" @bind-Value="coachModel.LastName" Variant="Variant.Outlined" Margin="Margin.Dense" For="@(() => coachModel.LastName)" />
+                </MudItem>
+
+                <MudItem xs="12" sm="6">
+                    <MudTextField Label="E-Posta (Kullanıcı Adı)" @bind-Value="coachModel.Email" Variant="Variant.Outlined" InputType="InputType.Email" Margin="Margin.Dense" For="@(() => coachModel.Email)" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField Label="Şifre" @bind-Value="coachModel.Password" Variant="Variant.Outlined" InputType="InputType.Password" Margin="Margin.Dense" For="@(() => coachModel.Password)" />
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudTextField Label="Uzmanlık Alanı (Örn: Backhand, Kondisyon)" @bind-Value="coachModel.Specialty" Variant="Variant.Outlined" Margin="Margin.Dense" For="@(() => coachModel.Specialty)" />
+                </MudItem>
+                
+                <MudItem xs="12">
+                    <MudTextField Label="Biyografi / Hakkında" @bind-Value="coachModel.Bio" Variant="Variant.Outlined" Lines="3" Margin="Margin.Dense" />
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudFileUpload T="IBrowserFile" FilesChanged="UploadFiles">
+                        <ActivatorContent>
+                            <MudPaper Height="100px" Outlined="true" Class="d-flex flex-column align-center justify-center cursor-pointer border-dashed pa-4">
+                                @if (string.IsNullOrEmpty(coachModel.ImageUrl) || coachModel.ImageUrl.Length < 100)
+                                {
+                                <MudIcon Icon="@Icons.Material.Filled.CloudUpload" Size="Size.Large" Color="Color.Primary" />
+                                <MudText>Fotoğrafı buraya sürükleyin veya tıklayın</MudText>
+                                }
+                                else
+                                {
+                                <MudText Color="Color.Success">Fotoğraf Seçildi! ✅</MudText>
+                                }
+                            </MudPaper>
+                        </ActivatorContent>
+                    </MudFileUpload>
+                </MudItem>
+
+                <MudItem xs="12" Class="d-flex justify-center mt-3">
+                    <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" StartIcon="@Icons.Material.Filled.Save">Eğitmeni Kaydet</MudButton>
+                </MudItem>
+            </MudGrid>
+        </EditForm>
+    </MudCard>
+</MudContainer>
+
+@code {
+    private CreateCoachDto coachModel = new();
+
+    private async Task HandleCreateCoach()
+    {
+        try
+        {
+            // API'ye gönder (Token otomatik ekleniyor CustomAuthStateProvider sayesinde)
+            var response = await Http.PostAsJsonAsync("api/Admin/create-coach", coachModel);
+
+            if (response.IsSuccessStatusCode)
+            {
+                Snackbar.Add($"{coachModel.FirstName} {coachModel.LastName} başarıyla eklendi!", Severity.Success);
+                
+                // Formu temizle
+                coachModel = new CreateCoachDto();
+                
+                // İstersen eğitmenler listesine yönlendir
+                // Navigation.NavigateTo("/coaches");
+            }
+            else
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                Snackbar.Add($"Hata oluştu: {error}", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add("Sunucuya ulaşılamadı.", Severity.Error);
+            Console.WriteLine(ex.Message);
+        }
+    }
+    
+    private async Task UploadFiles(IBrowserFile file)
+    {
+        // Dosya boyutunu kontrol et (Max 5MB olsun)
+        long maxFileSize = 1024 * 1024 * 5; 
+
+        try
+        {
+            // Dosyayı oku
+            var buffer = new byte[file.Size];
+            await file.OpenReadStream(maxFileSize).ReadAsync(buffer);
+            
+            // Base64 string'e çevir ("data:image/png;base64,..." formatında)
+            var format = file.ContentType;
+            var base64 = Convert.ToBase64String(buffer);
+            
+            // Modele ata
+            coachModel.ImageUrl = $"data:{format};base64,{base64}";
+            
+            Snackbar.Add("Fotoğraf yüklendi!", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Hata: Dosya çok büyük veya format hatalı.", Severity.Error);
+        }
+    }
+}

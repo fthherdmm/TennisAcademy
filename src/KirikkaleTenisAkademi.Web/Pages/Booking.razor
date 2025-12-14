@@ -1,0 +1,146 @@
+﻿@page "/booking/{CoachId:int}"
+@using KirikkaleTenisAkademi.Web.Models
+@using KirikkaleTenisAkademi.Web.Shared.Components
+@using System.Net.Http.Json
+@inject HttpClient HttpClient
+@inject ISnackbar Snackbar
+@inject NavigationManager Navigation
+@inject IDialogService DialogService
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
+    <div class="d-flex align-center mb-4">
+        <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" OnClick="@(() => Navigation.NavigateTo("/coaches"))" />
+        <MudText Typo="Typo.h4" Class="ml-2">Ders Rezervasyonu</MudText>
+    </div>
+
+    @if (_loading)
+    {
+        <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="mb-4"/>
+        <MudText Align="Align.Center">Eğitmen takvimi yükleniyor...</MudText>
+    }
+    else
+    {
+        <MudAlert Severity="Severity.Info" Class="mb-4">
+            Aşağıdaki takvimden <b>beyaz (boş)</b> kutucuklara tıklayerek ders satın alabilirsiniz.
+        </MudAlert>
+
+        <WeeklyScheduler 
+            StartHour="9" 
+            EndHour="22" 
+            BusySlots="@_calendarData" 
+            OnSlotClicked="HandleSlotClick" />
+    }
+</MudContainer>
+
+@code {
+    [Parameter] public int CoachId { get; set; }
+
+    private bool _loading = true;
+    
+    // Takvimin anlayacağı veri yapısı: [Tarih] -> (Tip, Ekranda Yazacak Metin)
+    private Dictionary<DateTime, (string Type, string Text)> _calendarData = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadSchedule();
+    }
+
+    private async Task LoadSchedule()
+    {
+        _loading = true;
+        try
+        {
+            // 1. API'den veriyi çek
+            var scheduleItems = await HttpClient.GetFromJsonAsync<List<PublicCoachScheduleDto>>($"api/Coach/{CoachId}/public-schedule");
+
+            if (scheduleItems != null)
+            {
+                _calendarData.Clear();
+
+                // 2. Gelen veriyi Takvimin anlayacağı formata çevir
+                foreach (var item in scheduleItems)
+                {
+                    var current = item.StartTime;
+                    // Başlangıçtan bitişe kadar olan her saati "Dolu" olarak işaretle
+                    while (current < item.EndTime)
+                    {
+                        // Dakikaları sıfırla (Saat başı mantığı)
+                        var key = new DateTime(current.Year, current.Month, current.Day, current.Hour, 0, 0);
+                        
+                        if (!_calendarData.ContainsKey(key))
+                        {
+                            string type = item.Type; // "Lesson" veya "Blocked"
+                            string text = type == "Lesson" ? "Dolu" : "Kapalı";
+                            
+                            _calendarData.Add(key, (type, text));
+                        }
+                        current = current.AddHours(1);
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add("Takvim yüklenemedi: " + ex.Message, Severity.Error);
+            Console.WriteLine(ex.Message);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    // Öğrenci boş bir yere tıkladığında çalışır
+    private async Task HandleSlotClick(DateTime clickedTime)
+    {
+        // Dolu yere tıklarsa uyarı ver (Takvim bileşeni bunu renklendiriyor ama yine de kontrol)
+        if (_calendarData.ContainsKey(clickedTime))
+        {
+            Snackbar.Add("Bu saat zaten dolu.", Severity.Warning);
+            return;
+        }
+
+        // Onay Kutusu Aç
+        bool? result = await DialogService.ShowMessageBox(
+            "Rezervasyon Onayı", 
+            $"Tarih: {clickedTime:dd.MM.yyyy}\nSaat: {clickedTime:HH:00}\n\nBu dersi 1 Kredi karşılığında onaylıyor musunuz?", 
+            yesText: "Evet, Satın Al", cancelText: "Vazgeç");
+
+        if (result == true)
+        {
+            await CreateBooking(clickedTime);
+        }
+    }
+
+    private async Task CreateBooking(DateTime time)
+    {
+        // Rezervasyon isteği gönder
+        // DİKKAT: Backend'de bu modeli karşılayan bir endpoint olmalı (LessonController -> Book)
+        var bookingRequest = new 
+        {
+            CoachId = CoachId,
+            StartTime = time,
+            EndTime = time.AddHours(1) // 1 Saatlik ders
+        };
+
+        try
+        {
+            var response = await HttpClient.PostAsJsonAsync("api/Lesson/book", bookingRequest);
+            
+            if (response.IsSuccessStatusCode)
+            {
+                Snackbar.Add("Rezervasyonunuz başarıyla oluşturuldu! İyi dersler. 🎾", Severity.Success);
+                Navigation.NavigateTo("/my-bookings");
+            }
+            else
+            {
+                var errorMsg = await response.Content.ReadAsStringAsync();
+                Snackbar.Add($"Hata: {errorMsg}", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add("Bağlantı hatası oluştu.", Severity.Error);
+        }
+    }
+}

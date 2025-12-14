@@ -1,0 +1,53 @@
+﻿@page "/coaches"
+@using KirikkaleTenisAkademi.Web.Models  @* 👈 DEĞİŞİKLİK BURADA: Domain değil Web.Models *@
+@inject HttpClient Http
+
+    <MudText Typo="Typo.h4" Color="Color.Primary" Class="mb-4">Akademi Eğitmenlerimiz</MudText>
+
+    @if (coaches == null)
+    {
+    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+    }
+    else
+    {
+    <MudGrid>
+        @foreach (var coach in coaches)
+        {
+        <MudItem xs="12" sm="6" md="4">
+            <MudCard Elevation="3" Class="rounded-lg hover-effect">
+                <MudCardMedia Image="@coach.ImageUrl" Height="250" />
+                <MudCardContent>
+                    <MudText Typo="Typo.h5">@coach.FirstName @coach.LastName</MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">@coach.Specialty</MudText>
+                    <MudText Typo="Typo.body2" Class="mt-2">@coach.Bio</MudText>
+                </MudCardContent>
+                <MudCardActions>
+                    <MudButton Variant="Variant.Text" Color="Color.Primary">Profili İncele</MudButton>
+
+                    <AuthorizeView Roles="Student">
+                        <Authorized>
+                            <MudButton Variant="Variant.Filled"
+                                       Color="Color.Secondary"
+                                       StartIcon="@Icons.Material.Filled.DateRange"
+                                       Href="@($"/booking/{coach.Id}")">
+                                Ders Al
+                            </MudButton>
+                        </Authorized>
+                    </AuthorizeView>
+                </MudCardActions>
+            </MudCard>
+        </MudItem>
+        }
+    </MudGrid>
+    }
+
+@code {
+    // 👇 DEĞİŞİKLİK BURADA: List<Coach> yerine List<CoachDto> yaptık
+    private List<CoachDto>? coaches;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // 👇 DEĞİŞİKLİK BURADA: CoachDto olarak çekiyoruz
+        coaches = await Http.GetFromJsonAsync<List<CoachDto>>("api/Coaches");
+    }
+}

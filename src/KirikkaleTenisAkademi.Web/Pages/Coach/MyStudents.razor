@@ -1,0 +1,82 @@
+﻿@page "/coach/students"
+@using KirikkaleTenisAkademi.Web.Models
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize(Roles = "Coach")]
+@inject HttpClient Http
+
+<MudContainer MaxWidth="MaxWidth.Medium" Class="mt-5">
+    <MudText Typo="Typo.h4" Color="Color.Primary" Class="mb-4">🎓 Öğrencilerim & Ders Listesi</MudText>
+
+    @if (studentList == null)
+    {
+        <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
+    }
+    else if (studentList.Count == 0)
+    {
+        <MudAlert Severity="Severity.Info">Henüz kayıtlı bir dersiniz yok.</MudAlert>
+    }
+    else
+    {
+        <MudTable Items="@studentList" Hover="true" Striped="true" Filter="new Func<MyStudentDto,bool>(FilterFunc)">
+            <ToolBarContent>
+                <MudText Typo="Typo.h6">Kayıtlı Dersler</MudText>
+                <MudSpacer />
+                <MudTextField @bind-Value="searchString" Placeholder="Öğrenci Ara..." Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
+            </ToolBarContent>
+            <HeaderContent>
+                <MudTh>Tarih</MudTh>
+                <MudTh>Saat</MudTh>
+                <MudTh>Öğrenci Adı</MudTh>
+                <MudTh>İletişim (Email)</MudTh>
+                <MudTh>Durum</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Tarih">@context.StartTime.ToLocalTime().ToString("dd.MM.yyyy")</MudTd>
+                <MudTd DataLabel="Saat">
+                    <MudChip T="string" Size="Size.Small" Color="Color.Info">
+                        @context.StartTime.ToLocalTime().ToString("HH:mm") - @context.EndTime.ToLocalTime().ToString("HH:mm")
+                    </MudChip>
+                </MudTd>
+                <MudTd DataLabel="Öğrenci Adı">
+                    <div class="d-flex align-center">
+                        <MudIcon Icon="@Icons.Material.Filled.Person" Size="Size.Small" Class="mr-2"/>
+                        <b>@context.StudentName</b>
+                    </div>
+                </MudTd>
+                <MudTd DataLabel="Email">@context.StudentEmail</MudTd>
+                <MudTd DataLabel="Durum">
+                    @if(context.StartTime.ToLocalTime() < DateTime.Now)
+                    {
+                         <MudChip T="string" Variant="Variant.Text" Color="Color.Default">Tamamlandı</MudChip>
+                    }
+                    else
+                    {
+                         <MudChip T="string" Variant="Variant.Filled" Color="Color.Success">Gelecek Ders</MudChip>
+                    }
+                </MudTd>
+            </RowTemplate>
+            <PagerContent>
+                <MudTablePager />
+            </PagerContent>
+        </MudTable>
+    }
+</MudContainer>
+
+@code {
+    private List<MyStudentDto>? studentList;
+    private string searchString = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        studentList = await Http.GetFromJsonAsync<List<MyStudentDto>>("api/LessonSlots/coach/my-students");
+    }
+
+    // Basit Arama Fonksiyonu
+    private bool FilterFunc(MyStudentDto element)
+    {
+        if (string.IsNullOrWhiteSpace(searchString)) return true;
+        if (element.StudentName.Contains(searchString, StringComparison.OrdinalIgnoreCase)) return true;
+        if (element.StudentEmail.Contains(searchString, StringComparison.OrdinalIgnoreCase)) return true;
+        return false;
+    }
+}

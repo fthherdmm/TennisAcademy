@@ -1,0 +1,132 @@
+﻿@page "/register"
+@using KirikkaleTenisAkademi.Web.Models
+@inject HttpClient Http
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+
+<MudGrid Class="d-flex justify-center align-center" Style="height: 100vh; background-color: #f5f5f5;">
+    <MudItem xs="12" sm="8" md="5">
+        <MudCard Elevation="4" Class="pa-4">
+            <MudCardHeader>
+                <CardHeaderContent>
+                    <div class="d-flex justify-center mb-2">
+                        <MudIcon Icon="@Icons.Material.Filled.PersonAdd" Color="Color.Secondary" Size="Size.Large" style="font-size: 3rem;" />
+                    </div>
+                    <MudText Typo="Typo.h5" Align="Align.Center" Color="Color.Primary"><b>Aramıza Katıl</b></MudText>
+                    <MudText Typo="Typo.body2" Align="Align.Center">Kırıkkale Tenis Akademi Üyelik Formu</MudText>
+                </CardHeaderContent>
+            </MudCardHeader>
+
+            <MudCardContent>
+                <EditForm Model="@registerModel" OnValidSubmit="HandleRegister">
+                    <DataAnnotationsValidator />
+                    
+                    <MudTextField Label="Ad" 
+                                  @bind-Value="registerModel.FirstName" 
+                                  Variant="Variant.Outlined" 
+                                  Margin="Margin.Dense"
+                                  Adornment="Adornment.Start" 
+                                  AdornmentIcon="@Icons.Material.Filled.Badge" 
+                                  For="@(() => registerModel.FirstName)" />
+                    
+                    <MudTextField Label="Soyad" 
+                                  @bind-Value="registerModel.LastName" 
+                                  Variant="Variant.Outlined" 
+                                  Margin="Margin.Dense"
+                                  Adornment="Adornment.Start" 
+                                  AdornmentIcon="@Icons.Material.Filled.Badge" 
+                                  For="@(() => registerModel.LastName)" />
+
+                    <MudTextField Label="Kullanıcı Adı" 
+                                  @bind-Value="registerModel.UserName" 
+                                  Variant="Variant.Outlined" 
+                                  Margin="Margin.Dense"
+                                  Class="mt-3"
+                                  Adornment="Adornment.Start" 
+                                  AdornmentIcon="@Icons.Material.Filled.AccountCircle" 
+                                  For="@(() => registerModel.UserName)" />
+
+                    <MudTextField Label="E-Posta" 
+                                  @bind-Value="registerModel.Email" 
+                                  Variant="Variant.Outlined" 
+                                  Margin="Margin.Dense"
+                                  Class="mt-3"
+                                  InputType="InputType.Email"
+                                  Adornment="Adornment.Start" 
+                                  AdornmentIcon="@Icons.Material.Filled.Email" 
+                                  For="@(() => registerModel.Email)" />
+
+                    <MudTextField Label="Şifre" 
+                                  @bind-Value="registerModel.Password" 
+                                  Variant="Variant.Outlined" 
+                                  Margin="Margin.Dense"
+                                  Class="mt-3"
+                                  InputType="InputType.Password"
+                                  Adornment="Adornment.Start" 
+                                  AdornmentIcon="@Icons.Material.Filled.Lock" 
+                                  HelperText="En az 1 Büyük, 1 Küçük harf, 1 Rakam ve 1 Sembol (!*?)"
+                                  For="@(() => registerModel.Password)" />
+
+                    <MudTextField Label="Şifre Tekrar" 
+                                  @bind-Value="registerModel.ConfirmPassword" 
+                                  Variant="Variant.Outlined" 
+                                  Margin="Margin.Dense"
+                                  Class="mt-3"
+                                  InputType="InputType.Password"
+                                  Adornment="Adornment.Start" 
+                                  AdornmentIcon="@Icons.Material.Filled.LockReset" 
+                                  For="@(() => registerModel.ConfirmPassword)" />
+
+                    <MudButton ButtonType="ButtonType.Submit" 
+                               Variant="Variant.Filled" 
+                               Color="Color.Primary" 
+                               Size="Size.Large" 
+                               FullWidth="true" 
+                               Class="mt-6">
+                        Kayıt Ol
+                    </MudButton>
+                </EditForm>
+            </MudCardContent>
+            
+            <MudCardActions Class="d-flex justify-center pb-4">
+                <MudText Typo="Typo.body2">Zaten hesabın var mı?</MudText>
+                <MudLink Href="/login" Color="Color.Secondary" Class="ml-2 font-weight-bold">Giriş Yap</MudLink>
+            </MudCardActions>
+        </MudCard>
+    </MudItem>
+</MudGrid>
+
+@code {
+    private RegisterDto registerModel = new();
+
+    private async Task HandleRegister()
+    {
+        try
+        {
+            var response = await Http.PostAsJsonAsync("api/Auth/register", registerModel);
+
+            if (response.IsSuccessStatusCode)
+            {
+                Snackbar.Add("Kayıt Başarılı! Giriş yapabilirsiniz.", Severity.Success);
+                // Başarılı olunca Login sayfasına yönlendir
+                await Task.Delay(1000);
+                Navigation.NavigateTo("/login");
+            }
+            else
+            {
+                // Backend'den gelen hatayı oku (Örn: Email zaten kayıtlı)
+                var error = await response.Content.ReadAsStringAsync();
+                
+                // Hata mesajı bazen JSON formatında karmaşık gelebilir, basitçe gösterelim
+                if (error.Contains("DuplicateUserName")) Snackbar.Add("Bu kullanıcı adı zaten alınmış.", Severity.Error);
+                else if (error.Contains("DuplicateEmail")) Snackbar.Add("Bu E-posta zaten sistemde kayıtlı.", Severity.Error);
+                else if (error.Contains("Password")) Snackbar.Add("Şifreniz yeterince güçlü değil.", Severity.Warning);
+                else Snackbar.Add($"Hata: {error}", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add("Sunucuya bağlanılamadı.", Severity.Error);
+        }
+    }
+}

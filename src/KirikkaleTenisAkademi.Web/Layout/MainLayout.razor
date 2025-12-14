@@ -1,0 +1,201 @@
+﻿@inherits LayoutComponentBase
+@using System.Net.Http.Json
+@using KirikkaleTenisAkademi.Web.Models
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthStateProvider
+@inject ILocalStorageService LocalStorage
+@inject HttpClient Http
+
+<MudThemeProvider Theme="_tennisTheme" />
+<MudDialogProvider />
+<MudSnackbarProvider />
+<MudPopoverProvider />
+
+<MudLayout>
+    <MudAppBar Elevation="1" Color="Color.Primary" Fixed="true">
+        <MudIcon Icon="@Icons.Material.Filled.SportsTennis" Size="Size.Large" Class="mr-3" />
+        <MudText Typo="Typo.h6" Style="font-weight:bold; cursor:pointer" @onclick="@(() => Navigation.NavigateTo("/"))">
+            Kırıkkale Tenis
+        </MudText>
+        
+        <MudSpacer />
+
+        <MudHidden Breakpoint="Breakpoint.MdAndUp" Invert="true">
+            <div class="d-flex gap-4 align-center">
+                <MudButton Variant="Variant.Text" Color="Color.Inherit" Href="/">Ana Sayfa</MudButton>
+                
+                <AuthorizeView Roles="Student">
+                    <Authorized>
+                        <MudChip T="string" Icon="@Icons.Material.Filled.Stars" Color="Color.Secondary" Class="mr-2">
+                            @lessonCredits Kredi
+                        </MudChip>
+                        
+                        <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small" Href="/packets" StartIcon="@Icons.Material.Filled.ShoppingBag" Class="rounded-pill text-dark fw-bold">
+                            Paket Al
+                        </MudButton>
+
+                        <MudButton Variant="Variant.Text" Color="Color.Inherit" Href="/my-bookings">Derslerim</MudButton>
+                    </Authorized>
+                </AuthorizeView>
+                
+                <MudButton Variant="Variant.Text" Color="Color.Inherit" Href="/coaches">Eğitmenler</MudButton>
+
+                <AuthorizeView Roles="Coach">
+                    <Authorized>
+                        <MudMenu Label="Eğitmen Paneli" Variant="Variant.Text" Color="Color.Inherit" EndIcon="@Icons.Material.Filled.KeyboardArrowDown">
+                            <MudMenuItem Href="/coach/schedule" Icon="@Icons.Material.Filled.EditCalendar">Müsaitlik Yönetimi</MudMenuItem>
+                            <MudMenuItem Href="/coach/students" Icon="@Icons.Material.Filled.School">Öğrencilerim</MudMenuItem>
+                        </MudMenu>
+                    </Authorized>
+                </AuthorizeView>
+
+                <AuthorizeView Roles="Admin">
+                    <Authorized>
+                        <MudMenu Label="Yönetim" Variant="Variant.Text" Color="Color.Inherit" EndIcon="@Icons.Material.Filled.KeyboardArrowDown">
+                            <MudMenuItem Href="/admin/add-coach">Koç Ekle</MudMenuItem>
+                            <MudMenuItem Href="/admin/users">Kullanıcılar</MudMenuItem>
+                        </MudMenu>
+                    </Authorized>
+                </AuthorizeView>
+                
+                <AuthorizeView>
+                    <Authorized>
+                        <MudMenu AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
+                            <ActivatorContent>
+                                <MudChip T="string" Icon="@Icons.Material.Filled.Person" Color="Color.Surface" Style="color:#2E7D32; font-weight:bold;">
+                                    @context.User.Identity?.Name
+                                </MudChip>
+                            </ActivatorContent>
+                            <ChildContent>
+                                <MudMenuItem Href="/profile" Icon="@Icons.Material.Filled.ManageAccounts">Profili Düzenle</MudMenuItem>
+                                <MudMenuItem OnClick="Logout" Icon="@Icons.Material.Filled.Logout">Çıkış Yap</MudMenuItem>
+                            </ChildContent>
+                        </MudMenu>
+                    </Authorized>
+                    <NotAuthorized>
+                        <MudButton Variant="Variant.Text" Color="Color.Inherit" Href="/login">Giriş Yap</MudButton>
+                        <MudButton Variant="Variant.Filled" Color="Color.Secondary" Href="/register" Class="ml-2 rounded-pill">Üye Ol</MudButton>
+                    </NotAuthorized>
+                </AuthorizeView>
+            </div>
+        </MudHidden>
+
+        <MudHidden Breakpoint="Breakpoint.SmAndDown" Invert="true">
+            <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.End" OnClick="@(() => _drawerOpen = !_drawerOpen)" />
+        </MudHidden>
+    </MudAppBar>
+
+    <MudDrawer @bind-Open="_drawerOpen" Anchor="Anchor.Right" Elevation="1" Variant="DrawerVariant.Temporary">
+        <MudDrawerHeader>
+            <MudText Typo="Typo.h6">Menü</MudText>
+        </MudDrawerHeader>
+        <MudNavMenu>
+            <MudNavLink Href="/" Icon="@Icons.Material.Filled.Home">Ana Sayfa</MudNavLink>
+            
+            <AuthorizeView Roles="Student">
+                <Authorized>
+                     <MudPaper Class="pa-3 mx-2 my-2 mud-theme-primary" Elevation="0">
+                        <MudText Typo="Typo.subtitle2" Align="Align.Center">Bakiyeniz: <b>@lessonCredits Kredi</b></MudText>
+                    </MudPaper>
+                    <MudNavLink Href="/packets" Icon="@Icons.Material.Filled.ShoppingBag">Paket Satın Al</MudNavLink>
+                    <MudNavLink Href="/my-bookings" Icon="@Icons.Material.Filled.Event">Derslerim</MudNavLink>
+                </Authorized>
+            </AuthorizeView>
+
+            <MudNavLink Href="/coaches" Icon="@Icons.Material.Filled.People">Eğitmenler</MudNavLink>
+
+            <AuthorizeView Roles="Coach">
+                <Authorized>
+                    <MudText Typo="Typo.subtitle2" Class="pa-4" Color="Color.Primary">Eğitmen Paneli</MudText>
+                    <MudNavLink Href="/coach/schedule" Icon="@Icons.Material.Filled.EditCalendar">Müsaitlik Yönetimi</MudNavLink>
+                    <MudNavLink Href="/coach/students" Icon="@Icons.Material.Filled.School">Öğrencilerim</MudNavLink>
+                </Authorized>
+            </AuthorizeView>
+
+             <AuthorizeView Roles="Admin">
+                <Authorized>
+                    <MudText Typo="Typo.subtitle2" Class="pa-4" Color="Color.Error">Yönetim</MudText>
+                    <MudNavLink Href="/admin/add-coach" Icon="@Icons.Material.Filled.PersonAdd">Koç Ekle</MudNavLink>
+                    <MudNavLink Href="/admin/users" Icon="@Icons.Material.Filled.SupervisedUserCircle">Kullanıcılar</MudNavLink>
+                </Authorized>
+            </AuthorizeView>
+            
+            <MudDivider Class="my-2"/>
+
+            <AuthorizeView>
+                <Authorized>
+                     <MudNavLink Href="/profile" Icon="@Icons.Material.Filled.Person">Profilim (@context.User.Identity?.Name)</MudNavLink>
+                     <MudNavLink OnClick="Logout" Icon="@Icons.Material.Filled.Logout">Çıkış Yap</MudNavLink>
+                </Authorized>
+                <NotAuthorized>
+                    <MudNavLink Href="/login" Icon="@Icons.Material.Filled.Login">Giriş Yap</MudNavLink>
+                    <MudNavLink Href="/register" Icon="@Icons.Material.Filled.AppRegistration">Üye Ol</MudNavLink>
+                </NotAuthorized>
+            </AuthorizeView>
+
+        </MudNavMenu>
+    </MudDrawer>
+
+    <MudMainContent Class="pt-16 px-4">
+        @Body
+    </MudMainContent>
+</MudLayout>
+
+@code {
+    bool _drawerOpen = false;
+    private int lessonCredits = 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await AuthStateProvider.GetAuthenticationStateAsync();
+        
+        if (state.User.Identity?.IsAuthenticated == true && state.User.IsInRole("Student"))
+        {
+            await FetchUserCredits();
+        }
+    }
+
+    private async Task FetchUserCredits()
+    {
+        try
+        {
+            var profile = await Http.GetFromJsonAsync<UserProfileDto>("api/Auth/profile");
+
+            if (profile != null)
+            {
+                lessonCredits = profile.LessonCredits;
+                StateHasChanged(); 
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Kredi bilgisi çekilemedi: " + ex.Message);
+        }
+    }
+
+    async Task Logout()
+    {
+        await LocalStorage.RemoveItemAsync("authToken");
+        await AuthStateProvider.GetAuthenticationStateAsync();
+        Navigation.NavigateTo("/login");
+    }
+
+    MudTheme _tennisTheme = new MudTheme()
+    {
+        PaletteLight = new PaletteLight()
+        {
+            Primary = "#2E7D32",        
+            Secondary = "#C6FF00",  
+            AppbarBackground = "#2E7D32", 
+            Background = "#FAFAFA",     
+            TextPrimary = "#1B5E20",    
+        }
+    };
+
+    public class UserProfileDto
+    {
+        public string FullName { get; set; } = "";
+        public string Email { get; set; } = "";
+        public int LessonCredits { get; set; }
+    }
+}

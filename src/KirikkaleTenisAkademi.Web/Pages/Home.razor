@@ -1,0 +1,28 @@
+﻿@page "/"
+@using KirikkaleTenisAkademi.Web.Pages.Dashboards
+
+<AuthorizeView>
+    <NotAuthorized>
+        <GuestDashboard />
+    </NotAuthorized>
+
+    <Authorized>
+        <AuthorizeView Roles="Admin" Context="adminContext">
+            <Authorized>
+                <AdminDashboard />
+            </Authorized>
+        </AuthorizeView>
+
+        <AuthorizeView Roles="Coach" Context="coachContext">
+            <Authorized>
+                <CoachDashboard />
+            </Authorized>
+        </AuthorizeView>
+
+        <AuthorizeView Roles="Student" Context="studentContext">
+            <Authorized>
+                <StudentDashboard />
+            </Authorized>
+        </AuthorizeView>
+    </Authorized>
+</AuthorizeView>

@@ -1,0 +1,71 @@
+﻿@using MudBlazor
+@using KirikkaleTenisAkademi.Web.Models
+@using System.Net.Http.Json
+@inject HttpClient HttpClient
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        <MudText Typo="Typo.h6" Class="mb-3">
+            @SelectedDate.ToString("dd MMMM dddd", new System.Globalization.CultureInfo("tr-TR"))
+        </MudText>
+        <MudText Class="mb-4">Bu günü saat <b>@SelectedDate.ToString("HH:00")</b> itibarıyla ne kadar süre kapatmak istersiniz?</MudText>
+
+        <MudSelect T="int" Label="Süre Seçiniz" @bind-Value="DurationHours" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter">
+            <MudSelectItem Value="1">1 Saat</MudSelectItem>
+            <MudSelectItem Value="2">2 Saat</MudSelectItem>
+            <MudSelectItem Value="3">3 Saat</MudSelectItem>
+            <MudSelectItem Value="4">4 Saat (Yarım Gün)</MudSelectItem>
+            <MudSelectItem Value="8">Tüm Gün</MudSelectItem>
+        </MudSelect>
+
+        <MudTextField @bind-Value="Reason" Label="Sebep (Opsiyonel)" Placeholder="Örn: Dinlenme" Class="mt-3" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">İptal</MudButton>
+        <MudButton Color="Color.Error" Variant="Variant.Filled" OnClick="Submit">Kapat</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    // DÜZELTME BURADA: Sınıf yerine Interface kullandık (Başına 'I' geldi)
+    [CascadingParameter] 
+    public IMudDialogInstance MudDialog { get; set; }
+
+    [Parameter] public DateTime SelectedDate { get; set; }
+
+    private int DurationHours { get; set; } = 1;
+    private string Reason { get; set; } = "";
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task Submit()
+    {
+        var request = new BlockTimeRequest
+        {
+            StartTime = SelectedDate,
+            EndTime = SelectedDate.AddHours(DurationHours),
+            Reason = Reason
+        };
+
+        try
+        {
+            var response = await HttpClient.PostAsJsonAsync("api/Coach/block-time", request);
+            if (response.IsSuccessStatusCode)
+            {
+                Snackbar.Add("Zaman kapatıldı.", Severity.Success);
+                // Interface'de de Close metodu vardır
+                MudDialog.Close(DialogResult.Ok(true));
+            }
+            else
+            {
+                var msg = await response.Content.ReadAsStringAsync();
+                Snackbar.Add("Hata: " + msg, Severity.Error);
+            }
+        }
+        catch
+        {
+            Snackbar.Add("Sunucu hatası.", Severity.Error);
+        }
+    }
+}

@@ -1,0 +1,57 @@
+﻿@page "/profile"
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@inject HttpClient Http
+@inject ISnackbar Snackbar
+@inject AuthenticationStateProvider AuthStateProvider
+
+<MudContainer MaxWidth="MaxWidth.Small" Class="mt-5">
+    <MudCard>
+        <MudCardHeader>
+            <CardHeaderContent>
+                <MudText Typo="Typo.h5">Profil Bilgilerim</MudText>
+            </CardHeaderContent>
+        </MudCardHeader>
+        <MudCardContent>
+             <MudTextField @bind-Value="fullName" Label="Ad Soyad" Variant="Variant.Outlined" Class="mb-3"/>
+             <MudTextField @bind-Value="userName" Label="Kullanıcı Adı" Variant="Variant.Outlined" Class="mb-3"/>
+             <MudTextField Value="@email" Label="E-Posta" Variant="Variant.Outlined" ReadOnly="true" HelperText="E-posta değiştirilemez." Disabled="true"/>
+             
+             <MudButton OnClick="SaveProfile" Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" Class="mt-2">Kaydet</MudButton>
+        </MudCardContent>
+    </MudCard>
+</MudContainer>
+
+@code {
+    string fullName = "";
+    string userName = "";
+    string email = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Mevcut bilgileri Token'dan (AuthState) okuyalım
+        var state = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = state.User;
+
+        fullName = user.Identity.Name; // Basitçe Name claim'ini alıyoruz (veya özel claim)
+        // Not: Token içindeki veriler güncel olmayabilir, en doğrusu API'den "GetMyProfile" diye çekmektir.
+        // Ama şimdilik hızlı çözüm için burayı boş geçip API'ye odaklanabiliriz.
+        // Daha iyi yöntem:
+        // fullName = user.FindFirst("FullName")?.Value; 
+    }
+
+    async Task SaveProfile()
+    {
+        var model = new { FullName = fullName, UserName = userName };
+        var response = await Http.PutAsJsonAsync("api/Auth/profile", model);
+        
+        if (response.IsSuccessStatusCode)
+        {
+            Snackbar.Add("Profil güncellendi! Lütfen tekrar giriş yapın.", Severity.Success);
+        }
+        else
+        {
+            Snackbar.Add("Hata oluştu.", Severity.Error);
+        }
+    }
+}

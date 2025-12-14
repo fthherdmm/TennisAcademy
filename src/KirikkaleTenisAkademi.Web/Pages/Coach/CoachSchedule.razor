@@ -1,0 +1,161 @@
+﻿@page "/coach/availability"
+@using KirikkaleTenisAkademi.Web.Models
+@using KirikkaleTenisAkademi.Web.Shared.Components
+@using System.Net.Http.Json
+@inject HttpClient HttpClient
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+    <MudText Typo="Typo.h4" Class="mb-2">📅 Müsaitlik Takvimi</MudText>
+    <MudAlert Severity="Severity.Info" Class="mb-4">
+        Takvim üzerinde müsait olmadığınız saatlere tıklayarak kapatabilirsiniz. Kapalı olan saatlere tekrar tıklayarak açabilirsiniz.
+    </MudAlert>
+
+    @if (_loading)
+    {
+    <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="my-4" />
+    }
+    else
+    {
+    <WeeklyScheduler
+        StartHour="9"
+        EndHour="22"
+        BusySlots="@_calendarData"
+        OnSlotClicked="HandleSlotClick" />
+    }
+
+</MudContainer>
+
+@code {
+private bool _loading = true;
+private List<CoachUnavailabilityDto> _unavailabilities = new();
+
+// Takvime göndereceğimiz veri yapısı: [TarihSaat] -> (Tip, EkrandaYazacakYazı)
+private Dictionary<DateTime, (string Type, string Text)> _calendarData = new();
+
+protected override async Task OnInitializedAsync()
+{
+await LoadData();
+}
+
+private async Task LoadData()
+{
+_loading = true;
+try
+{
+// Koçun kapattığı saatleri çek
+var response = await HttpClient.GetFromJsonAsync<List<CoachUnavailabilityDto>>("api/Coach/my-unavailabilities");
+if (response != null)
+{
+_unavailabilities = response;
+RefreshCalendarData();
+}
+}
+catch (Exception ex)
+{
+Snackbar.Add("Veriler yüklenemedi.", Severity.Error);
+}
+finally
+{
+_loading = false;
+}
+}
+
+private void RefreshCalendarData()
+{
+_calendarData.Clear();
+
+// Veritabanından gelen veriyi Takvim formatına çevir
+foreach (var item in _unavailabilities)
+{
+// Başlangıç saatinden bitiş saatine kadar her saati işaretle
+// Örn: 14:00 - 16:00 arası ise -> 14:00 ve 15:00'i doldur.
+var current = item.StartTime;
+while (current < item.EndTime)
+{
+// Saat başlarını anahtar olarak kullanıyoruz (Dakika hassasiyeti şimdilik yok)
+// Type: "MyBlock" -> CSS'de turuncu yapacak
+var key = new DateTime(current.Year, current.Month, current.Day, current.Hour, 0, 0);
+
+if (!_calendarData.ContainsKey(key))
+{
+_calendarData.Add(key, ("MyBlock", item.Reason ?? "Kapalı"));
+}
+
+current = current.AddHours(1);
+}
+}
+}
+
+private async Task HandleSlotClick(DateTime clickedTime)
+{
+// 1. Durum: Tıklanan saat zaten kapalı mı?
+if (_calendarData.ContainsKey(clickedTime))
+{
+var slotInfo = _calendarData[clickedTime];
+
+// Sadece kendi kapattığı yerleri açabilir (Dersleri buradan iptal etmesin, o başka sayfa)
+if (slotInfo.Type == "MyBlock")
+{
+// O saati içeren veritabanı kaydını bulmamız lazım
+// Basit mantık: O saate denk gelen kaydı listeden bul
+var blockRecord = _unavailabilities.FirstOrDefault(u => clickedTime >= u.StartTime && clickedTime < u.EndTime);
+
+if (blockRecord != null)
+{
+bool? result = await DialogService.ShowMessageBox(
+"Müsait Yap",
+$"{clickedTime:dd.MM.yyyy HH:mm} saatindeki engeli kaldırmak istiyor musunuz?",
+yesText: "Evet, Aç", cancelText: "Hayır");
+
+if (result == true)
+{
+await DeleteBlock(blockRecord.Id);
+}
+}
+}
+return;
+}
+
+// 2. Durum: Tıklanan saat BOŞ -> Yeni Blok Ekle (Popup Aç)
+await OpenBlockDialog(clickedTime);
+}
+
+private async Task OpenBlockDialog(DateTime time)
+{
+// Popup için parametreler
+var parameters = new DialogParameters();
+parameters.Add("SelectedDate", time);
+
+var dialog = await DialogService.ShowAsync<BlockTimeDialog>("Zamanı Kapat", parameters);
+var result = await dialog.Result;
+
+if (!result.Canceled)
+{
+// Dialog kapandı ve işlem yapıldıysa sayfayı yenile
+await LoadData();
+}
+}
+
+private async Task DeleteBlock(int id)
+{
+try
+{
+var response = await HttpClient.DeleteAsync($"api/Coach/unblock-time/{id}");
+if (response.IsSuccessStatusCode)
+{
+Snackbar.Add("Zaman açıldı.", Severity.Success);
+await LoadData();
+}
+else
+{
+Snackbar.Add("İşlem başarısız.", Severity.Error);
+}
+}
+catch
+{
+Snackbar.Add("Hata oluştu.", Severity.Error);
+}
+}
+}

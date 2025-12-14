@@ -1,0 +1,199 @@
+﻿@* @page "/coach/schedule" *@
+@* @using KirikkaleTenisAkademi.Domain.Entities *@
+@* @using KirikkaleTenisAkademi.Web.Models *@
+@* @using Microsoft.AspNetCore.Authorization *@
+@* @attribute [Authorize(Roles = "Coach")] *@
+@* @inject HttpClient Http *@
+@* @inject ISnackbar Snackbar *@
+@* *@
+@* <MudContainer MaxWidth="MaxWidth.Large" Class="mt-5"> *@
+@*     <MudGrid> *@
+@*         <MudItem xs="12" md="4"> *@
+@*             <MudCard Elevation="4" Class="pa-4 border-green"> *@
+@*                 <MudText Typo="Typo.h5" Color="Color.Primary" Align="Align.Center" Class="mb-4"> *@
+@*                     <MudIcon Icon="@Icons.Material.Filled.AddAlarm" /> Ders Programı Oluştur *@
+@*                 </MudText> *@
+@* *@
+@*                 <EditForm Model="@createModel" OnValidSubmit="HandleCreateRecurringSlot"> *@
+@*                     <DataAnnotationsValidator /> *@
+@*                      *@
+@*                     <MudDatePicker Label="Başlangıç Tarihi" @bind-Date="createModel.Date" Class="mb-3" /> *@
+@*                      *@
+@*                     <MudTimePicker Label="Başlangıç Saati" @bind-Time="createModel.StartTime" Class="mb-3" /> *@
+@*                      *@
+@*                     <MudTimePicker Label="Bitiş Saati" @bind-Time="createModel.EndTime" Class="mb-3" /> *@
+@*                      *@
+@*                     <MudNumericField Label="Kaç Hafta Tekrar Etsin?"  *@
+@*                                      @bind-Value="createModel.Weeks"  *@
+@*                                      Min="1" Max="12"  *@
+@*                                      HelperText="Örn: 4 hafta boyunca aynı saati açar." *@
+@*                                      Variant="Variant.Outlined" Class="mb-3" /> *@
+@* *@
+@*                     <MudNumericField Label="Ders Ücreti (₺)" @bind-Value="createModel.Price" Variant="Variant.Outlined" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.AttachMoney" /> *@
+@* *@
+@*                     <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" Class="mt-4"> *@
+@*                         Programı Oluştur *@
+@*                     </MudButton> *@
+@*                 </EditForm> *@
+@*             </MudCard> *@
+@*         </MudItem> *@
+@* *@
+@*         <MudItem xs="12" md="8"> *@
+@*              *@
+@*             @if (mySlots != null && mySlots.Any(s => s.Status == 1)) // Status 1 = Pending *@
+@*             { *@
+@*                 <MudAlert Severity="Severity.Warning" Class="mb-4">🔔 Onay Bekleyen Talepleriniz Var!</MudAlert> *@
+@*                 <MudTable Items="@mySlots.Where(s => s.Status == 1)" Class="mb-8" Elevation="4"> *@
+@*                     <HeaderContent> *@
+@*                         <MudTh>Tarih</MudTh> *@
+@*                         <MudTh>Öğrenci</MudTh> *@
+@*                         <MudTh>İşlem</MudTh> *@
+@*                     </HeaderContent> *@
+@*                     <RowTemplate> *@
+@*                         <MudTd>@context.StartTime.ToLocalTime().ToString("dd.MM HH:mm")</MudTd> *@
+@*                         <MudTd><b>@context.StudentName</b></MudTd> *@
+@*                         <MudTd> *@
+@*                             <MudIconButton Icon="@Icons.Material.Filled.Check" Color="Color.Success" OnClick="@(() => Approve(context.Id, true))" Tooltip="Onayla" /> *@
+@*                             <MudIconButton Icon="@Icons.Material.Filled.Close" Color="Color.Error" OnClick="@(() => Approve(context.Id, false))" Tooltip="Reddet" /> *@
+@*                         </MudTd> *@
+@*                     </RowTemplate> *@
+@*                 </MudTable> *@
+@*             } *@
+@* *@
+@*             <MudText Typo="Typo.h5" Color="Color.Primary" Class="mb-2">📅 Tüm Takvimim</MudText> *@
+@* *@
+@*             @if (mySlots == null) *@
+@*             { *@
+@*                 <MudProgressLinear Color="Color.Primary" Indeterminate="true" /> *@
+@*             } *@
+@*             else *@
+@*             { *@
+@*                 <MudTable Items="@mySlots" Hover="true" Striped="true"> *@
+@*                     <HeaderContent> *@
+@*                         <MudTh>Tarih</MudTh> *@
+@*                         <MudTh>Saat</MudTh> *@
+@*                         <MudTh>Ücret</MudTh> *@
+@*                         <MudTh>Durum</MudTh> *@
+@*                     </HeaderContent> *@
+@*                     <RowTemplate> *@
+@*                         <MudTd>@context.StartTime.ToLocalTime().ToString("dd.MM.yyyy")</MudTd> *@
+@*                         <MudTd> *@
+@*                             <MudChip T="string" Size="Size.Small" Color="Color.Info"> *@
+@*                                 @context.StartTime.ToLocalTime().ToString("HH:mm") - @context.EndTime.ToLocalTime().ToString("HH:mm") *@
+@*                             </MudChip> *@
+@*                         </MudTd> *@
+@*                         <MudTd>@context.Price ₺</MudTd> *@
+@*                         <MudTd> *@
+@*                             @if (context.Status == 2) // Confirmed *@
+@*                             { *@
+@*                                 <MudChip T="string" Color="Color.Success" Icon="@Icons.Material.Filled.CheckCircle">DOLU (@context.StudentName)</MudChip> *@
+@*                             } *@
+@*                             else if (context.Status == 1) // Pending *@
+@*                             { *@
+@*                                 <MudChip T="string" Color="Color.Warning">ONAY BEKLİYOR</MudChip> *@
+@*                             } *@
+@*                             else // Available *@
+@*                             { *@
+@*                                 <MudChip T="string" Variant="Variant.Outlined" Color="Color.Default">BOŞ</MudChip> *@
+@*                             } *@
+@*                         </MudTd> *@
+@*                     </RowTemplate> *@
+@*                 </MudTable> *@
+@*             } *@
+@*         </MudItem> *@
+@*     </MudGrid> *@
+@* </MudContainer> *@
+@* *@
+@* @code { *@
+@*     // Modeli burada genişletiyorum (DTO'yu ayrıca güncellemene gerek kalmasın diye) *@
+@*     public class CreateRecurringDto : CreateSlotDto *@
+@*     { *@
+@*         public int Weeks { get; set; } = 4; *@
+@*     } *@
+@* *@
+@*     private CreateRecurringDto createModel = new(); *@
+@*      *@
+@*     // Status alanını da ekliyoruz *@
+@*     public class CoachScheduleViewModel *@
+@*     { *@
+@*         public int Id { get; set; } *@
+@*         public DateTime StartTime { get; set; } *@
+@*         public DateTime EndTime { get; set; } *@
+@*         public decimal Price { get; set; } *@
+@*         public int Status { get; set; } // 0: Available, 1: Pending, 2: Confirmed *@
+@*         public string? StudentName { get; set; } *@
+@*     } *@
+@* *@
+@*     private List<CoachScheduleViewModel>? mySlots; *@
+@*     private Coach? currentCoach; *@
+@* *@
+@*     protected override async Task OnInitializedAsync() *@
+@*     { *@
+@*         await LoadData(); *@
+@*     } *@
+@* *@
+@*     private async Task LoadData() *@
+@*     { *@
+@*         try *@
+@*         { *@
+@*             currentCoach = await Http.GetFromJsonAsync<Coach>("api/Coaches/current"); *@
+@*             if (currentCoach != null) *@
+@*             { *@
+@*                 mySlots = await Http.GetFromJsonAsync<List<CoachScheduleViewModel>>($"api/LessonSlots/coach/{currentCoach.Id}"); *@
+@*             } *@
+@*         } *@
+@*         catch (Exception ex) *@
+@*         { *@
+@*             Snackbar.Add("Veriler yüklenemedi.", Severity.Error); *@
+@*         } *@
+@*     } *@
+@* *@
+@*     private async Task HandleCreateRecurringSlot() *@
+@*     { *@
+@*         if (currentCoach == null) return; *@
+@* *@
+@*         try *@
+@*         { *@
+@*             var startDateTime = createModel.Date!.Value.Add(createModel.StartTime!.Value).ToUniversalTime(); *@
+@*             var endDateTime = createModel.Date!.Value.Add(createModel.EndTime!.Value).ToUniversalTime(); *@
+@*              *@
+@*             // API'ye gönderilecek veri *@
+@*             var request = new  *@
+@*             { *@
+@*                 StartTime = startDateTime, *@
+@*                 EndTime = endDateTime, *@
+@*                 Price = createModel.Price, *@
+@*                 WeeksToRepeat = createModel.Weeks *@
+@*             }; *@
+@* *@
+@*             var response = await Http.PostAsJsonAsync("api/LessonSlots/create-recurring", request); *@
+@* *@
+@*             if (response.IsSuccessStatusCode) *@
+@*             { *@
+@*                 Snackbar.Add($"{createModel.Weeks} haftalık program oluşturuldu! 🎾", Severity.Success); *@
+@*                 await LoadData(); *@
+@*             } *@
+@*             else *@
+@*             { *@
+@*                 var error = await response.Content.ReadAsStringAsync(); *@
+@*                 Snackbar.Add($"Hata: {error}", Severity.Error); *@
+@*             } *@
+@*         } *@
+@*         catch (Exception ex) *@
+@*         { *@
+@*             Snackbar.Add("Sunucu hatası.", Severity.Error); *@
+@*         } *@
+@*     } *@
+@* *@
+@*     private async Task Approve(int id, bool isApproved) *@
+@*     { *@
+@*         var request = new { IsApproved = isApproved }; *@
+@*         var response = await Http.PostAsJsonAsync($"api/LessonSlots/approve/{id}", request); *@
+@*          *@
+@*         if (response.IsSuccessStatusCode) *@
+@*         { *@
+@*              Snackbar.Add(isApproved ? "Ders onaylandı." : "Talep reddedildi.", isApproved ? Severity.Success : Severity.Warning); *@
+@*              await LoadData(); *@
+@*         } *@
+@*     } *@
+@* } *@

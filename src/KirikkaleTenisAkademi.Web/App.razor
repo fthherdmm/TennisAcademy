@@ -1,0 +1,17 @@
+﻿<CascadingAuthenticationState>
+    <Router AppAssembly="@typeof(App).Assembly">
+        <Found Context="routeData">
+            <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)">
+                <NotAuthorized>
+                    <p>Üzgünüm, bu sayfayı görmeye yetkiniz yok.</p>
+                </NotAuthorized>
+            </AuthorizeRouteView>
+        </Found>
+        <NotFound>
+            <PageTitle>Bulunamadı</PageTitle>
+            <LayoutView Layout="@typeof(MainLayout)">
+                <p role="alert">Aradığınız sayfa tenis kortlarında bulunamadı.</p>
+            </LayoutView>
+        </NotFound>
+    </Router>
+</CascadingAuthenticationState>

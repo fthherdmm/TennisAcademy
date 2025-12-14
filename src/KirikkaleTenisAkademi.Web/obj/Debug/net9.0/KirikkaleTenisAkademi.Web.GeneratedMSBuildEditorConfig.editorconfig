@@ -1,0 +1,116 @@
+is_global = true
+build_property.EnableAotAnalyzer = 
+build_property.EnableSingleFileAnalyzer = 
+build_property.EnableTrimAnalyzer = false
+build_property.IncludeAllContentForSelfExtract = 
+build_property.MudDebugAnalyzer = 
+build_property.MudAllowedAttributePattern = 
+build_property.MudAllowedAttributeList = 
+build_property.TargetFramework = net9.0
+build_property.TargetPlatformMinVersion = 
+build_property.UsingMicrosoftNETSdkWeb = 
+build_property.ProjectTypeGuids = 
+build_property.InvariantGlobalization = false
+build_property.PlatformNeutralAssembly = 
+build_property.EnforceExtendedAnalyzerRules = 
+build_property._SupportedPlatformList = browser
+build_property.RootNamespace = KirikkaleTenisAkademi.Web
+build_property.RootNamespace = KirikkaleTenisAkademi.Web
+build_property.ProjectDir = C:\Users\erdem\OneDrive\Masaüstü\.net\proje\KirikkaleTenisAkademi\src\KirikkaleTenisAkademi.Web\
+build_property.EnableComHosting = 
+build_property.EnableGeneratedComInterfaceComImportInterop = false
+build_property.RazorLangVersion = 9.0
+build_property.SupportLocalizedComponentNames = 
+build_property.GenerateRazorMetadataSourceChecksumAttributes = 
+build_property.MSBuildProjectDirectory = C:\Users\erdem\OneDrive\Masaüstü\.net\proje\KirikkaleTenisAkademi\src\KirikkaleTenisAkademi.Web
+build_property._RazorSourceGeneratorDebug = 
+build_property.EffectiveAnalysisLevelStyle = 9.0
+build_property.EnableCodeStyleSeverity = 
+
+[C:/Users/erdem/OneDrive/Masaüstü/.net/proje/KirikkaleTenisAkademi/src/KirikkaleTenisAkademi.Web/App.razor]
+build_metadata.AdditionalFiles.TargetPath = QXBwLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/erdem/OneDrive/Masaüstü/.net/proje/KirikkaleTenisAkademi/src/KirikkaleTenisAkademi.Web/Pages/Admin/AddCoach.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcQWRtaW5cQWRkQ29hY2gucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/erdem/OneDrive/Masaüstü/.net/proje/KirikkaleTenisAkademi/src/KirikkaleTenisAkademi.Web/Pages/Admin/UserManagement.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcQWRtaW5cVXNlck1hbmFnZW1lbnQucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/erdem/OneDrive/Masaüstü/.net/proje/KirikkaleTenisAkademi/src/KirikkaleTenisAkademi.Web/Pages/Booking.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcQm9va2luZy5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/erdem/OneDrive/Masaüstü/.net/proje/KirikkaleTenisAkademi/src/KirikkaleTenisAkademi.Web/Pages/Coaches.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcQ29hY2hlcy5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/erdem/OneDrive/Masaüstü/.net/proje/KirikkaleTenisAkademi/src/KirikkaleTenisAkademi.Web/Pages/Coach/BlockTimeDialog.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcQ29hY2hcQmxvY2tUaW1lRGlhbG9nLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/erdem/OneDrive/Masaüstü/.net/proje/KirikkaleTenisAkademi/src/KirikkaleTenisAkademi.Web/Pages/Coach/CoachSchedule.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcQ29hY2hcQ29hY2hTY2hlZHVsZS5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/erdem/OneDrive/Masaüstü/.net/proje/KirikkaleTenisAkademi/src/KirikkaleTenisAkademi.Web/Pages/Coach/MySchedule.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcQ29hY2hcTXlTY2hlZHVsZS5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/erdem/OneDrive/Masaüstü/.net/proje/KirikkaleTenisAkademi/src/KirikkaleTenisAkademi.Web/Pages/Coach/MyStudents.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcQ29hY2hcTXlTdHVkZW50cy5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/erdem/OneDrive/Masaüstü/.net/proje/KirikkaleTenisAkademi/src/KirikkaleTenisAkademi.Web/Pages/Dashboards/AdminDashboard.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcRGFzaGJvYXJkc1xBZG1pbkRhc2hib2FyZC5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/erdem/OneDrive/Masaüstü/.net/proje/KirikkaleTenisAkademi/src/KirikkaleTenisAkademi.Web/Pages/Dashboards/CoachDashboard.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcRGFzaGJvYXJkc1xDb2FjaERhc2hib2FyZC5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/erdem/OneDrive/Masaüstü/.net/proje/KirikkaleTenisAkademi/src/KirikkaleTenisAkademi.Web/Pages/Dashboards/GuestDashboard.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcRGFzaGJvYXJkc1xHdWVzdERhc2hib2FyZC5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/erdem/OneDrive/Masaüstü/.net/proje/KirikkaleTenisAkademi/src/KirikkaleTenisAkademi.Web/Pages/Dashboards/StudentDashboard.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcRGFzaGJvYXJkc1xTdHVkZW50RGFzaGJvYXJkLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/erdem/OneDrive/Masaüstü/.net/proje/KirikkaleTenisAkademi/src/KirikkaleTenisAkademi.Web/Pages/Home.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcSG9tZS5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/erdem/OneDrive/Masaüstü/.net/proje/KirikkaleTenisAkademi/src/KirikkaleTenisAkademi.Web/Pages/Login.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcTG9naW4ucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/erdem/OneDrive/Masaüstü/.net/proje/KirikkaleTenisAkademi/src/KirikkaleTenisAkademi.Web/Pages/MyBookings.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcTXlCb29raW5ncy5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/erdem/OneDrive/Masaüstü/.net/proje/KirikkaleTenisAkademi/src/KirikkaleTenisAkademi.Web/Pages/PacketStore.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcUGFja2V0U3RvcmUucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/erdem/OneDrive/Masaüstü/.net/proje/KirikkaleTenisAkademi/src/KirikkaleTenisAkademi.Web/Pages/Profile.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcUHJvZmlsZS5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/erdem/OneDrive/Masaüstü/.net/proje/KirikkaleTenisAkademi/src/KirikkaleTenisAkademi.Web/Pages/Register.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcUmVnaXN0ZXIucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/erdem/OneDrive/Masaüstü/.net/proje/KirikkaleTenisAkademi/src/KirikkaleTenisAkademi.Web/Shared/Components/WeeklyScheduler.razor]
+build_metadata.AdditionalFiles.TargetPath = U2hhcmVkXENvbXBvbmVudHNcV2Vla2x5U2NoZWR1bGVyLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/erdem/OneDrive/Masaüstü/.net/proje/KirikkaleTenisAkademi/src/KirikkaleTenisAkademi.Web/_Imports.razor]
+build_metadata.AdditionalFiles.TargetPath = X0ltcG9ydHMucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/erdem/OneDrive/Masaüstü/.net/proje/KirikkaleTenisAkademi/src/KirikkaleTenisAkademi.Web/Layout/MainLayout.razor]
+build_metadata.AdditionalFiles.TargetPath = TGF5b3V0XE1haW5MYXlvdXQucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = b-ntc6b3fq8u

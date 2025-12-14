@@ -1,0 +1,97 @@
+﻿@page "/my-bookings"
+@using KirikkaleTenisAkademi.Web.Models
+@using System.Net.Http.Json
+@inject HttpClient HttpClient
+@inject ISnackbar Snackbar
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
+    <MudText Typo="Typo.h4" Class="mb-4">📅 Derslerim</MudText>
+
+    @if (_loading)
+    {
+        <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
+        <MudText Align="Align.Center" Class="mt-2">Dersleriniz yükleniyor...</MudText>
+    }
+    else if (_bookings.Count == 0)
+    {
+        <MudAlert Severity="Severity.Info" Class="my-4">
+            Henüz hiç ders rezervasyonunuz yok. Tenise başlamak için harika bir gün! 🎾
+        </MudAlert>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="/coaches" StartIcon="@Icons.Material.Filled.SportsTennis">
+            Hemen Ders Al
+        </MudButton>
+    }
+    else
+    {
+        <MudTable Items="@_bookings" Hover="true" Striped="true" Elevation="3">
+            <HeaderContent>
+                <MudTh>Eğitmen</MudTh>
+                <MudTh>Tarih</MudTh>
+                <MudTh>Saat</MudTh>
+                <MudTh>Durum</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Eğitmen">
+                    <div class="d-flex align-center">
+                        <MudIcon Icon="@Icons.Material.Filled.Person" Size="Size.Small" Class="mr-2"/>
+                        @context.CoachName
+                    </div>
+                </MudTd>
+                <MudTd DataLabel="Tarih">@context.StartTime.ToString("dd.MM.yyyy dddd", new System.Globalization.CultureInfo("tr-TR"))</MudTd>
+                <MudTd DataLabel="Saat">
+                     <MudChip T="string" Size="Size.Small" Color="Color.Info" Variant="Variant.Outlined">
+                        @context.StartTime.ToString("HH:mm") - @context.EndTime.ToString("HH:mm")
+                    </MudChip>
+                </MudTd>
+                <MudTd DataLabel="Durum">
+                    <MudChip T="string" Color="@GetColor(context.Status)" Size="Size.Small">
+                        @GetStatusText(context.Status)
+                    </MudChip>
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+    }
+</MudContainer>
+
+@code {
+    private bool _loading = true;
+    private List<MyBookingDto> _bookings = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try 
+        {
+            _bookings = await HttpClient.GetFromJsonAsync<List<MyBookingDto>>("api/Lesson/my-bookings");
+        }
+        catch(Exception ex)
+        {
+            Snackbar.Add("Dersler yüklenirken hata oluştu.", Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private Color GetColor(string status)
+    {
+        return status switch
+        {
+            "Confirmed" => Color.Success,   // Yeşil
+            "Pending" => Color.Warning,     // Sarı
+            "Cancelled" => Color.Error,     // Kırmızı
+            _ => Color.Default
+        };
+    }
+
+    private string GetStatusText(string status)
+    {
+        return status switch
+        {
+            "Confirmed" => "Onaylandı",
+            "Pending" => "Bekliyor",
+            "Cancelled" => "İptal Edildi",
+            _ => status
+        };
+    }
+}

@@ -1,0 +1,110 @@
+﻿@using System.Globalization
+
+<div class="d-flex justify-space-between align-center mb-4 px-2">
+    <MudButton StartIcon="@Icons.Material.Filled.ArrowBack" Variant="Variant.Outlined" OnClick="PreviousWeek">Önceki Hafta</MudButton>
+    
+    <MudText Typo="Typo.h6">
+        @CurrentWeekStart.ToString("MMMM yyyy", new CultureInfo("tr-TR")) 
+        <small class="text-muted ms-2">(Hafta: @CurrentWeekStart.ToString("dd MMM") - @CurrentWeekStart.AddDays(6).ToString("dd MMM"))</small>
+    </MudText>
+
+    <MudButton EndIcon="@Icons.Material.Filled.ArrowForward" Variant="Variant.Outlined" OnClick="NextWeek">Sonraki Hafta</MudButton>
+</div>
+
+<div class="scheduler-container">
+    <div class="scheduler-header">
+        <div class="scheduler-time-col">Saat</div> @for (int i = 0; i < 7; i++)
+        {
+            var day = CurrentWeekStart.AddDays(i);
+            var isToday = day.Date == DateTime.Today;
+            <div class="scheduler-header-cell @(isToday ? "text-success" : "")">
+                <div>@day.ToString("dddd", new CultureInfo("tr-TR"))</div>
+                <div style="font-size:1.2em">@day.Day</div>
+            </div>
+        }
+    </div>
+
+    <div class="scheduler-body">
+        @for (int hour = StartHour; hour <= EndHour; hour++)
+        {
+            <div class="scheduler-row">
+                <div class="scheduler-time-col">
+                    @($"{hour:00}:00")
+                </div>
+
+                @for (int d = 0; d < 7; d++)
+                {
+                    var currentSlotTime = CurrentWeekStart.AddDays(d).Date.AddHours(hour);
+                    var statusClass = GetSlotClass(currentSlotTime);
+                    var displayText = GetSlotText(currentSlotTime);
+
+                    <div class="scheduler-cell @statusClass" @onclick="() => HandleSlotClick(currentSlotTime)">
+                        @if (!string.IsNullOrEmpty(displayText))
+                        {
+                            <span class="d-flex align-center flex-column">
+                                <MudIcon Icon="@GetSlotIcon(statusClass)" Size="Size.Small" />
+                                <span style="font-size:0.75rem; text-align:center">@displayText</span>
+                            </span>
+                        }
+                    </div>
+                }
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter] public int StartHour { get; set; } = 9; // Sabah 09:00 başla
+    [Parameter] public int EndHour { get; set; } = 22; // Akşam 22:00 bitir
+    
+    // Parent sayfadan gelen "Meşgul/Dolu" listesi
+    // Key: DateTime (Zaman), Value: Tuple(Tip, Açıklama)
+    [Parameter] public Dictionary<DateTime, (string Type, string Text)> BusySlots { get; set; } = new();
+
+    [Parameter] public EventCallback<DateTime> OnSlotClicked { get; set; }
+
+    private DateTime CurrentWeekStart;
+
+    protected override void OnInitialized()
+    {
+        // Pazartesiyi bul
+        var today = DateTime.Today;
+        int diff = (7 + (today.DayOfWeek - DayOfWeek.Monday)) % 7;
+        CurrentWeekStart = today.AddDays(-1 * diff).Date;
+    }
+
+    private void NextWeek() => CurrentWeekStart = CurrentWeekStart.AddDays(7);
+    private void PreviousWeek() => CurrentWeekStart = CurrentWeekStart.AddDays(-7);
+
+    private async Task HandleSlotClick(DateTime time)
+    {
+        // Geçmişe tıklamayı engelle (Opsiyonel, istersen kaldırabilirsin)
+        if (time < DateTime.Now) return;
+
+        await OnSlotClicked.InvokeAsync(time);
+    }
+
+    private string GetSlotClass(DateTime time)
+    {
+        if (BusySlots.ContainsKey(time))
+        {
+            var type = BusySlots[time].Type;
+            if (type == "Blocked") return "slot-blocked"; // Genel Kapalı
+            if (type == "MyBlock") return "slot-my-block"; // Koçun Kendi Kapattığı
+            if (type == "Lesson") return "slot-lesson";   // Ders Var
+        }
+        return "";
+    }
+
+    private string GetSlotText(DateTime time)
+    {
+        return BusySlots.ContainsKey(time) ? BusySlots[time].Text : "";
+    }
+
+    private string GetSlotIcon(string cssClass)
+    {
+        if (cssClass == "slot-my-block") return Icons.Material.Filled.Block;
+        if (cssClass == "slot-lesson") return Icons.Material.Filled.SportsTennis;
+        return "";
+    }
+}
