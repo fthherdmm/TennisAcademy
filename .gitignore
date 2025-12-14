@@ -485,3 +485,5 @@ $RECYCLE.BIN/
 
 # Şifrelerin olduğu dosyayı engelle
 appsettings.json
+
+docker-compose.yml
