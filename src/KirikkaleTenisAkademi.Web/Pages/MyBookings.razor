@@ -3,24 +3,48 @@
 @using System.Net.Http.Json
 @inject HttpClient HttpClient
 @inject ISnackbar Snackbar
-@inject IDialogService DialogService 
+@inject IDialogService DialogService
+@inject NavigationManager NavigationManager 
 
 <MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
-    <MudText Typo="Typo.h4" Class="mb-4">📅 Derslerim</MudText>
+    
+    <MudPaper Elevation="3" Class="pa-4 mb-6" Outlined="true">
+        <MudGrid Class="align-center">
+            <MudItem xs="12" sm="8">
+                <MudText Typo="Typo.h6" Color="Color.Primary" Class="mb-2">🎾 Yeni Ders Planla</MudText>
+                <MudText Typo="Typo.body2">Müsait koçlarımızdan birini seçerek hemen takvimini görüntüle ve dersini ayırt.</MudText>
+            </MudItem>
+            <MudItem xs="12" sm="4" Class="d-flex gap-2 align-center">
+                <MudSelect T="int" Label="Eğitmen Seçiniz" @bind-Value="_selectedCoachId" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter" Margin="Margin.Dense">
+                    <MudSelectItem Value="0" Disabled="true">Lütfen seçiniz...</MudSelectItem>
+                    @foreach (var coach in _coaches)
+                    {
+                        <MudSelectItem Value="@coach.Id">@coach.FullName</MudSelectItem>
+                    }
+                </MudSelect>
+                <MudButton Variant="Variant.Filled" 
+                           Color="Color.Primary" 
+                           Disabled="@(_selectedCoachId == 0)"
+                           OnClick="GoToBookingPage"
+                           EndIcon="@Icons.Material.Filled.ArrowForward">
+                    Git
+                </MudButton>
+            </MudItem>
+        </MudGrid>
+    </MudPaper>
+
+    <MudText Typo="Typo.h4" Class="mb-4">📅 Ders Geçmişim</MudText>
 
     @if (_loading)
     {
         <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
-        <MudText Align="Align.Center" Class="mt-2">Dersleriniz yükleniyor...</MudText>
+        <MudText Align="Align.Center" Class="mt-2">Veriler yükleniyor...</MudText>
     }
     else if (_bookings.Count == 0)
     {
         <MudAlert Severity="Severity.Info" Class="my-4">
-            Henüz hiç ders rezervasyonunuz yok. Tenise başlamak için harika bir gün! 🎾
+            Henüz hiç ders rezervasyonunuz yok. Yukarıdaki menüden bir eğitmen seçerek hemen başlayabilirsiniz!
         </MudAlert>
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="/coaches" StartIcon="@Icons.Material.Filled.SportsTennis">
-            Hemen Ders Al
-        </MudButton>
     }
     else
     {
@@ -30,7 +54,8 @@
                 <MudTh>Tarih</MudTh>
                 <MudTh>Saat</MudTh>
                 <MudTh>Durum</MudTh>
-                <MudTh>İşlemler</MudTh> </HeaderContent>
+                <MudTh>İşlemler</MudTh>
+            </HeaderContent>
             <RowTemplate>
                 <MudTd DataLabel="Eğitmen">
                     <div class="d-flex align-center">
@@ -73,22 +98,36 @@
 @code {
     private bool _loading = true;
     private List<MyBookingDto> _bookings = new();
+    
+    // Dropdown verileri
+    private List<CoachSelectDto> _coaches = new();
+    private int _selectedCoachId = 0;
+
+    public class CoachSelectDto
+    {
+        public int Id { get; set; }
+        public string FullName { get; set; } = string.Empty;
+    }
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadBookings();
+        await LoadData();
     }
 
-    private async Task LoadBookings()
+    private async Task LoadData()
     {
         try 
         {
             _loading = true;
+            // Dersleri çek
             _bookings = await HttpClient.GetFromJsonAsync<List<MyBookingDto>>("api/Lesson/my-bookings");
+            
+            // Koç listesini çek (Dropdown için)
+            _coaches = await HttpClient.GetFromJsonAsync<List<CoachSelectDto>>("api/Bookings/coaches-list");
         }
         catch(Exception ex)
         {
-            Snackbar.Add("Dersler yüklenirken hata oluştu.", Severity.Error);
+            Snackbar.Add("Veriler yüklenirken hata oluştu.", Severity.Error);
         }
         finally
         {
@@ -96,10 +135,18 @@
         }
     }
 
-    // İPTAL FONKSİYONU
+    // YÖNLENDİRME BURADA YAPILIYOR
+    private void GoToBookingPage()
+    {
+        if (_selectedCoachId > 0)
+        {
+            // İsteğinize uygun olarak /booking/{id} adresine yönlendiriyor
+            NavigationManager.NavigateTo($"/booking/{_selectedCoachId}");
+        }
+    }
+
     private async Task CancelLesson(int bookingId)
     {
-        // Onay Kutusu Göster
         bool? result = await DialogService.ShowMessageBox(
             "Dersi İptal Et", 
             "Bu dersi iptal etmek istediğinize emin misiniz? Krediniz hesabınıza iade edilecektir.", 
@@ -110,45 +157,37 @@
             try
             {
                 var response = await HttpClient.PutAsync($"api/Lesson/cancel-my-booking/{bookingId}", null);
-
                 if (response.IsSuccessStatusCode)
                 {
                     Snackbar.Add("Ders iptal edildi ve kredi iade edildi.", Severity.Success);
-                    // Listeyi yenile ki durum güncellensin
-                    await LoadBookings(); 
+                    await LoadData(); 
                 }
                 else
                 {
-                    var errorMsg = await response.Content.ReadAsStringAsync();
-                    Snackbar.Add($"Hata: {errorMsg}", Severity.Error);
+                    var msg = await response.Content.ReadAsStringAsync();
+                    Snackbar.Add($"Hata: {msg}", Severity.Error);
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                Snackbar.Add("İptal işlemi sırasında bir hata oluştu.", Severity.Error);
+                Snackbar.Add("İşlem başarısız.", Severity.Error);
             }
         }
     }
 
-    private Color GetColor(string status)
+    private Color GetColor(string status) => status switch
     {
-        return status switch
-        {
-            "Confirmed" => Color.Success,   
-            "Pending" => Color.Warning,     
-            "Cancelled" => Color.Error,     
-            _ => Color.Default
-        };
-    }
+        "Confirmed" => Color.Success,
+        "Pending" => Color.Warning,
+        "Cancelled" => Color.Error,
+        _ => Color.Default
+    };
 
-    private string GetStatusText(string status)
+    private string GetStatusText(string status) => status switch
     {
-        return status switch
-        {
-            "Confirmed" => "Onaylandı",
-            "Pending" => "Bekliyor",
-            "Cancelled" => "İptal Edildi",
-            _ => status
-        };
-    }
+        "Confirmed" => "Onaylandı",
+        "Pending" => "Bekliyor",
+        "Cancelled" => "İptal Edildi",
+        _ => status
+    };
 }

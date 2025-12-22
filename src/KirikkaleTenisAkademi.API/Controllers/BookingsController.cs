@@ -127,5 +127,23 @@ namespace KirikkaleTenisAkademi.API.Controllers
 
             return Ok(bookings);
         }
+        
+        // ... Diğer metodların altına ekleyin ...
+
+        // 4. DROPDOWN İÇİN KOÇ LİSTESİ (Hafif Liste)
+        [HttpGet("coaches-list")]
+        [Authorize] // Üye olan herkes görebilir
+        public async Task<IActionResult> GetCoachesForList()
+        {
+            var coaches = await _context.Coaches
+                .Select(c => new 
+                {
+                    c.Id,
+                    FullName = c.FirstName + " " + c.LastName
+                })
+                .ToListAsync();
+
+            return Ok(coaches);
+        }
     }
 }
