@@ -1,82 +1,215 @@
 ﻿@page "/coach/students"
+@using KirikkaleTenisAkademi.Application.DTOs
 @using KirikkaleTenisAkademi.Web.Models
-@using Microsoft.AspNetCore.Authorization
-@attribute [Authorize(Roles = "Coach")]
-@inject HttpClient Http
+@using System.Net.Http.Json
+@inject HttpClient HttpClient
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
 
-<MudContainer MaxWidth="MaxWidth.Medium" Class="mt-5">
-    <MudText Typo="Typo.h4" Color="Color.Primary" Class="mb-4">🎓 Öğrencilerim & Ders Listesi</MudText>
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
+    <MudText Typo="Typo.h4" Class="mb-4">🎓 Yönetim Paneli</MudText>
 
-    @if (studentList == null)
-    {
-        <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
-    }
-    else if (studentList.Count == 0)
-    {
-        <MudAlert Severity="Severity.Info">Henüz kayıtlı bir dersiniz yok.</MudAlert>
-    }
-    else
-    {
-        <MudTable Items="@studentList" Hover="true" Striped="true" Filter="new Func<MyStudentDto,bool>(FilterFunc)">
-            <ToolBarContent>
-                <MudText Typo="Typo.h6">Kayıtlı Dersler</MudText>
-                <MudSpacer />
-                <MudTextField @bind-Value="searchString" Placeholder="Öğrenci Ara..." Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
-            </ToolBarContent>
-            <HeaderContent>
-                <MudTh>Tarih</MudTh>
-                <MudTh>Saat</MudTh>
-                <MudTh>Öğrenci Adı</MudTh>
-                <MudTh>İletişim (Email)</MudTh>
-                <MudTh>Durum</MudTh>
-            </HeaderContent>
-            <RowTemplate>
-                <MudTd DataLabel="Tarih">@context.StartTime.ToLocalTime().ToString("dd.MM.yyyy")</MudTd>
-                <MudTd DataLabel="Saat">
-                    <MudChip T="string" Size="Size.Small" Color="Color.Info">
-                        @context.StartTime.ToLocalTime().ToString("HH:mm") - @context.EndTime.ToLocalTime().ToString("HH:mm")
-                    </MudChip>
-                </MudTd>
-                <MudTd DataLabel="Öğrenci Adı">
-                    <div class="d-flex align-center">
-                        <MudIcon Icon="@Icons.Material.Filled.Person" Size="Size.Small" Class="mr-2"/>
-                        <b>@context.StudentName</b>
-                    </div>
-                </MudTd>
-                <MudTd DataLabel="Email">@context.StudentEmail</MudTd>
-                <MudTd DataLabel="Durum">
-                    @if(context.StartTime.ToLocalTime() < DateTime.Now)
-                    {
-                         <MudChip T="string" Variant="Variant.Text" Color="Color.Default">Tamamlandı</MudChip>
-                    }
-                    else
-                    {
-                         <MudChip T="string" Variant="Variant.Filled" Color="Color.Success">Gelecek Ders</MudChip>
-                    }
-                </MudTd>
-            </RowTemplate>
-            <PagerContent>
-                <MudTablePager />
-            </PagerContent>
-        </MudTable>
-    }
+    <MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-6">
+        
+        <MudTabPanel Text="Aktif Ders Programı" Icon="@Icons.Material.Filled.CalendarToday">
+            @if (_loadingLessons)
+            {
+                <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
+            }
+            else if (_lessons.Count == 0)
+            {
+                <MudAlert Severity="Severity.Info">Yaklaşan dersiniz bulunmamaktadır.</MudAlert>
+            }
+            else
+            {
+                <MudTable Items="@_lessons" Hover="true" Striped="true">
+                    <HeaderContent>
+                        <MudTh>Tarih</MudTh>
+                        <MudTh>Öğrenci</MudTh>
+                        <MudTh>Durum</MudTh>
+                        <MudTh>İşlem</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd>@context.StartTime.ToString("dd.MM.yyyy HH:mm")</MudTd>
+                        <MudTd>@context.StudentName</MudTd>
+                        <MudTd>
+                            <MudChip T="string" Size="Size.Small" Color="Color.Success">Aktif</MudChip>
+                        </MudTd>
+                        <MudTd>
+                            <MudTooltip Text="Dersi İptal Et (İade Yapılır)">
+                                <MudButton Variant="Variant.Outlined" Color="Color.Error" StartIcon="@Icons.Material.Filled.Cancel" Size="Size.Small" OnClick="@(() => CancelLesson(context))">
+                                    İptal Et
+                                </MudButton>
+                            </MudTooltip>
+                        </MudTd>
+                    </RowTemplate>
+                </MudTable>
+            }
+        </MudTabPanel>
+
+        <MudTabPanel Text="Öğrenci Listesi" Icon="@Icons.Material.Filled.People">
+            @if (_loadingStudents)
+            {
+                <MudProgressLinear Color="Color.Secondary" Indeterminate="true" />
+            }
+            else if (_students.Count == 0)
+            {
+                 <MudAlert Severity="Severity.Warning">Henüz kayıtlı bir öğrenciniz yok.</MudAlert>
+            }
+            else
+            {
+                <MudTable Items="@_students" Hover="true" Filter="new Func<MyStudentDto,bool>(FilterStudents)">
+                    <ToolBarContent>
+                        <MudText Typo="Typo.h6">Öğrencilerim</MudText>
+                        <MudSpacer />
+                        <MudTextField @bind-Value="searchString" Placeholder="İsimle Ara..." Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
+                    </ToolBarContent>
+                    <HeaderContent>
+                        <MudTh>Ad Soyad</MudTh>
+                        <MudTh>Email</MudTh>
+                        <MudTh>Mevcut Kredi</MudTh>
+                        <MudTh>İşlem</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd>
+                             <div class="d-flex align-center">
+                                <MudIcon Icon="@Icons.Material.Filled.Person" Size="Size.Small" Class="mr-2" />
+                                <b>@context.FullName</b>
+                            </div>
+                        </MudTd>
+                        <MudTd>@context.Email</MudTd>
+                        <MudTd>
+                            <MudChip T="string" Size="Size.Small" Color="Color.Info">@context.CurrentCredits Kredi</MudChip>
+                        </MudTd>
+                        <MudTd>
+                            <MudButton Variant="Variant.Filled" Color="Color.Warning" StartIcon="@Icons.Material.Filled.CardGiftcard" Size="Size.Small" OnClick="@(() => OpenCreditDialog(context))">
+                                Kredi Hediye Et
+                            </MudButton>
+                        </MudTd>
+                    </RowTemplate>
+                </MudTable>
+            }
+        </MudTabPanel>
+
+    </MudTabs>
 </MudContainer>
 
 @code {
-    private List<MyStudentDto>? studentList;
+    private bool _loadingLessons = true;
+    private bool _loadingStudents = true;
     private string searchString = "";
+
+    // Modeller
+    private List<StudentLessonDto> _lessons = new();
+    private List<MyStudentDto> _students = new();
+
+    // DTO'lar (Burada tanımlı, istersen Web/Models'e taşıyabilirsin)
+    public class StudentLessonDto
+    {
+        public int Id { get; set; }
+        public string StudentId { get; set; }
+        public string StudentName { get; set; }
+        public DateTime StartTime { get; set; }
+    }
 
     protected override async Task OnInitializedAsync()
     {
-        studentList = await Http.GetFromJsonAsync<List<MyStudentDto>>("api/LessonSlots/coach/my-students");
+        // İkisini paralel çekelim
+        var t1 = LoadLessons();
+        var t2 = LoadStudents();
+        await Task.WhenAll(t1, t2);
     }
 
-    // Basit Arama Fonksiyonu
-    private bool FilterFunc(MyStudentDto element)
+    private async Task LoadLessons()
+    {
+        _loadingLessons = true;
+        try
+        {
+            // Mevcut endpoint'ten çekip filtreliyoruz
+            var response = await HttpClient.GetFromJsonAsync<List<CoachScheduleItemDto>>("api/Coach/my-full-schedule");
+            _lessons = response.Where(x => x.Type == "Lesson")
+                               .Select(x => new StudentLessonDto 
+                               { 
+                                   Id = x.Id, 
+                                   StudentId = x.StudentId,
+                                   StudentName = x.Title,
+                                   StartTime = x.StartTime
+                               }).OrderBy(x => x.StartTime).ToList();
+        }
+        catch {}
+        finally { _loadingLessons = false; }
+    }
+
+    private async Task LoadStudents()
+    {
+        _loadingStudents = true;
+        try
+        {
+            // YENİ ENDPOINT
+            _students = await HttpClient.GetFromJsonAsync<List<MyStudentDto>>("api/Coach/my-students-portfolio");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+        }
+        finally { _loadingStudents = false; }
+    }
+
+    // Arama Filtresi
+    private bool FilterStudents(MyStudentDto element)
     {
         if (string.IsNullOrWhiteSpace(searchString)) return true;
-        if (element.StudentName.Contains(searchString, StringComparison.OrdinalIgnoreCase)) return true;
-        if (element.StudentEmail.Contains(searchString, StringComparison.OrdinalIgnoreCase)) return true;
+        if (element.FullName.Contains(searchString, StringComparison.OrdinalIgnoreCase)) return true;
+        if (element.Email.Contains(searchString, StringComparison.OrdinalIgnoreCase)) return true;
         return false;
+    }
+
+    // --- İŞLEMLER ---
+
+    private async Task CancelLesson(StudentLessonDto lesson)
+    {
+        bool? result = await DialogService.ShowMessageBox(
+            "Dersi İptal Et", 
+            $"{lesson.StudentName} ile olan dersinizi iptal etmek istediğinize emin misiniz?\nÖğrenciye otomatik iade yapılacaktır.", 
+            yesText: "Evet, İptal Et", cancelText: "Vazgeç");
+
+        if (result == true)
+        {
+            var response = await HttpClient.PutAsync($"api/Lesson/cancel/{lesson.Id}", null);
+            if (response.IsSuccessStatusCode)
+            {
+                Snackbar.Add("Ders iptal edildi.", Severity.Success);
+                await LoadLessons(); // Ders listesini yenile
+            }
+            else
+            {
+                Snackbar.Add("Hata oluştu.", Severity.Error);
+            }
+        }
+    }
+
+    private async Task OpenCreditDialog(MyStudentDto student)
+    {
+        bool? result = await DialogService.ShowMessageBox(
+            "Kredi Hediye Et", 
+            $"{student.FullName} öğrencisine 1 Telafi Kredisi yüklemek istiyor musunuz?",
+            yesText: "Evet, Yükle", cancelText: "Hayır");
+
+        if (result == true)
+        {
+             var request = new GrantCreditRequest { StudentId = student.StudentId, Amount = 1 };
+             var response = await HttpClient.PostAsJsonAsync("api/Coach/grant-credit", request);
+             
+             if (response.IsSuccessStatusCode)
+             {
+                 Snackbar.Add("Kredi başarıyla yüklendi.", Severity.Success);
+                 // Bakiyeyi güncellemek için listeyi yenile
+                 student.CurrentCredits += 1; 
+             }
+             else
+             {
+                 Snackbar.Add("Hata oluştu.", Severity.Error);
+             }
+        }
     }
 }

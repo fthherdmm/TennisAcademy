@@ -117,5 +117,106 @@ namespace KirikkaleTenisAkademi.API.Controllers
 
             return Ok(bookings);
         }
+        
+        [HttpPut("cancel/{bookingId}")]
+        [Authorize(Roles = "Coach,Admin")] // Sadece Koç ve Admin yapabilir
+        public async Task<IActionResult> CancelLesson(int bookingId)
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            // 1. Dersi Bul
+            var booking = await _context.LessonBookings
+                .Include(b => b.Coach)
+                .FirstOrDefaultAsync(b => b.Id == bookingId);
+
+            if (booking == null) return NotFound("Ders bulunamadı.");
+
+            // Güvenlik: Başka hocanın dersini iptal edemesin (Admin değilse)
+            if (!User.IsInRole("Admin") && booking.Coach.AppUserId != userId)
+                return Unauthorized("Bu işlem için yetkiniz yok.");
+
+            // Zaten iptal edilmişse dur
+            if (booking.Status == BookingStatus.Cancelled)
+                return BadRequest("Ders zaten iptal edilmiş.");
+
+            // 2. TRANSACTION BAŞLAT (Para işi şakaya gelmez)
+            using var transaction = await _context.Database.BeginTransactionAsync();
+            try
+            {
+                // A. Durumu Güncelle
+                booking.Status = BookingStatus.Cancelled;
+
+                // B. Öğrenciye İade Yap
+                var student = await _userManager.FindByIdAsync(booking.StudentId);
+                if (student != null)
+                {
+                    student.LessonCredits += 1; // 1 Kredi İade
+                    await _userManager.UpdateAsync(student);
+                }
+
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+
+                return Ok(new { message = "Ders iptal edildi ve 1 kredi öğrenciye iade edildi." });
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                return StatusCode(500, "İptal işlemi sırasında hata oluştu: " + ex.Message);
+            }
+        }
+        
+        // ==========================================
+        // ÖĞRENCİ KENDİ DERSİNİ İPTAL ETME (YENİ)
+        // ==========================================
+        [HttpPut("cancel-my-booking/{bookingId}")]
+        public async Task<IActionResult> CancelMyBooking(int bookingId)
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            // 1. Dersi Bul
+            var booking = await _context.LessonBookings
+                .FirstOrDefaultAsync(b => b.Id == bookingId);
+
+            if (booking == null) return NotFound("Ders bulunamadı.");
+
+            // 2. GÜVENLİK KONTROLÜ: Ders gerçekten bu öğrencinin mi?
+            if (booking.StudentId != userId)
+                return Unauthorized("Bu dersi iptal etme yetkiniz yok.");
+
+            // 3. Geçmiş ders iptal edilemez
+            if (booking.StartTime < DateTime.UtcNow)
+                return BadRequest("Geçmiş tarihli dersler iptal edilemez.");
+
+            // 4. Zaten iptal edilmişse dur
+            if (booking.Status == BookingStatus.Cancelled)
+                return BadRequest("Ders zaten iptal edilmiş.");
+
+            // 5. İŞLEM (Transaction)
+            using var transaction = await _context.Database.BeginTransactionAsync();
+            try
+            {
+                // A. Durumu İptal Yap
+                booking.Status = BookingStatus.Cancelled;
+
+                // B. Öğrenciye Kredisini İADE ET
+                var student = await _userManager.FindByIdAsync(userId);
+                if (student != null)
+                {
+                    student.LessonCredits += 1; 
+                    await _userManager.UpdateAsync(student);
+                }
+
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+
+                return Ok(new { message = "Dersiniz iptal edildi ve 1 kredi hesabınıza iade edildi." });
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                return StatusCode(500, "İptal işlemi sırasında hata oluştu.");
+            }
+        }
     }
 }

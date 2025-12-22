@@ -5,7 +5,9 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
+using KirikkaleTenisAkademi.Application.DTOs;
 using KirikkaleTenisAkademi.Web.Models;
+using Microsoft.AspNetCore.Identity;
 
 namespace KirikkaleTenisAkademi.API.Controllers
 {
@@ -15,10 +17,12 @@ namespace KirikkaleTenisAkademi.API.Controllers
     public class CoachController : ControllerBase
     {
         private readonly AppDbContext _context;
+        private readonly UserManager<AppUser> _userManager;
 
-        public CoachController(AppDbContext context)
+        public CoachController(AppDbContext context, UserManager<AppUser> userManager)
         {
             _context = context;
+            _userManager = userManager;
         }
 
         // ==========================================
@@ -254,6 +258,101 @@ namespace KirikkaleTenisAkademi.API.Controllers
             fullSchedule.AddRange(blocks);
 
             return Ok(fullSchedule);
+        }
+        
+        // ==========================================
+        // KOÇUN TAM TAKVİMİ (Dersler + Bloklar)
+        // ==========================================
+        [HttpGet("my-full-schedule")]
+        public async Task<IActionResult> GetMyFullSchedule()
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var coach = await _context.Coaches.FirstOrDefaultAsync(c => c.AppUserId == userId);
+            if (coach == null) return Unauthorized();
+
+            // 1. DERSLER (Öğrenci İsimleriyle)
+            var lessons = await _context.LessonBookings
+                .Include(b => b.Student) // Öğrenci ismini almak için
+                .Where(b => b.CoachId == coach.Id && b.Status != BookingStatus.Cancelled)
+                .Select(b => new 
+                {
+                    Id = b.Id,
+                    StartTime = b.StartTime,
+                    EndTime = b.EndTime,
+                    Type = "Lesson",
+                    Title = b.Student.FirstName + " " + b.Student.LastName, // Öğrenci Adı
+                    StudentId = b.StudentId
+                })
+                .ToListAsync();
+
+            // 2. BLOKLAR (Koçun Kapattığı Saatler)
+            var blocks = await _context.CoachUnavailabilities
+                .Where(u => u.CoachId == coach.Id)
+                .Select(u => new 
+                {
+                    Id = u.Id,
+                    StartTime = u.StartTime,
+                    EndTime = u.EndTime,
+                    Type = "Block",
+                    Title = u.Reason ?? "Kapalı" // Sebep
+                })
+                .ToListAsync();
+
+            // 3. BİRLEŞTİR
+            var fullSchedule = new List<object>();
+            fullSchedule.AddRange(lessons);
+            fullSchedule.AddRange(blocks);
+
+            return Ok(fullSchedule);
+        }
+        
+        // ==========================================
+        // KREDİ İADESİ
+        // ==========================================
+        [HttpPost("grant-credit")]
+        [Authorize(Roles = "Coach")]
+        public async Task<IActionResult> GrantCredit([FromBody] GrantCreditRequest request)
+        {
+            var student = await _userManager.FindByIdAsync(request.StudentId);
+            if (student == null) return NotFound("Öğrenci bulunamadı.");
+
+            student.LessonCredits += request.Amount;
+            await _userManager.UpdateAsync(student);
+
+            return Ok(new { message = $"{student.FirstName} isimli öğrenciye {request.Amount} kredi başarıyla yüklendi." });
+        }
+        
+        // ==========================================
+        // ÖĞRENCİLERİ LİSTELE
+        // ==========================================
+        [HttpGet("my-students-portfolio")]
+        public async Task<IActionResult> GetMyStudentsPortfolio()
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            // Koç kontrolü
+            var coach = await _context.Coaches.FirstOrDefaultAsync(c => c.AppUserId == userId);
+            if (coach == null) return Unauthorized();
+
+            // SORGULAMA MANTIĞI:
+            // 1. Users tablosunu (AppUser) al.
+            // 2. UserRoles ve Roles tablolarıyla birleştir.
+            // 3. Sadece rol adı 'Student' olanları filtrele.
+            // 4. İstediğin alanları (AppUser içindeki LessonCredits dahil) seç.
+
+            var students = await (from user in _context.Users
+                    join userRole in _context.UserRoles on user.Id equals userRole.UserId
+                    join role in _context.Roles on userRole.RoleId equals role.Id
+                    where role.Name == "Student" // Rolü Student olanlar (Büyük/küçük harfe dikkat)
+                    select new
+                    {
+                        StudentId = user.Id,
+                        FullName = user.FirstName + " " + user.LastName,
+                        Email = user.Email,
+                        CurrentCredits = user.LessonCredits // AppUser'dan gelen kredi bilgisi
+                    })
+                .ToListAsync();
+
+            return Ok(students);
         }
     }
 }

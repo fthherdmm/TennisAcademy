@@ -3,6 +3,7 @@
 @using System.Net.Http.Json
 @inject HttpClient HttpClient
 @inject ISnackbar Snackbar
+@inject IDialogService DialogService 
 
 <MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
     <MudText Typo="Typo.h4" Class="mb-4">📅 Derslerim</MudText>
@@ -29,7 +30,7 @@
                 <MudTh>Tarih</MudTh>
                 <MudTh>Saat</MudTh>
                 <MudTh>Durum</MudTh>
-            </HeaderContent>
+                <MudTh>İşlemler</MudTh> </HeaderContent>
             <RowTemplate>
                 <MudTd DataLabel="Eğitmen">
                     <div class="d-flex align-center">
@@ -48,6 +49,22 @@
                         @GetStatusText(context.Status)
                     </MudChip>
                 </MudTd>
+                <MudTd DataLabel="İşlemler">
+                    @if (context.Status != "Cancelled" && context.StartTime > DateTime.Now)
+                    {
+                        <MudButton Variant="Variant.Outlined" 
+                                   Color="Color.Error" 
+                                   Size="Size.Small"
+                                   StartIcon="@Icons.Material.Filled.Cancel"
+                                   OnClick="@(() => CancelLesson(context.Id))">
+                            İptal Et
+                        </MudButton>
+                    }
+                    else if (context.Status == "Cancelled")
+                    {
+                        <MudText Typo="Typo.caption" Color="Color.Error">İade Edildi</MudText>
+                    }
+                </MudTd>
             </RowTemplate>
         </MudTable>
     }
@@ -59,8 +76,14 @@
 
     protected override async Task OnInitializedAsync()
     {
+        await LoadBookings();
+    }
+
+    private async Task LoadBookings()
+    {
         try 
         {
+            _loading = true;
             _bookings = await HttpClient.GetFromJsonAsync<List<MyBookingDto>>("api/Lesson/my-bookings");
         }
         catch(Exception ex)
@@ -73,13 +96,47 @@
         }
     }
 
+    // İPTAL FONKSİYONU
+    private async Task CancelLesson(int bookingId)
+    {
+        // Onay Kutusu Göster
+        bool? result = await DialogService.ShowMessageBox(
+            "Dersi İptal Et", 
+            "Bu dersi iptal etmek istediğinize emin misiniz? Krediniz hesabınıza iade edilecektir.", 
+            yesText: "Evet, İptal Et", cancelText: "Vazgeç");
+
+        if (result == true)
+        {
+            try
+            {
+                var response = await HttpClient.PutAsync($"api/Lesson/cancel-my-booking/{bookingId}", null);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    Snackbar.Add("Ders iptal edildi ve kredi iade edildi.", Severity.Success);
+                    // Listeyi yenile ki durum güncellensin
+                    await LoadBookings(); 
+                }
+                else
+                {
+                    var errorMsg = await response.Content.ReadAsStringAsync();
+                    Snackbar.Add($"Hata: {errorMsg}", Severity.Error);
+                }
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add("İptal işlemi sırasında bir hata oluştu.", Severity.Error);
+            }
+        }
+    }
+
     private Color GetColor(string status)
     {
         return status switch
         {
-            "Confirmed" => Color.Success,   // Yeşil
-            "Pending" => Color.Warning,     // Sarı
-            "Cancelled" => Color.Error,     // Kırmızı
+            "Confirmed" => Color.Success,   
+            "Pending" => Color.Warning,     
+            "Cancelled" => Color.Error,     
             _ => Color.Default
         };
     }

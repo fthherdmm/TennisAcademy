@@ -2,10 +2,9 @@
 {
     public class MyStudentDto
     {
-        public DateTime StartTime { get; set; }
-        public DateTime EndTime { get; set; }
-        public string StudentName { get; set; } = string.Empty;
-        public string StudentEmail { get; set; } = string.Empty;
-        public decimal Price { get; set; }
+        public string StudentId { get; set; }
+        public string FullName { get; set; }
+        public string Email { get; set; }
+        public int CurrentCredits { get; set; } // Öğrencinin güncel bakiyesini de görelim
     }
 }
