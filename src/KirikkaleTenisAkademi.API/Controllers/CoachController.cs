@@ -151,31 +151,62 @@ namespace KirikkaleTenisAkademi.API.Controllers
             var coach = await _context.Coaches.FirstOrDefaultAsync(c => c.AppUserId == userId);
             if (coach == null) return Unauthorized("Koç profili bulunamadı.");
 
-            // Validasyon 1: Geçmişe blok konamaz
-            if (request.StartTime < DateTime.Now)
+            // ==============================================================================
+            // 1. SAAT DÜZELTMESİ (Timezone Fix)
+            // ==============================================================================
+            DateTime startUtc;
+            DateTime endUtc;
+
+            try 
+            {
+                // Sunucu işletim sistemine göre TimeZone ID belirle
+                string timeZoneId = System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows) 
+                    ? "Turkey Standard Time" 
+                    : "Europe/Istanbul";
+
+                TimeZoneInfo trTimeZone = TimeZoneInfo.FindSystemTimeZoneById(timeZoneId);
+
+                // Gelen saati Türkiye saati kabul et ve UTC'ye çevir
+                startUtc = TimeZoneInfo.ConvertTimeToUtc(request.StartTime, trTimeZone);
+                
+                // Bitiş saati için de aynısını yap (Eğer request'te geliyorsa)
+                // Eğer request.EndTime boş geliyorsa veya 1 saatlik standartsa: startUtc.AddHours(1) diyebiliriz.
+                // Mevcut kodunuzda request.EndTime kullanıldığı için onu da çeviriyoruz:
+                endUtc = TimeZoneInfo.ConvertTimeToUtc(request.EndTime, trTimeZone);
+            }
+            catch
+            {
+                // TimeZone bulunamazsa manuel -3 saat yap (Yedek plan)
+                startUtc = request.StartTime.AddHours(-3);
+                endUtc = request.EndTime.AddHours(-3);
+            }
+
+            // ARTIK AŞAĞIDAKİ TÜM MANTIKTA 'startUtc' ve 'endUtc' KULLANACAĞIZ.
+
+            // Validasyon 1: Geçmişe blok konamaz (UtcNow ile kıyasla)
+            if (startUtc < DateTime.UtcNow)
                 return BadRequest("Geçmiş bir tarihi kapatamazsınız.");
 
             // Validasyon 2: Bitiş, Başlangıçtan sonra olmalı
-            if (request.EndTime <= request.StartTime)
+            if (endUtc <= startUtc)
                 return BadRequest("Bitiş saati başlangıçtan ileri olmalı.");
 
-            // Validasyon 3: O saatte zaten dersi var mı? (Çok Kritik!)
-            // Koçun o saat aralığında ÇAKIŞAN (Overlap) bir dersi varsa izin verme.
+            // Validasyon 3: O saatte onaylı ders var mı? (UTC ile kontrol)
             var hasLesson = await _context.LessonBookings
                 .AnyAsync(b => b.CoachId == coach.Id 
                                && b.Status == BookingStatus.Confirmed
-                               && b.StartTime < request.EndTime 
-                               && b.EndTime > request.StartTime);
+                               && b.StartTime < endUtc 
+                               && b.EndTime > startUtc);
 
             if (hasLesson)
                 return BadRequest("Bu saat aralığında zaten onaylanmış bir dersiniz var. Önce dersi iptal etmelisiniz.");
 
-            // Kaydet
+            // Kaydet (UTC olarak)
             var unavailable = new CoachUnavailability
             {
                 CoachId = coach.Id,
-                StartTime = request.StartTime,
-                EndTime = request.EndTime,
+                StartTime = startUtc, // UTC
+                EndTime = endUtc,     // UTC
                 Reason = request.Reason
             };
 
@@ -193,7 +224,7 @@ namespace KirikkaleTenisAkademi.API.Controllers
             if (coach == null) return Unauthorized();
 
             var blocks = await _context.CoachUnavailabilities
-                .Where(u => u.CoachId == coach.Id && u.EndTime > DateTime.Now) // Sadece gelecektekiler
+                .Where(u => u.CoachId == coach.Id && u.EndTime > DateTime.UtcNow) // DÜZELTME: UtcNow kullandık
                 .OrderBy(u => u.StartTime)
                 .Select(u => new 
                 {
@@ -217,6 +248,7 @@ namespace KirikkaleTenisAkademi.API.Controllers
             var block = await _context.CoachUnavailabilities.FindAsync(id);
             if (block == null) return NotFound("Kayıt bulunamadı.");
 
+            // Güvenlik: Başkasının bloğunu silemesin
             if (block.CoachId != coach.Id) return BadRequest("Bu işlem size ait değil.");
 
             _context.CoachUnavailabilities.Remove(block);
@@ -329,30 +361,200 @@ namespace KirikkaleTenisAkademi.API.Controllers
         public async Task<IActionResult> GetMyStudentsPortfolio()
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+    
             // Koç kontrolü
             var coach = await _context.Coaches.FirstOrDefaultAsync(c => c.AppUserId == userId);
             if (coach == null) return Unauthorized();
 
-            // SORGULAMA MANTIĞI:
-            // 1. Users tablosunu (AppUser) al.
-            // 2. UserRoles ve Roles tablolarıyla birleştir.
-            // 3. Sadece rol adı 'Student' olanları filtrele.
-            // 4. İstediğin alanları (AppUser içindeki LessonCredits dahil) seç.
-
+            // SORGULAMA: Tüm 'Student' rolündeki kullanıcıları çeker ve DTO'ya doldurur.
             var students = await (from user in _context.Users
                     join userRole in _context.UserRoles on user.Id equals userRole.UserId
                     join role in _context.Roles on userRole.RoleId equals role.Id
-                    where role.Name == "Student" // Rolü Student olanlar (Büyük/küçük harfe dikkat)
-                    select new
+                    where role.Name == "Student"
+            
+                    // BURADA GÜNCELLEME YAPTIK: Doğrudan MyStudentDto'ya çeviriyoruz
+                    select new MyStudentDto
                     {
                         StudentId = user.Id,
                         FullName = user.FirstName + " " + user.LastName,
                         Email = user.Email,
-                        CurrentCredits = user.LessonCredits // AppUser'dan gelen kredi bilgisi
+                        ProfileImageUrl = user.ProfileImageUrl,
+                        CurrentCredits = user.LessonCredits,
+
+                        // --- YENİ EKLENEN ALANLAR ---
+                        TCKN = user.TCKN,
+                        Phone = user.PhoneNumber, // IdentityUser'dan gelen telefon
+                        BirthDate = user.BirthDate,
+                
+                        // Fiziksel Bilgiler
+                        Height = user.Height,
+                        Weight = user.Weight,
+                
+                        // Enum Değerlerini String'e Çevirme
+                        // (Veritabanında sayı tutulur, okurken yazıya çeviriyoruz)
+                        Level = user.Level.ToString(), 
+                        Hand = user.DominantHand.ToString(),
+
+                        // Acil Durum (İsim ve Numarayı birleştirip tek string yapabiliriz)
+                        EmergencyContact = user.EmergencyContactName + " (" + user.EmergencyContactPhone + ")"
                     })
                 .ToListAsync();
 
             return Ok(students);
+        }
+        
+        // CoachController.cs içine ekle:
+
+        // 1. AKTİF TURNUVALARI GETİR (Dropdown için)
+        [HttpGet("tournaments")]
+        public async Task<IActionResult> GetActiveTournaments()
+        {
+            var tournaments = await _context.Tournaments
+                .Where(t => t.IsActive)
+                .Select(t => new TournamentSelectDto { Id = t.Id, Name = t.Name })
+                .ToListAsync();
+                
+            return Ok(tournaments);
+        }
+
+        // 2. MAÇ EKLE
+        [HttpPost("add-match")]
+        public async Task<IActionResult> AddMatch([FromBody] MatchDto request)
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var coach = await _context.Coaches.FirstOrDefaultAsync(c => c.AppUserId == userId);
+            if (coach == null) return Unauthorized("Koç bulunamadı.");
+
+            var match = new Match
+            {
+                TournamentId = request.TournamentId,
+                MatchDate = request.MatchDate,
+                
+                // Oyuncular
+                Player1Id = request.StudentId, // Bizim öğrenci
+                Player2ExternalName = request.OpponentName, // Dışarıdan rakip
+                
+                // Skorlar
+                ScoreSet1 = request.ScoreSet1,
+                ScoreSet2 = request.ScoreSet2,
+                ScoreSet3 = request.ScoreSet3,
+                
+                // Koç Bilgileri
+                RefereeCoachId = coach.Id,
+                CoachNotes = request.CoachNotes,
+                
+                // Kazanan Mantığı: Eğer 'IsWinner' true ise kazanan bizim öğrenci
+                WinnerId = request.IsWinner ? request.StudentId : null 
+            };
+
+            _context.Matches.Add(match);
+            await _context.SaveChangesAsync();
+            return Ok(new { message = "Maç başarıyla eklendi." });
+        }
+
+        // 3. ÖĞRENCİNİN MAÇLARINI GETİR
+        [HttpGet("student-matches/{studentId}")]
+        public async Task<IActionResult> GetStudentMatches(string studentId)
+        {
+            var matches = await _context.Matches
+                .Include(m => m.Tournament) // Turnuva ismini çekmek için
+                .Where(m => m.Player1Id == studentId || m.Player2Id == studentId) // Öğrenci P1 veya P2 olabilir
+                .OrderByDescending(m => m.MatchDate)
+                .Select(m => new MatchDto
+                {
+                    Id = m.Id,
+                    TournamentId = m.TournamentId,
+                    TournamentName = m.Tournament != null ? m.Tournament.Name : "Bilinmiyor",
+                    MatchDate = m.MatchDate,
+                    
+                    // Rakip ismini bulma mantığı
+                    OpponentName = m.Player1Id == studentId ? m.Player2ExternalName : "Rakip", 
+                    
+                    ScoreSet1 = m.ScoreSet1,
+                    ScoreSet2 = m.ScoreSet2,
+                    ScoreSet3 = m.ScoreSet3,
+                    CoachNotes = m.CoachNotes,
+                    
+                    // Eğer WinnerId öğrencinin ID'si ise kazanmıştır
+                    IsWinner = m.WinnerId == studentId
+                })
+                .ToListAsync();
+
+            return Ok(matches);
+        }
+
+        // 4. MAÇ SİL
+        [HttpDelete("delete-match/{id}")]
+        public async Task<IActionResult> DeleteMatch(int id)
+        {
+            var match = await _context.Matches.FindAsync(id);
+            if (match == null) return NotFound();
+            _context.Matches.Remove(match);
+            await _context.SaveChangesAsync();
+            return Ok();
+        }
+        
+        // CoachController.cs içine ekle:
+
+        [HttpPost("add-tournament")]
+        public async Task<IActionResult> AddTournament([FromBody] CreateTournamentDto request)
+        {
+            if (string.IsNullOrEmpty(request.Name)) return BadRequest("Turnuva adı zorunludur.");
+
+            var tournament = new Tournament
+            {
+                Name = request.Name,
+                Category = request.Category,
+                StartDate = request.StartDate,
+                EndDate = request.EndDate,
+                IsActive = true // Eklenen turnuva varsayılan aktif olsun
+            };
+
+            _context.Tournaments.Add(tournament);
+            await _context.SaveChangesAsync();
+
+            // Frontend'e eklenen turnuvanın ID'sini dönelim ki otomatik seçtirebilelim
+            return Ok(new { message = "Turnuva eklendi.", id = tournament.Id });
+        }
+        
+        // CoachController.cs
+
+        [HttpPut("update-student-profile")]
+        public async Task<IActionResult> UpdateStudentProfile([FromBody] UpdateStudentStatsDto model)
+        {
+            // 1. Öğrenciyi Bul
+            var student = await _userManager.FindByIdAsync(model.StudentId);
+            if (student == null) return NotFound("Öğrenci bulunamadı.");
+
+            // 2. Sadece Fiziksel Verileri Güncelle
+            student.Height = model.Height;
+            student.Weight = model.Weight;
+            student.BirthDate = model.BirthDate;
+
+            // 3. Enum Dönüşümleri (Boş gelirse hata vermesin diye kontrol ediyoruz)
+            if (!string.IsNullOrEmpty(model.Level) && 
+                Enum.TryParse<Domain.Enums.TennisLevel>(model.Level, out var level)) 
+            {
+                student.Level = level;
+            }
+
+            if (!string.IsNullOrEmpty(model.Hand) && 
+                Enum.TryParse<Domain.Enums.DominantHand>(model.Hand, out var hand)) 
+            {
+                student.DominantHand = hand;
+            }
+    
+            // Not: BackhandStyle koç tarafından güncellenmiyorsa buraya eklemene gerek yok.
+
+            // 4. Kaydet
+            var result = await _userManager.UpdateAsync(student);
+
+            if (result.Succeeded)
+            {
+                return Ok(new { message = "Öğrenci bilgileri güncellendi." });
+            }
+    
+            return BadRequest("Güncelleme başarısız.");
         }
     }
 }

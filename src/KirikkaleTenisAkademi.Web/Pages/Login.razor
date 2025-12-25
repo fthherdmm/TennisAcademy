@@ -1,102 +1,160 @@
 ﻿@page "/login"
-@using KirikkaleTenisAkademi.Application.DTOs.Auth
 @using KirikkaleTenisAkademi.Web.Models
+@using KirikkaleTenisAkademi.Application.DTOs.Auth
 @inject HttpClient Http
 @inject NavigationManager Navigation
 @inject ISnackbar Snackbar
 @inject AuthenticationStateProvider AuthStateProvider
 @inject ILocalStorageService LocalStorage
 
-<MudGrid Class="d-flex justify-center align-center" Style="height: 100vh; background-color: #f5f5f5;">
-    <MudItem xs="12" sm="8" md="4">
-        <MudCard Elevation="4" Class="pa-4">
-            <MudCardHeader>
-                <CardHeaderContent>
-                    <div class="d-flex justify-center mb-2">
-                        <MudIcon Icon="@Icons.Material.Filled.SportsTennis" Color="Color.Secondary" Size="Size.Large" style="font-size: 3rem;" />
-                    </div>
-                    <MudText Typo="Typo.h5" Align="Align.Center" Color="Color.Primary"><b>Kırıkkale Tenis</b></MudText>
-                    <MudText Typo="Typo.body2" Align="Align.Center">Akademi Girişi</MudText>
-                </CardHeaderContent>
-            </MudCardHeader>
-            <MudCardContent>
-                <MudTextField @bind-Value="loginModel.Email" 
-                              Label="E-Posta" 
-                              Variant="Variant.Outlined" 
-                              Margin="Margin.Dense" 
-                              Adornment="Adornment.Start" 
-                              AdornmentIcon="@Icons.Material.Filled.Email" />
+<MudGrid Class="auth-container" Spacing="0">
 
-                <MudTextField @bind-Value="loginModel.Password" 
-                              Label="Şifre" 
-                              Variant="Variant.Outlined" 
-                              Margin="Margin.Dense" 
-                              Class="mt-3"
+    <MudItem xs="12" md="6" Class="auth-image-side d-flex flex-column justify-center align-center relative">
+        <div class="auth-overlay"></div>
+        <div class="z-10 text-center px-4 animate-up">
+            <MudIcon Icon="@Icons.Material.Filled.SportsTennis" Size="Size.Large" Style="font-size: 5rem; color: #76FF03;" Class="mb-4" />
+            <MudText Typo="Typo.h3" Style="font-weight: 900; color: white; letter-spacing: -1px;">KORTA GERİ DÖN.</MudText>
+            <MudText Typo="Typo.h6" Style="color: rgba(255,255,255,0.8); font-weight: 300;">Kırıkkale Winner Tenis Akademi</MudText>
+        </div>
+    </MudItem>
+
+    <MudItem xs="12" md="6" Class="d-flex justify-center align-center bg-white">
+        <MudContainer MaxWidth="MaxWidth.Small">
+            <div class="pa-8 animate-fade-in">
+
+                <div class="mb-8">
+                    <MudText Typo="Typo.h4" Color="Color.Primary" Style="font-weight: 800;">Hoş Geldiniz</MudText>
+                    <MudText Typo="Typo.body1" Class="text-muted">Hesabınıza giriş yaparak derslerinizi yönetin.</MudText>
+                </div>
+
+                <MudTextField @bind-Value="loginModel.Email"
+                              Label="E-Posta Adresi"
+                              Variant="Variant.Outlined"
+                              Class="mb-4"
+                              Adornment="Adornment.Start"
+                              AdornmentIcon="@Icons.Material.Filled.AlternateEmail"
+                              AdornmentColor="Color.Primary" />
+
+                <MudTextField @bind-Value="loginModel.Password"
+                              Label="Şifre"
+                              Variant="Variant.Outlined"
+                              Class="mb-2"
                               InputType="@PasswordInput"
                               Adornment="Adornment.End"
                               AdornmentIcon="@PasswordInputIcon"
-                              OnAdornmentClick="TogglePasswordVisibility" />
-            </MudCardContent>
-            <MudCardActions Class="d-flex justify-center">
-                <MudButton Variant="Variant.Filled" 
-                           Color="Color.Primary" 
-                           Size="Size.Large" 
-                           FullWidth="true" 
-                           OnClick="HandleLogin">Giriş Yap</MudButton>
-            </MudCardActions>
-            <div class="d-flex justify-center pb-4 mt-2">
-                <MudText Typo="Typo.body2">Hesabın yok mu?</MudText>
-                <MudLink Href="/register" Color="Color.Secondary" Class="ml-2 font-weight-bold">Hemen Üye Ol</MudLink>
+                              OnAdornmentClick="TogglePasswordVisibility"
+                              AdornmentColor="Color.Primary" />
+
+                <div class="d-flex justify-end mb-6">
+                    <MudLink Href="#" Color="Color.Primary" Typo="Typo.body2">Şifremi Unuttum?</MudLink>
+                </div>
+
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           Size="Size.Large"
+                           FullWidth="true"
+                           Class="py-3 rounded-lg fw-bold hover-scale"
+                           OnClick="HandleLogin">
+                    GİRİŞ YAP
+                </MudButton>
+
+                <div class="d-flex justify-center mt-8">
+                    <MudText Typo="Typo.body2" Class="mr-2">Hesabınız yok mu?</MudText>
+                    <MudLink Href="/register" Color="Color.Secondary" Style="font-weight: bold; color:#2E7D32;">Hemen Kayıt Ol</MudLink>
+                </div>
             </div>
-        </MudCard>
+        </MudContainer>
     </MudItem>
 </MudGrid>
 
+<style>
+    .auth-container { height: 100vh; overflow: hidden; }
+
+    /* Sol Taraf Görseli */
+    .auth-image-side {
+        background-image: url('https://images.unsplash.com/photo-1599474924187-334a4ae513df?q=80&w=2670&auto=format&fit=crop');
+        background-size: cover;
+        background-position: center;
+        position: relative;
+    }
+
+    .auth-overlay {
+        position: absolute;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: linear-gradient(135deg, rgba(46, 125, 50, 0.9), rgba(0, 0, 0, 0.7));
+    }
+
+    .bg-white { background-color: white; }
+    .text-muted { color: #757575; }
+    .z-10 { z-index: 10; }
+    .fw-bold { font-weight: 700; }
+    .relative { position: relative; }
+
+    /* Animasyonlar */
+    .animate-up { animation: slideUp 0.8s ease-out; }
+    .animate-fade-in { animation: fadeIn 1s ease-out; }
+    .hover-scale:hover { transform: scale(1.02); transition: transform 0.2s; }
+
+    @@keyframes slideUp {
+         from { transform: translateY(30px); opacity: 0; }
+         to { transform: translateY(0); opacity: 1; }
+     }
+    @@keyframes fadeIn {
+         from { opacity: 0; }
+         to { opacity: 1; }
+     }
+
+    /* Mobilde görseli gizle veya küçült */
+    @@media (max-width: 960px) {
+        .auth-image-side { display: none; }
+    }
+</style>
+
 @code {
-    private LoginDto loginModel = new();
-    
-    // Şifre Göster/Gizle Mantığı
-    bool isShow;
-    InputType PasswordInput = InputType.Password;
-    string PasswordInputIcon = Icons.Material.Filled.VisibilityOff;
+private LoginDto loginModel = new();
 
-    void TogglePasswordVisibility()
-    {
-        if (isShow)
-        {
-            isShow = false;
-            PasswordInputIcon = Icons.Material.Filled.VisibilityOff;
-            PasswordInput = InputType.Password;
-        }
-        else
-        {
-            isShow = true;
-            PasswordInputIcon = Icons.Material.Filled.Visibility;
-            PasswordInput = InputType.Text;
-        }
-    }
+bool isShow;
+InputType PasswordInput = InputType.Password;
+string PasswordInputIcon = Icons.Material.Filled.VisibilityOff;
 
-    private async Task HandleLogin()
-    {
-        var response = await Http.PostAsJsonAsync("api/Auth/login", loginModel);
+void TogglePasswordVisibility()
+{
+if (isShow)
+{
+isShow = false;
+PasswordInputIcon = Icons.Material.Filled.VisibilityOff;
+PasswordInput = InputType.Password;
+}
+else
+{
+isShow = true;
+PasswordInputIcon = Icons.Material.Filled.Visibility;
+PasswordInput = InputType.Text;
+}
+}
 
-        if (response.IsSuccessStatusCode)
-        {
-            // API'den gelen cevabı oku
-            var result = await response.Content.ReadFromJsonAsync<AuthResponse>();
+private async Task HandleLogin()
+{
+try
+{
+var response = await Http.PostAsJsonAsync("api/Auth/login", loginModel);
 
-            // 1. Token'ı Tarayıcıya Kaydet 
-            await LocalStorage.SetItemAsync("authToken", result.Token);
-
-            // 2. Sisteme "Hey, giriş yaptık!" diye haber ver
-            await AuthStateProvider.GetAuthenticationStateAsync();
-
-            Snackbar.Add("Giriş Başarılı! Kortlara Hoşgeldiniz.", Severity.Success);
-            Navigation.NavigateTo("/");
-        }
-        else
-        {
-            Snackbar.Add("Hatalı E-posta veya Şifre!", Severity.Error);
-        }
-    }
+if (response.IsSuccessStatusCode)
+{
+var result = await response.Content.ReadFromJsonAsync<AuthResponse>();
+await LocalStorage.SetItemAsync("authToken", result.Token);
+await AuthStateProvider.GetAuthenticationStateAsync();
+Snackbar.Add("Tekrar hoşgeldiniz! 🎾", Severity.Success);
+Navigation.NavigateTo("/");
+}
+else
+{
+Snackbar.Add("Hatalı E-posta veya Şifre!", Severity.Error);
+}
+}
+catch(Exception)
+{
+Snackbar.Add("Sunucuya erişilemiyor.", Severity.Error);
+}
+}
 }

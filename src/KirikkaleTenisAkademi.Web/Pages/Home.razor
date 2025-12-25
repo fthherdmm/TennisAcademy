@@ -1,28 +1,240 @@
 ﻿@page "/"
-@using KirikkaleTenisAkademi.Web.Pages.Dashboards
+@inject NavigationManager Navigation
 
-<AuthorizeView>
-    <NotAuthorized>
-        <GuestDashboard />
-    </NotAuthorized>
+<div class="hero-wrapper">
+    <MudCarousel Class="hero-carousel"
+                 ShowArrows="false"
+                 ShowBullets="false"
+                 AutoCycle="true"
+                 AutoCycleTime="TimeSpan.FromSeconds(5)"
+                 TData="object">
 
-    <Authorized>
-        <AuthorizeView Roles="Admin" Context="adminContext">
-            <Authorized>
-                <AdminDashboard />
-            </Authorized>
-        </AuthorizeView>
+        <MudCarouselItem Transition="Transition.Fade">
+            <div class="hero-image" style="background-image: url('https://images.unsplash.com/photo-1622279457486-62dcc4a431d6?q=80&w=2670&auto=format&fit=crop');"></div>
+        </MudCarouselItem>
 
-        <AuthorizeView Roles="Coach" Context="coachContext">
-            <Authorized>
-                <CoachDashboard />
-            </Authorized>
-        </AuthorizeView>
+        <MudCarouselItem Transition="Transition.Fade">
+            <div class="hero-image" style="background-image: url('https://images.unsplash.com/photo-1595435934249-5df7ed86e1c0?q=80&w=2670&auto=format&fit=crop');"></div>
+        </MudCarouselItem>
 
-        <AuthorizeView Roles="Student" Context="studentContext">
-            <Authorized>
-                <StudentDashboard />
-            </Authorized>
-        </AuthorizeView>
-    </Authorized>
-</AuthorizeView>
+        <MudCarouselItem Transition="Transition.Fade">
+            <div class="hero-image" style="background-image: url('https://images.unsplash.com/photo-1530915516947-9ce49b437725?q=80&w=2670&auto=format&fit=crop');"></div>
+        </MudCarouselItem>
+    </MudCarousel>
+
+    <div class="hero-overlay"></div>
+
+    <div class="hero-content text-center">
+        <MudContainer MaxWidth="MaxWidth.Large">
+            <MudText Typo="Typo.h1" Class="hero-title animate-in-up">SINIRLARINI <span class="text-neon">ZORLA.</span></MudText>
+            <MudText Typo="Typo.h5" Class="hero-subtitle mb-8 animate-in-up-delay">Kırıkkale'nin En Profesyonel Tenis Akademisi</MudText>
+
+            <div class="d-flex gap-4 justify-center animate-in-up-delay-2">
+                <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Large" Href="/coaches"
+                           Class="rounded-pill px-10 py-3 hero-btn" style="color:black;">
+                    Eğitmenleri Keşfet
+                </MudButton>
+
+                <AuthorizeView>
+                    <NotAuthorized>
+                        <MudButton Variant="Variant.Outlined" Size="Size.Large" Href="/register"
+                                   Class="rounded-pill px-10 py-3 text-white border-white hero-btn-outline">
+                            Hemen Başla
+                        </MudButton>
+                    </NotAuthorized>
+                </AuthorizeView>
+            </div>
+        </MudContainer>
+    </div>
+</div>
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="floating-stats-container">
+    <MudGrid Justify="Justify.Center">
+        <MudItem xs="12" md="10">
+            <MudPaper Elevation="8" Class="pa-8 rounded-xl d-flex justify-space-around flex-wrap gap-4 glass-card">
+                <div class="text-center stat-item">
+                    <MudText Typo="Typo.h2" Color="Color.Primary" Style="font-weight:900;">5+</MudText>
+                    <MudText Typo="Typo.body1" Class="text-muted">Profesyonel Kort</MudText>
+                </div>
+                <div class="text-center stat-item border-x px-md-16">
+                    <MudText Typo="Typo.h2" Color="Color.Primary" Style="font-weight:900;">12+</MudText>
+                    <MudText Typo="Typo.body1" Class="text-muted">Uzman Eğitmen</MudText>
+                </div>
+                <div class="text-center stat-item">
+                    <MudText Typo="Typo.h2" Color="Color.Primary" Style="font-weight:900;">500+</MudText>
+                    <MudText Typo="Typo.body1" Class="text-muted">Mutlu Öğrenci</MudText>
+                </div>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+</MudContainer>
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="section-spacing">
+    <div class="text-center mb-12">
+        <MudText Typo="Typo.overline" Color="Color.Secondary" Style="font-size:1.2rem; font-weight:bold; letter-spacing:2px; color:#2E7D32;">AVANTAJLARIMIZ</MudText>
+        <MudText Typo="Typo.h3" Style="font-weight:800; color:#212121;">NEDEN BİZİ SEÇMELİSİNİZ?</MudText>
+    </div>
+
+    <MudGrid Spacing="6">
+        <MudItem xs="12" md="4">
+            <MudPaper Class="feature-card pa-8 d-flex flex-column align-center" Elevation="2">
+                <div class="icon-circle mb-6">
+                    <MudIcon Icon="@Icons.Material.Filled.SportsTennis" Size="Size.Large" Style="color:white;" />
+                </div>
+                <MudText Typo="Typo.h5" Align="Align.Center" Class="mb-3 fw-bold">Profesyonel Ekipman</MudText>
+                <MudText Typo="Typo.body1" Align="Align.Center" Class="text-muted">
+                    ITF standartlarında zeminler ve en yeni Wilson & Babolat antrenman ekipmanları ile performansını artır.
+                </MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" md="4">
+            <MudPaper Class="feature-card pa-8 d-flex flex-column align-center" Elevation="2">
+                <div class="icon-circle mb-6">
+                    <MudIcon Icon="@Icons.Material.Filled.EventAvailable" Size="Size.Large" Style="color:white;" />
+                </div>
+                <MudText Typo="Typo.h5" Align="Align.Center" Class="mb-3 fw-bold">Esnek Program</MudText>
+                <MudText Typo="Typo.body1" Align="Align.Center" Class="text-muted">
+                    Sabah 08:00'den gece 23:00'e kadar online sistem üzerinden anında koç veya kort rezervasyonu yap.
+                </MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" md="4">
+            <MudPaper Class="feature-card pa-8 d-flex flex-column align-center" Elevation="2">
+                <div class="icon-circle mb-6">
+                    <MudIcon Icon="@Icons.Material.Filled.TrendingUp" Size="Size.Large" Style="color:white;" />
+                </div>
+                <MudText Typo="Typo.h5" Align="Align.Center" Class="mb-3 fw-bold">Gelişim Takibi</MudText>
+                <MudText Typo="Typo.body1" Align="Align.Center" Class="text-muted">
+                    Koçlarımız her dersten sonra gelişimini not eder. İlerlemeni panelinden grafiklerle takip et.
+                </MudText>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+</MudContainer>
+
+<div class="mb-16"></div>
+
+<style>
+    /* HERO BÖLÜMÜ STİLLERİ */
+    .hero-wrapper {
+        position: relative;
+        height: 90vh; /* Ekranın %90'ı */
+        width: 100%;
+        overflow: hidden;
+        margin-top: -64px; /* Navbar arkasına geçmesi için */
+    }
+
+    .hero-carousel {
+        height: 100% !important;
+        width: 100%;
+    }
+
+    .hero-image {
+        height: 100%;
+        width: 100%;
+        background-size: cover;
+        background-position: center;
+        /* Hafif zoom efekti için animasyon eklenebilir */
+    }
+
+    .hero-overlay {
+        position: absolute;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: linear-gradient(180deg, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.5) 50%, rgba(46, 125, 50, 0.9) 100%);
+        z-index: 2;
+        pointer-events: none;
+    }
+
+    .hero-content {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 3;
+        width: 100%;
+        color: white;
+    }
+
+    .hero-title {
+        font-weight: 900;
+        letter-spacing: -2px;
+        text-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        font-size: 4rem;
+        line-height: 1.1;
+    }
+
+    .hero-subtitle {
+        font-weight: 300;
+        opacity: 0.9;
+        letter-spacing: 1px;
+    }
+
+    .text-neon { color: #76FF03; }
+
+    .hero-btn { font-weight: 800; letter-spacing: 1px; transition: transform 0.2s; box-shadow: 0 4px 15px rgba(118, 255, 3, 0.4); }
+    .hero-btn:hover { transform: translateY(-3px); background-color: #64DD17 !important; }
+
+    .hero-btn-outline { border-width: 2px !important; font-weight: 700; }
+    .hero-btn-outline:hover { background-color: rgba(255,255,255,0.1); }
+
+    /* İSTATİSTİK KARTLARI */
+    .floating-stats-container {
+        margin-top: -80px;
+        position: relative;
+        z-index: 10;
+    }
+
+    .glass-card {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255,255,255,0.5);
+    }
+
+    .border-x {
+        border-left: 1px solid #e0e0e0;
+        border-right: 1px solid #e0e0e0;
+    }
+
+    /* ÖZELLİK KARTLARI */
+    .section-spacing { margin-top: 6rem; margin-bottom: 6rem; }
+
+    .feature-card {
+        border-radius: 20px;
+        transition: all 0.3s ease;
+        border: 1px solid transparent;
+        height: 100%;
+    }
+
+    .feature-card:hover {
+        transform: translateY(-10px);
+        box-shadow: 0 20px 40px rgba(46, 125, 50, 0.15);
+        border-color: #76FF03;
+    }
+
+    .icon-circle {
+        width: 80px; height: 80px;
+        background: linear-gradient(135deg, #2E7D32 0%, #43A047 100%);
+        border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        box-shadow: 0 10px 20px rgba(46, 125, 50, 0.3);
+    }
+
+    .fw-bold { font-weight: 700; }
+    .text-muted { color: #616161; line-height: 1.6; }
+
+    /* Animasyonlar */
+    .animate-in-up { animation: fadeInUp 0.8s ease-out forwards; opacity: 0; transform: translateY(30px); }
+    .animate-in-up-delay { animation: fadeInUp 0.8s ease-out 0.2s forwards; opacity: 0; transform: translateY(30px); }
+    .animate-in-up-delay-2 { animation: fadeInUp 0.8s ease-out 0.4s forwards; opacity: 0; transform: translateY(30px); }
+
+    @@keyframes fadeInUp {
+         to { opacity: 1; transform: translateY(0); }
+     }
+
+    @@media (max-width: 600px) {
+        .hero-title { font-size: 2.5rem; }
+        .hero-subtitle { font-size: 1rem; }
+        .border-x { border: none; padding-top: 1rem; padding-bottom: 1rem; border-top: 1px solid #eee; border-bottom: 1px solid #eee; }
+        .hero-wrapper { height: 80vh; }
+    }
+</style>

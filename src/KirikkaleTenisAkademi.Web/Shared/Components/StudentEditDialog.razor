@@ -1,0 +1,269 @@
+﻿@using System.Text.Json
+@using KirikkaleTenisAkademi.Web.Models
+@inject HttpClient Http
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        <MudTabs Elevation="0" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pt-4">
+            
+            <MudTabPanel Text="Profil Bilgileri" Icon="@Icons.Material.Filled.Edit">
+                 <MudGrid>
+                    <MudItem xs="6"><MudNumericField @bind-Value="Student.Height" Label="Boy (cm)" Variant="Variant.Outlined" Margin="Margin.Dense" /></MudItem>
+                    <MudItem xs="6"><MudNumericField @bind-Value="Student.Weight" Label="Kilo (kg)" Variant="Variant.Outlined" Margin="Margin.Dense" /></MudItem>
+                    <MudItem xs="12">
+                        <MudSelect T="string" Label="Seviye" @bind-Value="Student.Level" Variant="Variant.Outlined" Margin="Margin.Dense">
+                            <MudSelectItem Value="@("Beginner")">Başlangıç</MudSelectItem>
+                            <MudSelectItem Value="@("Intermediate")">Orta</MudSelectItem>
+                            <MudSelectItem Value="@("Advanced")">İleri</MudSelectItem>
+                            <MudSelectItem Value="@("Pro")">Profesyonel</MudSelectItem>
+                        </MudSelect>
+                    </MudItem>
+                     <MudItem xs="6">
+                        <MudSelect T="string" Label="El" @bind-Value="Student.Hand" Variant="Variant.Outlined" Margin="Margin.Dense">
+                            <MudSelectItem Value="@("Right")">Sağ</MudSelectItem>
+                            <MudSelectItem Value="@("Left")">Sol</MudSelectItem>
+                        </MudSelect>
+                    </MudItem>
+                    <MudItem xs="6"><MudDatePicker Label="Doğum Tarihi" @bind-Date="Student.BirthDate" Variant="Variant.Outlined" Margin="Margin.Dense" /></MudItem>
+                 </MudGrid>
+                 <div class="d-flex justify-end mt-4">
+                    <MudButton OnClick="UpdateProfile" Variant="Variant.Filled" Color="Color.Primary">Güncelle</MudButton>
+                </div>
+            </MudTabPanel>
+
+            <MudTabPanel Text="Maç Geçmişi" Icon="@Icons.Material.Filled.SportsTennis">
+
+                <MudPaper Class="pa-4 mb-4" Elevation="0" Outlined="true" Style="background:#fcfcfc">
+                    <MudText Typo="Typo.subtitle2" Class="mb-2" Color="Color.Primary"><b>Yeni Maç Ekle</b></MudText>
+
+                    <MudGrid Spacing="2">
+
+                        <MudItem xs="12">
+                            <div class="d-flex align-center gap-2">
+                                <MudSelect T="int" Label="Turnuva Seçiniz" @bind-Value="newMatch.TournamentId" Variant="Variant.Outlined" Margin="Margin.Dense" AnchorOrigin="Origin.BottomCenter" Class="flex-grow-1">
+                                    @foreach (var t in tournaments)
+                                    {
+                                    <MudSelectItem Value="@t.Id">@t.Name</MudSelectItem>
+                                    }
+                                </MudSelect>
+                                <MudTooltip Text="Yeni Turnuva Ekle">
+                                    <MudIconButton Icon="@Icons.Material.Filled.AddCircle" Color="Color.Secondary" OnClick="@(() => _showTournamentForm = !_showTournamentForm)" />
+                                </MudTooltip>
+                            </div>
+                        </MudItem>
+
+                        @if (_showTournamentForm)
+                        {
+                        <MudItem xs="12">
+                            <MudPaper Class="pa-3" Elevation="0" Style="background-color:#e8f5e9; border:1px dashed #66bb6a;">
+                                <MudText Typo="Typo.caption" Color="Color.Success"><b>Hızlı Turnuva Oluştur</b></MudText>
+                                <MudGrid Spacing="1">
+                                    <MudItem xs="8">
+                                        <MudTextField @bind-Value="newTournament.Name" Label="Turnuva Adı" Placeholder="Örn: Cumhuriyet Kupası" Variant="Variant.Outlined" Margin="Margin.Dense" Style="background:white"/>
+                                    </MudItem>
+                                    <MudItem xs="4">
+                                        <MudTextField @bind-Value="newTournament.Category" Label="Kategori" Placeholder="14 Yaş" Variant="Variant.Outlined" Margin="Margin.Dense" Style="background:white"/>
+                                    </MudItem>
+                                    <MudItem xs="12" Class="d-flex justify-end">
+                                        <MudButton OnClick="QuickAddTournament" Variant="Variant.Filled" Color="Color.Success" Size="Size.Small" StartIcon="@Icons.Material.Filled.Save">Kaydet ve Seç</MudButton>
+                                    </MudItem>
+                                </MudGrid>
+                            </MudPaper>
+                        </MudItem>
+                        }
+
+                        <MudItem xs="6">
+                            <MudDatePicker @bind-Date="dateBuffer" Label="Maç Tarihi" Variant="Variant.Outlined" Margin="Margin.Dense"/>
+                        </MudItem>
+                        <MudItem xs="6">
+                            <MudTextField @bind-Value="newMatch.OpponentName" Label="Rakip Adı" Variant="Variant.Outlined" Margin="Margin.Dense"/>
+                        </MudItem>
+
+                        <MudItem xs="4">
+                            <MudTextField @bind-Value="newMatch.ScoreSet1" Label="1. Set" Placeholder="6-4" Variant="Variant.Outlined" Margin="Margin.Dense"/>
+                        </MudItem>
+                        <MudItem xs="4">
+                            <MudTextField @bind-Value="newMatch.ScoreSet2" Label="2. Set" Placeholder="6-2" Variant="Variant.Outlined" Margin="Margin.Dense"/>
+                        </MudItem>
+                        <MudItem xs="4">
+                            <MudTextField @bind-Value="newMatch.ScoreSet3" Label="3. Set" Placeholder="-" Variant="Variant.Outlined" Margin="Margin.Dense"/>
+                        </MudItem>
+
+                        <MudItem xs="12" sm="6">
+                            <MudRadioGroup @bind-Value="newMatch.IsWinner">
+                                <MudRadio Value="true" Color="Color.Success" Dense="true">Galibiyet 🏆</MudRadio>
+                                <MudRadio Value="false" Color="Color.Error" Dense="true">Mağlubiyet</MudRadio>
+                            </MudRadioGroup>
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudTextField @bind-Value="newMatch.CoachNotes" Label="Koç Notu" Variant="Variant.Outlined" Margin="Margin.Dense"/>
+                        </MudItem>
+
+                        <MudItem xs="12" Class="d-flex justify-end">
+                            <MudButton OnClick="AddMatch" Variant="Variant.Filled" Color="Color.Secondary" StartIcon="@Icons.Material.Filled.Add">Maçı Kaydet</MudButton>
+                        </MudItem>
+                    </MudGrid>
+                </MudPaper>
+
+                <MudText Typo="Typo.body2" Class="mb-2"><b>Son Maçlar</b></MudText>
+                @if (matches != null)
+                {
+                <MudList T="string" Dense="true" Style="max-height: 250px; overflow-y: auto;">
+                    @foreach (var m in matches)
+                    {
+                    <MudListItem Icon="@(m.IsWinner ? Icons.Material.Filled.EmojiEvents : Icons.Material.Filled.ThumbDown)"
+                                 IconColor="@(m.IsWinner ? Color.Warning : Color.Error)">
+                        <div class="d-flex justify-space-between align-center">
+                            <div>
+                                <MudText Typo="Typo.body2" Style="font-weight:bold">@m.TournamentName</MudText>
+                                <MudText Typo="Typo.caption">vs @m.OpponentName | Skor: @m.ScoreSet1, @m.ScoreSet2</MudText>
+                            </div>
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" OnClick="@(() => DeleteMatch(m.Id))"/>
+                        </div>
+                    </MudListItem>
+                    <MudDivider />
+                    }
+                </MudList>
+                }
+            </MudTabPanel>
+        </MudTabs>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Kapat</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; }
+    [Parameter] public MyStudentDto Student { get; set; }
+
+    private MatchDto newMatch = new();
+    private List<MatchDto> matches;
+    private List<TournamentSelectDto> tournaments = new(); // Turnuva listesi
+    private DateTime? dateBuffer = DateTime.Now;
+    private bool _showTournamentForm = false;
+    private CreateTournamentDto newTournament = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadTournaments();
+        await LoadMatches();
+    }
+    
+    // --- API ÇAĞRILARI ---
+
+    // YENİ FONKSİYON: HIZLI TURNUVA EKLE
+    private async Task QuickAddTournament()
+    {
+        if (string.IsNullOrWhiteSpace(newTournament.Name))
+        {
+            Snackbar.Add("Turnuva adı giriniz.", Severity.Warning);
+            return;
+        }
+
+        var response = await Http.PostAsJsonAsync("api/Coach/add-tournament", newTournament);
+        
+        if (response.IsSuccessStatusCode)
+        {
+            // 1. Eklenen turnuvanın ID'sini al (API'den dönmüştük)
+            var result = await response.Content.ReadFromJsonAsync<JsonElement>();
+            int newId = result.GetProperty("id").GetInt32();
+
+            // 2. Listeyi Yenile
+            await LoadTournaments();
+            
+            // 3. Yeni eklenen turnuvayı SEÇİLİ yap
+            newMatch.TournamentId = newId;
+            
+            // 4. Formu kapat ve temizle
+            _showTournamentForm = false;
+            newTournament = new CreateTournamentDto();
+            
+            Snackbar.Add("Turnuva oluşturuldu ve seçildi.", Severity.Success);
+        }
+        else
+        {
+            Snackbar.Add("Turnuva eklenemedi.", Severity.Error);
+        }
+    }
+    
+    private async Task LoadTournaments()
+    {
+        try {
+            tournaments = await Http.GetFromJsonAsync<List<TournamentSelectDto>>("api/Coach/tournaments");
+        } catch {}
+    }
+
+    private async Task LoadMatches()
+    {
+        try {
+            matches = await Http.GetFromJsonAsync<List<MatchDto>>($"api/Coach/student-matches/{Student.StudentId}");
+        } catch {}
+    }
+
+    // StudentEditDialog.razor -> @code bloğu içi
+
+    private async Task UpdateProfile()
+    {
+        // YENİ: UserProfileDto yerine UpdateStudentStatsDto kullanıyoruz
+        var updateModel = new UpdateStudentStatsDto
+        {
+            StudentId = Student.StudentId, // ID'yi doğru aldığımızdan emin oluyoruz
+            Height = Student.Height,
+            Weight = Student.Weight,
+            Level = Student.Level,
+            Hand = Student.Hand,
+            BirthDate = Student.BirthDate
+        };
+
+        // API çağrısı
+        var response = await Http.PutAsJsonAsync("api/Coach/update-student-profile", updateModel);
+    
+        if (response.IsSuccessStatusCode)
+        {
+            Snackbar.Add("Profil başarıyla güncellendi. ✅", Severity.Success);
+            // İsteğe bağlı: Dialogu kapatabilirsin
+            // MudDialog.Close(DialogResult.Ok(true)); 
+        }
+        else
+        {
+            var error = await response.Content.ReadAsStringAsync();
+            Snackbar.Add($"Hata oluştu: {error}", Severity.Error);
+        }
+    }
+
+    private async Task AddMatch()
+    {
+        if(newMatch.TournamentId == 0) 
+        {
+            Snackbar.Add("Lütfen bir turnuva seçiniz.", Severity.Warning);
+            return;
+        }
+
+        newMatch.StudentId = Student.StudentId;
+        newMatch.MatchDate = dateBuffer ?? DateTime.Now;
+
+        var response = await Http.PostAsJsonAsync("api/Coach/add-match", newMatch);
+        if (response.IsSuccessStatusCode)
+        {
+            Snackbar.Add("Maç eklendi!", Severity.Success);
+            await LoadMatches();
+            // Formu Temizle ama Turnuva ID kalsın (seri ekleme için)
+            var currentTour = newMatch.TournamentId;
+            newMatch = new MatchDto { TournamentId = currentTour, IsWinner = true, ScoreSet1="0-0" }; 
+        }
+        else
+        {
+            Snackbar.Add("Maç eklenirken hata oluştu.", Severity.Error);
+        }
+    }
+
+    private async Task DeleteMatch(int id)
+    {
+        await Http.DeleteAsync($"api/Coach/delete-match/{id}");
+        await LoadMatches();
+    }
+
+    void Cancel() => MudDialog.Cancel();
+}

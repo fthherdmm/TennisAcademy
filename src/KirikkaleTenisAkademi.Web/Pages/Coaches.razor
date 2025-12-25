@@ -1,35 +1,72 @@
 ﻿@page "/coaches"
-@using KirikkaleTenisAkademi.Web.Models  @* 👈 DEĞİŞİKLİK BURADA: Domain değil Web.Models *@
+@using KirikkaleTenisAkademi.Web.Models
+@using KirikkaleTenisAkademi.Web.Shared.Components
+@using MudBlazor
 @inject HttpClient Http
+@inject IDialogService DialogService
 
-    <MudText Typo="Typo.h4" Color="Color.Primary" Class="mb-4">Akademi Eğitmenlerimiz</MudText>
+<MudContainer MaxWidth="MaxWidth.Large" Class="mb-16" Style="margin-top: 120px;">
+    
+    <div class="text-center mb-12">
+        <MudText Typo="Typo.h3" Color="Color.Primary" Style="font-weight:900; letter-spacing:-1px;">EĞİTMEN KADROMUZ</MudText>
+        <MudText Typo="Typo.body1" Class="text-muted mt-2">
+            Alanında uzman, sertifikalı ve deneyimli antrenörlerimizle tanışın.
+        </MudText>
+    </div>
 
-    @if (coaches == null)
+    @if (_loading)
     {
-    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+    <div class="d-flex justify-center mt-12">
+        <MudProgressCircular Color="Color.Primary" Size="Size.Large" Indeterminate="true" />
+    </div>
+    }
+    else if (coaches == null || coaches.Count == 0)
+    {
+    <MudAlert Severity="Severity.Info" Class="mt-4">Henüz kayıtlı eğitmen bulunmamaktadır.</MudAlert>
     }
     else
     {
-    <MudGrid>
+    <MudGrid Spacing="4">
         @foreach (var coach in coaches)
         {
-        <MudItem xs="12" sm="6" md="4">
-            <MudCard Elevation="3" Class="rounded-lg hover-effect">
-                <MudCardMedia Image="@coach.ImageUrl" Height="250" />
-                <MudCardContent>
-                    <MudText Typo="Typo.h5">@coach.FirstName @coach.LastName</MudText>
-                    <MudText Typo="Typo.body2" Color="Color.Secondary">@coach.Specialty</MudText>
-                    <MudText Typo="Typo.body2" Class="mt-2">@coach.Bio</MudText>
+        <MudItem xs="12" sm="6" md="4" lg="3">
+            <MudCard Elevation="2" Class="coach-card rounded-xl d-flex flex-column h-100">
+
+                <div class="card-image-wrapper" @onclick="@(() => OpenDetails(coach))">
+                    <MudImage Src="@coach.ImageUrl" ObjectFit="ObjectFit.Cover" Class="coach-img" />
+                    <div class="card-overlay">
+                        <MudIcon Icon="@Icons.Material.Filled.Search" Style="color:white;" Size="Size.Large" />
+                    </div>
+                </div>
+
+                <MudCardContent Class="d-flex flex-column align-center pt-6 flex-grow-1">
+                    <MudText Typo="Typo.h6" Style="font-weight:800;">@coach.FirstName @coach.LastName</MudText>
+                    <MudChip T="string" Color="Color.Secondary" Size="Size.Small" Variant="Variant.Text" Class="mt-1 mb-3 fw-bold">
+                        @coach.Specialty
+                    </MudChip>
+
+                    <MudText Typo="Typo.body2" Align="Align.Center" Class="text-muted line-clamp-3 px-2">
+                        @coach.Bio
+                    </MudText>
                 </MudCardContent>
-                <MudCardActions>
-                    <MudButton Variant="Variant.Text" Color="Color.Primary">Profili İncele</MudButton>
+
+                <MudCardActions Class="justify-center pb-6 px-4 gap-2">
+                    <MudButton Variant="Variant.Outlined"
+                               Color="Color.Primary"
+                               Size="Size.Small"
+                               Class="rounded-pill flex-grow-1"
+                               OnClick="@(() => OpenDetails(coach))">
+                        Detaylar
+                    </MudButton>
 
                     <AuthorizeView Roles="Student">
                         <Authorized>
                             <MudButton Variant="Variant.Filled"
-                                       Color="Color.Secondary"
-                                       StartIcon="@Icons.Material.Filled.DateRange"
-                                       Href="@($"/booking/{coach.Id}")">
+                                       Color="Color.Primary"
+                                       Size="Size.Small"
+                                       StartIcon="@Icons.Material.Filled.Event"
+                                       Href="@($"/booking/{coach.Id}")"
+                                       Class="rounded-pill flex-grow-1">
                                 Ders Al
                             </MudButton>
                         </Authorized>
@@ -40,14 +77,96 @@
         }
     </MudGrid>
     }
+</MudContainer>
+
+<style>
+    /* KART HOVER EFEKTLERİ */
+    .coach-card {
+        transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        border: 1px solid transparent;
+        overflow: hidden;
+        cursor: pointer;
+    }
+
+    .coach-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 12px 20px rgba(46, 125, 50, 0.2);
+        border-color: #76FF03;
+    }
+
+    /* RESİM ALANI */
+    .card-image-wrapper {
+        position: relative;
+        height: 260px;
+        width: 100%;
+        overflow: hidden;
+        background-color: #f5f5f5;
+    }
+
+    .coach-img {
+        width: 100%;
+        height: 100%;
+        transition: transform 0.5s ease;
+    }
+
+    .coach-card:hover .coach-img {
+        transform: scale(1.05);
+    }
+
+    /* Resim üzerindeki overlay ikon */
+    .card-overlay {
+        position: absolute;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(46, 125, 50, 0.6);
+        display: flex; align-items: center; justify-content: center;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+
+    .coach-card:hover .card-overlay {
+        opacity: 1;
+    }
+
+    /* METİN KISITLAMA */
+    .line-clamp-3 {
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        min-height: 4.5em;
+    }
+
+    .text-muted { color: #616161; }
+    .fw-bold { font-weight: 700; }
+</style>
 
 @code {
-    // 👇 DEĞİŞİKLİK BURADA: List<Coach> yerine List<CoachDto> yaptık
-    private List<CoachDto>? coaches;
+private List<CoachDto>? coaches;
+private bool _loading = true;
 
-    protected override async Task OnInitializedAsync()
-    {
-        // 👇 DEĞİŞİKLİK BURADA: CoachDto olarak çekiyoruz
-        coaches = await Http.GetFromJsonAsync<List<CoachDto>>("api/Coaches");
-    }
+protected override async Task OnInitializedAsync()
+{
+try
+{
+coaches = await Http.GetFromJsonAsync<List<CoachDto>>("api/Coaches");
+}
+catch (Exception ex)
+{
+Console.WriteLine("Hata: " + ex.Message);
+}
+finally
+{
+_loading = false;
+}
+}
+
+// Popup Açma Fonksiyonu
+private void OpenDetails(CoachDto coach)
+{
+var parameters = new DialogParameters<CoachDetailsDialog> { { x => x.Coach, coach } };
+
+var options = new DialogOptions() { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+
+DialogService.Show<CoachDetailsDialog>(coach.FirstName + " " + coach.LastName, parameters, options);
+}
 }

@@ -1,6 +1,7 @@
 ﻿using KirikkaleTenisAkademi.Domain.Entities;
 using KirikkaleTenisAkademi.Domain.Enums;
 using KirikkaleTenisAkademi.Infrastructure.Persistence;
+using KirikkaleTenisAkademi.Web.Models; // DTO'nun olduğu namespace (veya Application.DTOs)
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -39,14 +40,14 @@ namespace KirikkaleTenisAkademi.API.Controllers
         [HttpPost("create-coach")]
         public async Task<IActionResult> CreateCoach(CreateCoachRequest request)
         {
-            // 1. Validasyonlar
+            // Validasyon
             if (await _context.Users.AnyAsync(u => u.Email == request.Email))
                 return BadRequest("Bu e-posta adresi zaten kullanılıyor.");
 
             using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
-                // 2. Kullanıcıyı Oluştur (AppUser)
+                // 1. Kullanıcıyı Oluştur (AppUser)
                 var newUserId = Guid.NewGuid().ToString();
                 var user = new AppUser 
                 { 
@@ -55,34 +56,30 @@ namespace KirikkaleTenisAkademi.API.Controllers
                     NormalizedUserName = request.Email.ToUpperInvariant(),
                     Email = request.Email, 
                     NormalizedEmail = request.Email.ToUpperInvariant(),
-                    
-                    // DÜZELTME: Artık FullName yok, parçalı kaydediyoruz
                     FirstName = request.FirstName,
                     LastName = request.LastName,
-                    
                     LessonCredits = 0,
                     EmailConfirmed = true,
-                    SecurityStamp = Guid.NewGuid().ToString()
+                    SecurityStamp = Guid.NewGuid().ToString(),
+                    
+                    // Koçlar için varsayılan değerler
+                    Level = TennisLevel.Pro,
+                    RegistrationDate = DateTime.UtcNow
                 };
 
-                // Şifreyi Hashle
                 var passwordHasher = new PasswordHasher<AppUser>();
                 user.PasswordHash = passwordHasher.HashPassword(user, request.Password);
 
                 _context.Users.Add(user);
 
-                // 3. Rolü Bağla
+                // 2. Rolü Bağla
                 var coachRole = await _context.Roles.FirstOrDefaultAsync(r => r.Name == "Coach");
                 if (coachRole != null)
                 {
-                    _context.UserRoles.Add(new IdentityUserRole<string>
-                    {
-                        UserId = newUserId,
-                        RoleId = coachRole.Id
-                    });
+                    _context.UserRoles.Add(new IdentityUserRole<string> { UserId = newUserId, RoleId = coachRole.Id });
                 }
 
-                // 4. Koç Profilini Oluştur (Domain Entity)
+                // 3. Koç Profilini Oluştur (Domain Entity)
                 var coach = new Coach
                 {
                     FirstName = request.FirstName,
@@ -95,7 +92,6 @@ namespace KirikkaleTenisAkademi.API.Controllers
                 
                 _context.Coaches.Add(coach);
 
-                // 5. Hepsini Kaydet
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
             
@@ -117,11 +113,8 @@ namespace KirikkaleTenisAkademi.API.Controllers
             var totalUsers = await _context.Users.CountAsync();
             var totalCoaches = await _context.Coaches.CountAsync();
             
-            var totalBookings = await _context.LessonBookings
-                .CountAsync(b => b.Status == BookingStatus.Confirmed);
-            
-            var completedLessons = await _context.LessonBookings
-                .CountAsync(b => b.Status == BookingStatus.Completed);
+            var totalBookings = await _context.LessonBookings.CountAsync(b => b.Status == BookingStatus.Confirmed);
+            var completedLessons = await _context.LessonBookings.CountAsync(b => b.Status == BookingStatus.Completed);
         
             return Ok(new 
             {
@@ -133,35 +126,54 @@ namespace KirikkaleTenisAkademi.API.Controllers
         }
         
         // ==========================================
-        // 3. TÜM KULLANICILARI GETİR
+        // 3. TÜM KULLANICILARI GETİR (GÜNCELLENDİ) 🚀
         // ==========================================
         [HttpGet("users")]
-        public async Task<ActionResult<IEnumerable<object>>> GetAllUsers()
+        public async Task<ActionResult<IEnumerable<UserProfileDto>>> GetAllUsers()
         {
+            // Kullanıcıları çekiyoruz
             var users = await _context.Users.AsNoTracking().ToListAsync();
-            var userList = new List<object>();
+            var userProfileList = new List<UserProfileDto>();
         
             foreach (var user in users)
             {
+                // Kullanıcının rollerini çekiyoruz
                 var roles = await _context.UserRoles
                     .Where(ur => ur.UserId == user.Id)
                     .Join(_context.Roles, ur => ur.RoleId, r => r.Id, (ur, r) => r.Name)
                     .ToListAsync();
 
-                userList.Add(new
+                // UserProfileDto'yu detaylı bilgilerle dolduruyoruz
+                userProfileList.Add(new UserProfileDto
                 {
-                    user.Id,
-                    // DÜZELTME: FullName olmadığı için manuel birleştiriyoruz
-                    // Frontend 'fullName' beklediği için bu ismi koruyoruz
-                    FullName = $"{user.FirstName} {user.LastName}", 
-                    user.Email,
-                    user.UserName,
-                    user.LessonCredits,
-                    Roles = roles 
+                    Id = user.Id,
+                    Roles = roles,
+
+                    // Kişisel
+                    FirstName = user.FirstName,
+                    LastName = user.LastName,
+                    UserName = user.UserName,
+                    Email = user.Email,
+                    PhoneNumber = user.PhoneNumber, // Admin panelinde görünecek
+                    TCKN = user.TCKN,               // Admin panelinde görünecek
+                    BirthDate = user.BirthDate,
+
+                    // Fiziksel & Teknik (Detay butonu için)
+                    Height = user.Height,
+                    Weight = user.Weight,
+                    
+                    // Enum'ları String'e çeviriyoruz
+                    Level = user.Level.ToString(),
+                    DominantHand = user.DominantHand.ToString(),
+                    BackhandStyle = user.BackhandStyle.ToString(),
+
+                    // Acil Durum
+                    EmergencyContactName = user.EmergencyContactName,
+                    EmergencyContactPhone = user.EmergencyContactPhone
                 });
             }
         
-            return Ok(userList);
+            return Ok(userProfileList);
         }
         
         // ==========================================
@@ -179,30 +191,18 @@ namespace KirikkaleTenisAkademi.API.Controllers
             using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
-                // 1. Öğrenciyse rezervasyonlarını temizle
-                var studentBookings = await _context.LessonBookings
-                    .Where(b => b.StudentId == id)
-                    .ToListAsync();
-                
-                if (studentBookings.Any())
-                {
-                    _context.LessonBookings.RemoveRange(studentBookings);
-                }
+                // 1. Öğrenci rezervasyonlarını sil
+                var studentBookings = await _context.LessonBookings.Where(b => b.StudentId == id).ToListAsync();
+                if (studentBookings.Any()) _context.LessonBookings.RemoveRange(studentBookings);
 
                 // 2. Koç ise profilini ve derslerini sil
                 var coach = await _context.Coaches.FirstOrDefaultAsync(c => c.AppUserId == id);
                 if (coach != null)
                 {
-                    var coachBookings = await _context.LessonBookings
-                        .Where(b => b.CoachId == coach.Id)
-                        .ToListAsync();
-                    
+                    var coachBookings = await _context.LessonBookings.Where(b => b.CoachId == coach.Id).ToListAsync();
                     _context.LessonBookings.RemoveRange(coachBookings);
                     
-                    var unavailabilities = await _context.CoachUnavailabilities
-                        .Where(u => u.CoachId == coach.Id)
-                        .ToListAsync();
-                    
+                    var unavailabilities = await _context.CoachUnavailabilities.Where(u => u.CoachId == coach.Id).ToListAsync();
                     _context.CoachUnavailabilities.RemoveRange(unavailabilities);
 
                     _context.Coaches.Remove(coach);
@@ -218,7 +218,7 @@ namespace KirikkaleTenisAkademi.API.Controllers
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
 
-                return Ok(new { message = "Kullanıcı silindi." });
+                return Ok(new { message = "Kullanıcı başarıyla silindi." });
             }
             catch (Exception ex)
             {

@@ -1,72 +1,157 @@
-﻿@inject HttpClient Http
+﻿@page "/admin/dashboard"
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize(Roles = "Admin")]
+@inject HttpClient Http
 
-<MudContainer MaxWidth="MaxWidth.Large" Class="mt-8">
-    <MudText Typo="Typo.h4" Class="mb-4">👋 Hoşgeldin, Yönetici</MudText>
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-8 mb-8">
     
+    <div class="mb-8 animate-fade-in">
+        <MudText Typo="Typo.h4" Style="font-weight: 800;" Color="Color.Primary">
+            🚀 Yönetim Paneli
+        </MudText>
+        <MudText Typo="Typo.body1" Class="text-muted">
+            Akademi istatistikleri ve yönetim araçlarına buradan ulaşabilirsiniz.
+        </MudText>
+    </div>
+
     @if (stats == null)
     {
-        <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
+        <MudGrid>
+            @for (int i = 0; i < 4; i++) {
+                <MudItem xs="12" sm="6" md="3">
+                    <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="120px" Class="rounded-xl"/>
+                </MudItem>
+            }
+        </MudGrid>
     }
     else
     {
-        <MudGrid>
+        <MudGrid Class="mb-8">
             <MudItem xs="12" sm="6" md="3">
-                <MudPaper Class="pa-4 d-flex flex-column align-center justify-center mud-width-full py-8" Elevation="4">
-                    <MudIcon Icon="@Icons.Material.Filled.Group" Color="Color.Primary" Size="Size.Large" />
-                    <MudText Typo="Typo.h3" Class="mt-2">@stats.TotalUsers</MudText>
-                    <MudText Typo="Typo.subtitle1" Color="Color.Secondary">Toplam Kullanıcı</MudText>
+                <MudPaper Elevation="2" Class="pa-4 rounded-xl d-flex align-center gap-4 hover-card">
+                    <MudAvatar Color="Color.Primary" Variant="Variant.Filled" Size="Size.Large" Class="rounded-lg">
+                        <MudIcon Icon="@Icons.Material.Filled.Group" Size="Size.Medium"/>
+                    </MudAvatar>
+                    <div>
+                        <MudText Typo="Typo.caption" Class="text-muted">Toplam Üye</MudText>
+                        <MudText Typo="Typo.h4" Style="font-weight: 700;">@stats.TotalUsers</MudText>
+                    </div>
                 </MudPaper>
             </MudItem>
 
             <MudItem xs="12" sm="6" md="3">
-                <MudPaper Class="pa-4 d-flex flex-column align-center justify-center mud-width-full py-8" Elevation="4">
-                    <MudIcon Icon="@Icons.Material.Filled.SportsTennis" Color="Color.Success" Size="Size.Large" />
-                    <MudText Typo="Typo.h3" Class="mt-2">@stats.TotalCoaches</MudText>
-                    <MudText Typo="Typo.subtitle1" Color="Color.Secondary">Eğitmen</MudText>
+                <MudPaper Elevation="2" Class="pa-4 rounded-xl d-flex align-center gap-4 hover-card">
+                    <MudAvatar Color="Color.Success" Variant="Variant.Filled" Size="Size.Large" Class="rounded-lg">
+                        <MudIcon Icon="@Icons.Material.Filled.SportsTennis" Size="Size.Medium"/>
+                    </MudAvatar>
+                    <div>
+                        <MudText Typo="Typo.caption" Class="text-muted">Eğitmenler</MudText>
+                        <MudText Typo="Typo.h4" Style="font-weight: 700;">@stats.TotalCoaches</MudText>
+                    </div>
                 </MudPaper>
             </MudItem>
 
             <MudItem xs="12" sm="6" md="3">
-                <MudPaper Class="pa-4 d-flex flex-column align-center justify-center mud-width-full py-8" Elevation="4">
-                    <MudIcon Icon="@Icons.Material.Filled.EventAvailable" Color="Color.Warning" Size="Size.Large" />
-                    <MudText Typo="Typo.h3" Class="mt-2">@stats.TotalBookings</MudText>
-                    <MudText Typo="Typo.subtitle1" Color="Color.Secondary">Tamamlanan Ders</MudText>
+                <MudPaper Elevation="2" Class="pa-4 rounded-xl d-flex align-center gap-4 hover-card">
+                    <MudAvatar Color="Color.Warning" Variant="Variant.Filled" Size="Size.Large" Class="rounded-lg">
+                        <MudIcon Icon="@Icons.Material.Filled.CalendarToday" Size="Size.Medium"/>
+                    </MudAvatar>
+                    <div>
+                        <MudText Typo="Typo.caption" Class="text-muted">Aktif Dersler</MudText>
+                        <MudText Typo="Typo.h4" Style="font-weight: 700;">@stats.TotalBookings</MudText>
+                    </div>
                 </MudPaper>
             </MudItem>
 
              <MudItem xs="12" sm="6" md="3">
-                <MudPaper Class="pa-4 d-flex flex-column align-center justify-center mud-width-full py-8" Elevation="4">
-                    <MudIcon Icon="@Icons.Material.Filled.AttachMoney" Color="Color.Info" Size="Size.Large" />
-                    <MudText Typo="Typo.h4" Class="mt-2">@stats.TotalRevenue ₺</MudText>
-                    <MudText Typo="Typo.subtitle1" Color="Color.Secondary">Toplam Ciro</MudText>
+                <MudPaper Elevation="2" Class="pa-4 rounded-xl d-flex align-center gap-4 hover-card">
+                    <MudAvatar Color="Color.Info" Variant="Variant.Filled" Size="Size.Large" Class="rounded-lg">
+                        <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Size="Size.Medium"/>
+                    </MudAvatar>
+                    <div>
+                        <MudText Typo="Typo.caption" Class="text-muted">Tamamlanan</MudText>
+                        <MudText Typo="Typo.h4" Style="font-weight: 700;">@stats.CompletedLessons</MudText>
+                    </div>
                 </MudPaper>
             </MudItem>
         </MudGrid>
         
-        <MudDivider Class="my-8" />
+        <MudDivider Class="my-6" />
         
-        <MudText Typo="Typo.h5" Class="mb-4">Hızlı İşlemler</MudText>
-        <div class="d-flex gap-4">
-             <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.PersonAdd" Href="/admin/add-coach">Yeni Koç Ekle</MudButton>
-             <MudButton Variant="Variant.Outlined" Color="Color.Error" StartIcon="@Icons.Material.Filled.SupervisedUserCircle" Href="/admin/users">Kullanıcıları Yönet</MudButton>
-        </div>
+        <MudText Typo="Typo.h6" Class="mb-4" Style="font-weight: 700;">⚡ Hızlı İşlemler</MudText>
+        <MudGrid>
+            <MudItem xs="12" sm="6" md="4">
+                <MudCard Elevation="3" Class="rounded-xl cursor-pointer hover-scale" @onclick='() => NavigateTo("/admin/add-coach")'>
+                    <MudCardContent Class="d-flex flex-column align-center py-8">
+                        <MudIcon Icon="@Icons.Material.Filled.PersonAdd" Color="Color.Primary" Size="Size.Large" Class="mb-2"/>
+                        <MudText Typo="Typo.h6">Yeni Koç Ekle</MudText>
+                        <MudText Typo="Typo.body2" Class="text-muted text-center">Sisteme yeni bir antrenör tanımla.</MudText>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+
+            <MudItem xs="12" sm="6" md="4">
+                <MudCard Elevation="3" Class="rounded-xl cursor-pointer hover-scale" @onclick='() => NavigateTo("/admin/users")'>
+                    <MudCardContent Class="d-flex flex-column align-center py-8">
+                        <MudIcon Icon="@Icons.Material.Filled.SupervisedUserCircle" Color="Color.Secondary" Size="Size.Large" Class="mb-2"/>
+                        <MudText Typo="Typo.h6">Kullanıcı Yönetimi</MudText>
+                        <MudText Typo="Typo.body2" Class="text-muted text-center">Öğrenci ve koç profillerini düzenle.</MudText>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+            
+            <MudItem xs="12" sm="6" md="4">
+                <MudCard Elevation="3" Class="rounded-xl cursor-pointer hover-scale">
+                    <MudCardContent Class="d-flex flex-column align-center py-8">
+                        <MudIcon Icon="@Icons.Material.Filled.Settings" Color="Color.Tertiary" Size="Size.Large" Class="mb-2"/>
+                        <MudText Typo="Typo.h6">Turnuva Ayarları</MudText>
+                        <MudText Typo="Typo.body2" Class="text-muted text-center">Turnuva ve maç kategorilerini yönet.</MudText>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+        </MudGrid>
     }
 </MudContainer>
 
+<style>
+    .text-muted { color: #6c757d; }
+    .hover-card { transition: all 0.3s ease; }
+    .hover-card:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
+    
+    .hover-scale { transition: transform 0.2s; }
+    .hover-scale:hover { transform: scale(1.02); }
+    
+    .animate-fade-in { animation: fadeIn 0.8s ease-out; }
+    @@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+</style>
+
 @code {
+    [Inject] NavigationManager NavigationManager { get; set; }
     private DashboardStats? stats;
 
     protected override async Task OnInitializedAsync()
     {
-        try {
+        try 
+        {
+             // AdminController'daki GetDashboardStats ile eşleşen veri
              stats = await Http.GetFromJsonAsync<DashboardStats>("api/Admin/stats");
-        } catch {}
+        } 
+        catch (Exception ex)
+        {
+            Console.WriteLine("Stats yüklenemedi: " + ex.Message);
+        }
     }
 
+    private void NavigateTo(string uri)
+    {
+        NavigationManager.NavigateTo(uri);
+    }
+
+    // Backend'deki dönüş tipine tam uyumlu sınıf
     public class DashboardStats {
         public int TotalUsers { get; set; }
         public int TotalCoaches { get; set; }
-        public int TotalBookings { get; set; }
-        public decimal TotalRevenue { get; set; }
+        public int TotalBookings { get; set; }     // Onaylanmış rezervasyonlar
+        public int CompletedLessons { get; set; }  // Tamamlanmış dersler (Ciro yerine bunu kullandık)
     }
 }

@@ -27,59 +27,78 @@ namespace KirikkaleTenisAkademi.API.Controllers
         [HttpPost("book")]
         public async Task<IActionResult> BookLesson([FromBody] BookLessonRequest request)
         {
-            // 1. KULLANICIYI BUL
+            // ==============================================================================
+            // 1. KRİTİK DÜZELTME: SAATLERİ EN BAŞTA UTC'YE ÇEVİR VE SABİTLE
+            // ==============================================================================
+            // Veritabanı UTC çalıştığı için, karşılaştırma yapacağımız saatleri de UTC yapmalıyız.
+            DateTime requestedStartUtc = request.StartTime.ToUniversalTime();
+            DateTime requestedEndUtc = request.EndTime.ToUniversalTime();
+
+            // 2. KULLANICIYI BUL
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             var student = await _userManager.FindByIdAsync(userId);
 
             if (student == null) return Unauthorized("Kullanıcı bulunamadı.");
 
-            // 2. KREDİ KONTROLÜ
+            // 3. KREDİ KONTROLÜ
             if (student.LessonCredits < 1)
             {
                 return BadRequest("Yetersiz bakiye! Lütfen önce paket satın alınız.");
             }
 
-            // 3. MÜSAİTLİK KONTROLÜ (Çok Önemli!)
-            // A. O saatte başka bir DERS var mı?
-            var isLessonExists = await _context.LessonBookings
+            // 4. MÜSAİTLİK KONTROLÜ
+            
+            // A. Koçun o saatte başka bir DERSİ var mı? (UTC değişkenleri kullanıyoruz)
+            var isCoachBusy = await _context.LessonBookings
                 .AnyAsync(b => b.CoachId == request.CoachId 
                             && b.Status != BookingStatus.Cancelled
-                            && b.StartTime < request.EndTime 
-                            && b.EndTime > request.StartTime);
+                            && b.Status != BookingStatus.Rejected
+                            && b.StartTime < requestedEndUtc   // Düzeltildi
+                            && b.EndTime > requestedStartUtc); // Düzeltildi
 
-            if (isLessonExists) return BadRequest("Bu saatte zaten bir rezervasyon var.");
+            if (isCoachBusy) return BadRequest("Bu saatte eğitmenin zaten bir rezervasyonu var.");
 
-            // B. Hoca o saati KAPATMIŞ mı? (CoachUnavailability)
+            // B. Hoca o saati KAPATMIŞ mı? (UTC değişkenleri kullanıyoruz)
             var isBlocked = await _context.CoachUnavailabilities
                 .AnyAsync(u => u.CoachId == request.CoachId
-                            && u.StartTime < request.EndTime
-                            && u.EndTime > request.StartTime);
+                            && u.StartTime < requestedEndUtc   // Düzeltildi
+                            && u.EndTime > requestedStartUtc); // Düzeltildi
 
             if (isBlocked) return BadRequest("Eğitmen bu saat aralığında müsait değil.");
 
-            // 4. İŞLEMİ YAP (Transaction ile güvenli mod)
+            // C. ÖĞRENCİNİN O SAATTE BAŞKA DERSİ VAR MI? (UTC değişkenleri kullanıyoruz)
+            var isStudentBusy = await _context.LessonBookings
+                .AnyAsync(b => b.StudentId == userId 
+                            && b.Status != BookingStatus.Cancelled
+                            && b.Status != BookingStatus.Rejected 
+                            && b.StartTime < requestedEndUtc    // Düzeltildi
+                            && b.EndTime > requestedStartUtc);  // Düzeltildi
+
+            if (isStudentBusy) 
+            {
+                return BadRequest("Bu saat aralığında zaten başka bir dersiniz var. Aynı saate iki ders alamazsınız.");
+            }
+
+            // 5. İŞLEMİ YAP
             using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
-                // Krediyi Düş
                 student.LessonCredits -= 1;
-                await _userManager.UpdateAsync(student); // Kredi güncellemesini kaydet
+                await _userManager.UpdateAsync(student);
 
-                // Rezervasyonu Oluştur
                 var booking = new LessonBooking
                 {
                     StudentId = student.Id,
                     CoachId = request.CoachId,
-                    StartTime = request.StartTime.ToUniversalTime(), 
-                    EndTime = request.EndTime.ToUniversalTime(),
-                    Status = BookingStatus.Confirmed, // Kredili olduğu için direkt onaylı
+                    // Yukarıda sabitlediğimiz UTC saatleri kullanıyoruz
+                    StartTime = requestedStartUtc, 
+                    EndTime = requestedEndUtc,
+                    Status = BookingStatus.Confirmed,
                     CreatedDate = DateTime.UtcNow
                 };
 
                 _context.LessonBookings.Add(booking);
                 await _context.SaveChangesAsync();
-
-                // İşlemi onayla
                 await transaction.CommitAsync();
 
                 return Ok(new { message = "Rezervasyon başarıyla oluşturuldu.", remainingCredits = student.LessonCredits });

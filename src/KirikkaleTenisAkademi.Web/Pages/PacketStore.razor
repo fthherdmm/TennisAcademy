@@ -6,53 +6,58 @@
 @inject ISnackbar Snackbar
 @inject NavigationManager Navigation
 @inject AuthenticationStateProvider AuthStateProvider
+@inject IDialogService DialogService
 
-<MudContainer MaxWidth="MaxWidth.Large" Class="mt-8">
-    <div class="text-center mb-10">
-        <MudText Typo="Typo.h3" Class="mb-2">🎾 Ders Paketleri</MudText>
-        <MudText Typo="Typo.subtitle1" Class="text-muted">Hedefine en uygun paketi seç, gelişime başla.</MudText>
+<MudContainer MaxWidth="MaxWidth.Large" Class="mb-16" Style="margin-top: 120px;">
+    
+    <div class="text-center mb-12 animate-fade-in">
+        <MudText Typo="Typo.h3" Color="Color.Primary" Style="font-weight: 900; letter-spacing: -1px;">PAKETİNİ SEÇ</MudText>
+        <MudText Typo="Typo.h6" Class="text-muted mt-2" Style="font-weight:300;">
+            Daha fazla ders, daha fazla avantaj. Hedefine en uygun paketi hemen başlat.
+        </MudText>
     </div>
 
     @if (packets == null)
     {
-        <div class="d-flex justify-center">
-            <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+        <div class="d-flex justify-center mt-12">
+            <MudProgressCircular Color="Color.Primary" Size="Size.Large" Indeterminate="true" />
         </div>
     }
     else
     {
-        <MudGrid Justify="Justify.Center" Spacing="4">
+        <MudGrid Justify="Justify.Center" Spacing="6">
             @foreach (var packet in packets)
             {
                 <MudItem xs="12" sm="6" md="4">
-                    <MudPaper Elevation="4" Class="pa-6 rounded-xl hover-scale d-flex flex-column align-center relative overflow-hidden" 
-                              Style="height: 100%; transition: transform 0.3s;">
+                    <MudPaper Elevation="4" Class="packet-card pa-8 rounded-xl d-flex flex-column align-center relative overflow-hidden h-100">
                         
-                        <div style="position:absolute; top:-50px; right:-50px; width:150px; height:150px; background:rgba(46, 125, 50, 0.1); border-radius:50%;"></div>
+                        <div class="packet-bg-circle"></div>
 
-                        <MudText Typo="Typo.h5" Color="Color.Primary" Class="mb-2"><b>@packet.Name</b></MudText>
+                        <MudText Typo="Typo.h5" Class="mb-4 fw-bold" Color="Color.Primary">@packet.Name.ToUpper()</MudText>
                         
-                        <div class="d-flex align-center mb-4">
-                            <MudIcon Icon="@Icons.Material.Filled.SportsTennis" Color="Color.Secondary" Size="Size.Small" Class="mr-2"/>
-                            <MudText Typo="Typo.h6">@packet.CreditAmount Ders Hakkı</MudText>
+                        <div class="d-flex align-center justify-center mb-6 credit-badge">
+                            <MudIcon Icon="@Icons.Material.Filled.SportsTennis" Size="Size.Small" Class="mr-2 text-white"/>
+                            <MudText Typo="Typo.h6" Class="text-white">@packet.CreditAmount Ders Hakkı</MudText>
                         </div>
 
-                        <MudText Typo="Typo.body2" Class="mb-6 text-center text-muted" Style="flex-grow:1;">
+                        <MudText Typo="Typo.body2" Align="Align.Center" Class="mb-8 text-muted px-4" Style="flex-grow:1; line-height:1.6;">
                             @packet.Description
                         </MudText>
 
-                        <MudDivider Class="mb-4 w-100" />
+                        <MudDivider Class="mb-6 w-100" />
 
-                        <MudText Typo="Typo.h4" Color="Color.Dark" Class="mb-4">
-                            @packet.Price.ToString("C0") </MudText>
+                        <div class="d-flex align-start mb-6">
+                            <MudText Typo="Typo.h3" Color="Color.Dark" Style="font-weight: 800;">@packet.Price.ToString("N0")</MudText>
+                            <MudText Typo="Typo.h6" Color="Color.Dark" Class="mt-2 ml-1">₺</MudText>
+                        </div>
 
                         <MudButton Variant="Variant.Filled" 
                                    Color="Color.Primary" 
                                    Size="Size.Large" 
                                    FullWidth="true"
-                                   OnClick="@(() => PurchasePacket(packet.Id, packet.Name))"
-                                   Class="rounded-pill">
-                            Satın Al
+                                   OnClick="@(() => PurchasePacket(packet))"
+                                   Class="rounded-pill py-3 fw-bold hover-lift">
+                            SATIN AL
                         </MudButton>
                     </MudPaper>
                 </MudItem>
@@ -62,10 +67,49 @@
 </MudContainer>
 
 <style>
-    .hover-scale:hover {
-        transform: translateY(-10px);
-        box-shadow: 0 10px 20px rgba(0,0,0,0.2) !important;
+    /* Kart Hover Efekti */
+    .packet-card {
+        transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        border: 1px solid transparent;
+        position: relative;
+        background: white;
     }
+    .packet-card:hover {
+        transform: translateY(-15px);
+        box-shadow: 0 20px 40px rgba(46, 125, 50, 0.15);
+        border-color: #76FF03;
+    }
+
+    /* Arka Plandaki Neon Daire */
+    .packet-bg-circle {
+        position: absolute;
+        top: -60px;
+        right: -60px;
+        width: 180px;
+        height: 180px;
+        background: radial-gradient(circle, rgba(118,255,3,0.2) 0%, rgba(255,255,255,0) 70%);
+        border-radius: 50%;
+        transition: transform 0.5s ease;
+    }
+    .packet-card:hover .packet-bg-circle {
+        transform: scale(1.2);
+    }
+
+    /* Kredi Rozeti */
+    .credit-badge {
+        background: linear-gradient(45deg, #2E7D32, #43A047);
+        padding: 8px 20px;
+        border-radius: 50px;
+        box-shadow: 0 4px 10px rgba(46, 125, 50, 0.3);
+    }
+
+    .fw-bold { font-weight: 700; }
+    .text-white { color: white !important; }
+    .text-muted { color: #616161; }
+
+    /* Giriş Animasyonu */
+    .animate-fade-in { animation: fadeIn 0.8s ease-out; }
+    @@keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
 </style>
 
 @code {
@@ -77,30 +121,45 @@
         {
             packets = await Http.GetFromJsonAsync<List<PacketDto>>("api/LessonPackets");
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             Snackbar.Add("Paketler yüklenirken hata oluştu.", Severity.Error);
         }
     }
 
-    private async Task PurchasePacket(int packetId, string packetName)
+    private async Task PurchasePacket(PacketDto packet)
     {
-        // Onay kutusu eklenebilir ama şimdilik direkt alalım
-        var response = await Http.PostAsync($"api/LessonPackets/purchase/{packetId}", null);
+        // 1. ONAY KUTUSU (Güvenlik ve Yanlış Tıklamayı Önleme)
+        bool? result = await DialogService.ShowMessageBox(
+            "Satın Alma Onayı", 
+            $"{packet.Name} paketini {packet.Price:C0} karşılığında satın almak istediğinize emin misiniz?", 
+            yesText: "Evet, Satın Al", cancelText: "Vazgeç");
 
-        if (response.IsSuccessStatusCode)
+        if (result == true)
         {
-            Snackbar.Add($"{packetName} başarıyla hesabına tanımlandı! 🎉", Severity.Success);
-            
-            // Kullanıcı bakiyesini güncellemek için sayfayı yenilemek gerekebilir 
-            // veya state yönetimini tetiklemek gerekir. Şimdilik basitçe:
-            await Task.Delay(1000);
-            Navigation.NavigateTo("/"); // Ana sayfaya yönlendir
-        }
-        else
-        {
-            var error = await response.Content.ReadAsStringAsync();
-            Snackbar.Add($"Hata: {error}", Severity.Error);
+            try 
+            {
+                var response = await Http.PostAsync($"api/LessonPackets/purchase/{packet.Id}", null);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    Snackbar.Add($"{packet.Name} başarıyla hesabına tanımlandı! 🎉", Severity.Success);
+                    
+                    // Navbar'daki krediyi güncellemek için AuthState'i tetikleyebiliriz
+                    // veya basitçe yönlendirme yapabiliriz.
+                    await Task.Delay(1000);
+                    Navigation.NavigateTo("/my-bookings"); // Ders almaya yönlendiriyoruz
+                }
+                else
+                {
+                    var error = await response.Content.ReadAsStringAsync();
+                    Snackbar.Add("İşlem başarısız. Lütfen tekrar deneyin.", Severity.Error);
+                }
+            }
+            catch(Exception)
+            {
+                 Snackbar.Add("Sunucu hatası.", Severity.Error);
+            }
         }
     }
 

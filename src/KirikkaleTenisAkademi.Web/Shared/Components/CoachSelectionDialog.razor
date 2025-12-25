@@ -1,0 +1,31 @@
+﻿@using KirikkaleTenisAkademi.Web.Models
+@using KirikkaleTenisAkademi.Web.Pages
+@using MudBlazor
+
+<MudDialog>
+    <DialogContent>
+        <MudText Typo="Typo.body1" Class="mb-4">Hangi eğitmenden ders almak istersiniz?</MudText>
+        <MudSelect T="int" Label="Eğitmen Seçiniz" @bind-Value="_selectedCoachId" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter">
+            <MudSelectItem Value="0" Disabled="true">Seçiniz...</MudSelectItem>
+            @foreach (var coach in Coaches)
+            {
+                <MudSelectItem Value="@coach.Id">@coach.FullName</MudSelectItem>
+            }
+        </MudSelect>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Vazgeç</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit" Disabled="@(_selectedCoachId == 0)">Devam Et</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    
+    [Parameter] public List<MyBookings.CoachSelectDto> Coaches { get; set; } = new();
+
+    private int _selectedCoachId = 0;
+
+    void Submit() => MudDialog.Close(DialogResult.Ok(_selectedCoachId));
+    void Cancel() => MudDialog.Cancel();
+}

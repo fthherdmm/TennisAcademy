@@ -2,32 +2,48 @@
 @using KirikkaleTenisAkademi.Web.Models
 @using KirikkaleTenisAkademi.Web.Shared.Components
 @using System.Net.Http.Json
+@attribute [Authorize(Roles = "Coach")]
 @inject HttpClient HttpClient
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
 
-<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
-    <div class="d-flex align-center justify-space-between mb-4">
-        <MudText Typo="Typo.h4">📅 Eğitmen Ajandası</MudText>
-        <div class="d-flex gap-4">
-            <div class="d-flex align-center"><div style="width:20px;height:20px;background:#e3f2fd;margin-right:5px;border:1px solid #ccc"></div> Ders Var</div>
-            <div class="d-flex align-center"><div style="width:20px;height:20px;background:#fff3e0;margin-right:5px;border:1px solid #ccc"></div> Kapalı</div>
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mb-16" Style="margin-top: 120px;">
+    
+    <div class="d-flex flex-wrap align-center justify-space-between mb-6 gap-4">
+        <div>
+            <MudText Typo="Typo.h4" Color="Color.Primary" Style="font-weight: 800;">📅 Ajanda Yönetimi</MudText>
+            <MudText Typo="Typo.body2" Class="text-muted">Derslerinizi takip edin veya müsait olmadığınız saatleri kapatın.</MudText>
+        </div>
+        
+        <div class="d-flex gap-2">
+            <MudChip T="string" Icon="@Icons.Material.Filled.SportsTennis" Color="Color.Secondary" Variant="Variant.Filled">Ders Var</MudChip>
+            <MudChip T="string" Icon="@Icons.Material.Filled.Block" Color="Color.Error" Variant="Variant.Outlined">Zaman Kapalı</MudChip>
+            <MudChip T="string" Icon="@Icons.Material.Filled.CheckCircleOutline" Color="Color.Surface" Variant="Variant.Outlined" Style="border-color:#ccc">Müsait</MudChip>
         </div>
     </div>
 
     @if (_loading)
     {
-        <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="my-4" />
+        <div class="d-flex flex-column align-center justify-center py-12">
+            <MudProgressCircular Color="Color.Primary" Size="Size.Large" Indeterminate="true" />
+            <MudText Class="mt-4 text-muted">Program yükleniyor...</MudText>
+        </div>
     }
     else
     {
-        <WeeklyScheduler 
-            StartHour="9" 
-            EndHour="22" 
-            BusySlots="@_calendarData"
-            OnSlotClicked="HandleSlotClick" />
+        <MudPaper Elevation="3" Class="pa-6 rounded-xl">
+            <WeeklyScheduler 
+                StartHour="9" 
+                EndHour="22" 
+                BusySlots="@_calendarData"
+                OnSlotClicked="HandleSlotClick" />
+        </MudPaper>
     }
 </MudContainer>
+
+<style>
+    .text-muted { color: #616161; }
+</style>
 
 @code {
     private bool _loading = true;
@@ -35,7 +51,7 @@
     // API'den gelen ham liste
     private List<CoachScheduleItemDto> _scheduleItems = new();
     
-    // Takvimin anladığı format
+    // Takvimin anladığı format: [Tarih] -> (CssClassTipi, EkrandaGörünecekYazı)
     private Dictionary<DateTime, (string Type, string Text)> _calendarData = new();
 
     protected override async Task OnInitializedAsync()
@@ -48,13 +64,13 @@
         _loading = true;
         try
         {
-            // YENİ ENDPOINT'İ ÇAĞIRIYORUZ
+            // Koçun hem derslerini hem de kapattığı saatleri getirir
             _scheduleItems = await HttpClient.GetFromJsonAsync<List<CoachScheduleItemDto>>("api/Coach/my-full-schedule");
             RefreshCalendarData();
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            Snackbar.Add("Veriler yüklenemedi.", Severity.Error);
+            Snackbar.Add("Program verileri yüklenirken hata oluştu.", Severity.Error);
         }
         finally
         {
@@ -71,17 +87,22 @@
         foreach (var item in _scheduleItems)
         {
             var current = item.StartTime;
+            // Başlangıçtan Bitişe kadar saat başı döngü (Örn: 14:00 - 16:00 arası 2 kutu boyanır)
             while (current < item.EndTime)
             {
                 var key = new DateTime(current.Year, current.Month, current.Day, current.Hour, 0, 0);
                 
                 if (!_calendarData.ContainsKey(key))
                 {
-                    // Backend'den gelen Type: "Lesson" veya "Block"
-                    // WeeklyScheduler CSS classları: "slot-lesson" veya "slot-my-block"
+                    // Backend'den gelen Type: "Lesson" (Ders) veya "Block" (Engel)
+                    // CSS için bunları ayırıyoruz:
+                    // Lesson -> "Lesson" (Yeşil/Neon)
+                    // Block -> "MyBlock" (Kırmızı/Gri)
                     
                     string cssType = item.Type == "Lesson" ? "Lesson" : "MyBlock";
-                    _calendarData.Add(key, (cssType, item.Title));
+                    string displayText = item.Type == "Lesson" ? item.Title : "Kapalı"; // Öğrenci adı veya "Kapalı" yazsın
+                    
+                    _calendarData.Add(key, (cssType, displayText));
                 }
                 current = current.AddHours(1);
             }
@@ -90,51 +111,63 @@
 
     private async Task HandleSlotClick(DateTime clickedTime)
     {
-        // 1. Tıklanan yer DOLU MU?
+        // 1. GEÇMİŞ ZAMAN KONTROLÜ
+        if (clickedTime < DateTime.Now.AddHours(-1)) // 1 saat tolerans
+        {
+            Snackbar.Add("Geçmiş zamana işlem yapamazsınız.", Severity.Warning);
+            return;
+        }
+
+        // 2. DOLU YERE Mİ TIKLANDI?
         if (_calendarData.ContainsKey(clickedTime))
         {
-            var slotInfo = _calendarData[clickedTime];
-            
-            // Hangi kayıt olduğunu bulalım (API listesinden)
+            // O saatte ne olduğunu bul (Ders mi, Engel mi?)
+            // Liste içinde zaman aralığına uyan kaydı buluyoruz
             var record = _scheduleItems.FirstOrDefault(x => clickedTime >= x.StartTime && clickedTime < x.EndTime);
 
             if (record != null)
             {
                 if (record.Type == "Block")
                 {
-                    // KENDİ KAPATTIĞI -> AÇABİLİR
+                    // --- SENARYO A: Kendi Kapattığı Zamanı Açmak İstiyor ---
                     bool? result = await DialogService.ShowMessageBox(
-                        "Kilidi Aç", 
-                        $"{clickedTime:HH:00} saatindeki engeli kaldırmak istiyor musunuz?", 
-                        yesText: "Evet, Aç", cancelText: "Hayır");
+                        "Zamanı Aç", 
+                        $"{clickedTime:dd.MM.yyyy HH:00} saatindeki engeli kaldırmak ve tekrar ders alınabilir hale getirmek istiyor musunuz?", 
+                        yesText: "Evet, Aç", cancelText: "Vazgeç");
 
                     if (result == true) await DeleteBlock(record.Id);
                 }
                 else if (record.Type == "Lesson")
                 {
-                    // ÖĞRENCİ DERSİ -> BİLGİ VER
-                    await DialogService.ShowMessageBox("Ders Detayı", 
-                        $"Öğrenci: {record.Title}\nTarih: {record.StartTime:dd.MM.yyyy HH:mm}\n\nDersi iptal etmek için 'Öğrencilerim' sayfasına gidiniz.", 
+                    // --- SENARYO B: Öğrenci Dersi Var ---
+                    // Sadece bilgi gösteriyoruz. İptal işlemi "Öğrencilerim" sayfasından yapılmalı (Yanlışlıkla iptali önlemek için)
+                    await DialogService.ShowMessageBox("Ders Bilgisi", 
+                        $"🎾 Öğrenci: {record.Title}\n📅 Tarih: {record.StartTime:dd.MM.yyyy}\n⏰ Saat: {record.StartTime:HH:mm} - {record.EndTime:HH:mm}\n\n*Not: Dersi iptal etmek isterseniz 'Öğrencilerim' menüsünü kullanınız.*", 
                         yesText: "Tamam");
                 }
             }
             return;
         }
 
-        // 2. Tıklanan yer BOŞ -> ZAMAN KAPATMA
+        // 3. BOŞ YERE TIKLANDI -> ZAMANI KAPAT (BlockTimeDialog Aç)
         await OpenBlockDialog(clickedTime);
     }
 
     private async Task OpenBlockDialog(DateTime time)
     {
+        // BlockTimeDialog bileşenini çağırıyoruz
         var parameters = new DialogParameters();
         parameters.Add("SelectedDate", time);
 
-        var dialog = await DialogService.ShowAsync<BlockTimeDialog>("Zamanı Kapat", parameters);
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+
+        var dialog = await DialogService.ShowAsync<BlockTimeDialog>("Bu Saati Kapat", parameters, options);
         var result = await dialog.Result;
 
         if (!result.Canceled)
         {
+            // Başarılı olursa listeyi yenile
+            Snackbar.Add("Saat başarıyla kapatıldı.", Severity.Success);
             await LoadData();
         }
     }
@@ -146,17 +179,17 @@
             var response = await HttpClient.DeleteAsync($"api/Coach/unblock-time/{id}");
             if (response.IsSuccessStatusCode)
             {
-                Snackbar.Add("Zaman açıldı.", Severity.Success);
-                await LoadData();
+                Snackbar.Add("Zaman tekrar erişime açıldı.", Severity.Success);
+                await LoadData(); // Takvimi yenile
             }
             else
             {
-                Snackbar.Add("İşlem başarısız.", Severity.Error);
+                Snackbar.Add("İşlem başarısız oldu.", Severity.Error);
             }
         }
         catch
         {
-            Snackbar.Add("Hata oluştu.", Severity.Error);
+            Snackbar.Add("Sunucu hatası.", Severity.Error);
         }
     }
 }

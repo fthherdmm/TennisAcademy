@@ -1,132 +1,222 @@
 ﻿@page "/register"
 @using KirikkaleTenisAkademi.Web.Models
+@using KirikkaleTenisAkademi.Application.DTOs.Auth
+@using System.ComponentModel.DataAnnotations
 @inject HttpClient Http
 @inject NavigationManager Navigation
 @inject ISnackbar Snackbar
 
-<MudGrid Class="d-flex justify-center align-center" Style="height: 100vh; background-color: #f5f5f5;">
-    <MudItem xs="12" sm="8" md="5">
-        <MudCard Elevation="4" Class="pa-4">
-            <MudCardHeader>
-                <CardHeaderContent>
-                    <div class="d-flex justify-center mb-2">
-                        <MudIcon Icon="@Icons.Material.Filled.PersonAdd" Color="Color.Secondary" Size="Size.Large" style="font-size: 3rem;" />
-                    </div>
-                    <MudText Typo="Typo.h5" Align="Align.Center" Color="Color.Primary"><b>Aramıza Katıl</b></MudText>
-                    <MudText Typo="Typo.body2" Align="Align.Center">Kırıkkale Tenis Akademi Üyelik Formu</MudText>
-                </CardHeaderContent>
-            </MudCardHeader>
+<MudGrid Class="auth-container" Spacing="0" Style="margin-top: 20px;">
 
-            <MudCardContent>
+    <MudItem xs="12" md="6" Class="auth-image-side d-flex flex-column justify-center align-center relative">
+        <div class="auth-overlay"></div>
+        <div class="z-10 text-center px-4 animate-up">
+            <MudIcon Icon="@Icons.Material.Filled.EmojiEvents" Size="Size.Large" Style="font-size: 5rem; color: #FFD600;" Class="mb-4" />
+            <MudText Typo="Typo.h3" Style="font-weight: 900; color: white; letter-spacing: -1px;">HİKAYENİ BAŞLAT.</MudText>
+            <MudText Typo="Typo.h6" Style="color: rgba(255,255,255,0.9); font-weight: 300;">Kırıkkale Winner Tenis Akademi</MudText>
+            <MudText Typo="Typo.body2" Class="mt-4 text-white-50">Profesyonel eğitim ve tutkuyla kortların tozunu attır.</MudText>
+        </div>
+    </MudItem>
+
+    <MudItem xs="12" md="6" Class="d-flex justify-center align-center bg-white py-8">
+        <MudContainer MaxWidth="MaxWidth.Small">
+            <div class="pa-4 animate-fade-in">
+
+                <div class="mb-6">
+                    <MudText Typo="Typo.h4" Color="Color.Primary" Style="font-weight: 800;">Hesap Oluştur</MudText>
+                    <MudText Typo="Typo.body1" Class="text-muted">Formu doldurarak tenis dünyasına adım atın.</MudText>
+                </div>
+
                 <EditForm Model="@registerModel" OnValidSubmit="HandleRegister">
                     <DataAnnotationsValidator />
-                    
-                    <MudTextField Label="Ad" 
-                                  @bind-Value="registerModel.FirstName" 
-                                  Variant="Variant.Outlined" 
-                                  Margin="Margin.Dense"
-                                  Adornment="Adornment.Start" 
-                                  AdornmentIcon="@Icons.Material.Filled.Badge" 
-                                  For="@(() => registerModel.FirstName)" />
-                    
-                    <MudTextField Label="Soyad" 
-                                  @bind-Value="registerModel.LastName" 
-                                  Variant="Variant.Outlined" 
-                                  Margin="Margin.Dense"
-                                  Adornment="Adornment.Start" 
-                                  AdornmentIcon="@Icons.Material.Filled.Badge" 
-                                  For="@(() => registerModel.LastName)" />
 
-                    <MudTextField Label="Kullanıcı Adı" 
-                                  @bind-Value="registerModel.UserName" 
-                                  Variant="Variant.Outlined" 
-                                  Margin="Margin.Dense"
-                                  Class="mt-3"
-                                  Adornment="Adornment.Start" 
-                                  AdornmentIcon="@Icons.Material.Filled.AccountCircle" 
-                                  For="@(() => registerModel.UserName)" />
+                    <MudGrid Spacing="2">
+                        <MudItem xs="6">
+                            <MudTextField Label="Ad" @bind-Value="registerModel.FirstName" Variant="Variant.Outlined" For="@(() => registerModel.FirstName)" Margin="Margin.Dense" />
+                        </MudItem>
+                        <MudItem xs="6">
+                            <MudTextField Label="Soyad" @bind-Value="registerModel.LastName" Variant="Variant.Outlined" For="@(() => registerModel.LastName)" Margin="Margin.Dense" />
+                        </MudItem>
+                    </MudGrid>
 
-                    <MudTextField Label="E-Posta" 
-                                  @bind-Value="registerModel.Email" 
-                                  Variant="Variant.Outlined" 
-                                  Margin="Margin.Dense"
-                                  Class="mt-3"
-                                  InputType="InputType.Email"
-                                  Adornment="Adornment.Start" 
-                                  AdornmentIcon="@Icons.Material.Filled.Email" 
-                                  For="@(() => registerModel.Email)" />
+                    <MudGrid Spacing="2" Class="mt-1">
+                        <MudItem xs="6">
+                            <MudTextField Label="TC Kimlik No"
+                                          @bind-Value="registerModel.TCKN"
+                                          Variant="Variant.Outlined"
+                                          MaxLength="11"
+                                          InputType="InputType.Number"
+                                          For="@(() => registerModel.TCKN)"
+                                          Margin="Margin.Dense"
+                                          Adornment="Adornment.Start"
+                                          AdornmentIcon="@Icons.Material.Filled.Badge"/>
+                        </MudItem>
+                        <MudItem xs="6">
+                            <MudTextField Label="Telefon"
+                                          @bind-Value="registerModel.PhoneNumber"
+                                          Variant="Variant.Outlined"
+                                          InputType="InputType.Telephone"
+                                          Placeholder="5XX..."
+                                          For="@(() => registerModel.PhoneNumber)"
+                                          Margin="Margin.Dense"
+                                          Adornment="Adornment.Start"
+                                          AdornmentIcon="@Icons.Material.Filled.Phone"/>
+                        </MudItem>
+                    </MudGrid>
 
-                    <MudTextField Label="Şifre" 
-                                  @bind-Value="registerModel.Password" 
-                                  Variant="Variant.Outlined" 
-                                  Margin="Margin.Dense"
-                                  Class="mt-3"
-                                  InputType="InputType.Password"
-                                  Adornment="Adornment.Start" 
-                                  AdornmentIcon="@Icons.Material.Filled.Lock" 
-                                  HelperText="En az 1 Büyük, 1 Küçük harf, 1 Rakam ve 1 Sembol (!*?)"
-                                  For="@(() => registerModel.Password)" />
+                    <MudDatePicker Label="Doğum Tarihi"
+                                   @bind-Date="registerModel.BirthDate"
+                                   Variant="Variant.Outlined"
+                                   Class="mt-3"
+                                   Editable="true"
+                                   Mask="@(new DateMask("dd.MM.yyyy"))"
+                                   DateFormat="dd.MM.yyyy"
+                                   For="@(() => registerModel.BirthDate)"
+                                   Margin="Margin.Dense"
+                                   AdornmentColor="Color.Primary"/>
 
-                    <MudTextField Label="Şifre Tekrar" 
-                                  @bind-Value="registerModel.ConfirmPassword" 
-                                  Variant="Variant.Outlined" 
-                                  Margin="Margin.Dense"
-                                  Class="mt-3"
-                                  InputType="InputType.Password"
-                                  Adornment="Adornment.Start" 
-                                  AdornmentIcon="@Icons.Material.Filled.LockReset" 
-                                  For="@(() => registerModel.ConfirmPassword)" />
+                    <MudTextField Label="Kullanıcı Adı" @bind-Value="registerModel.UserName" Variant="Variant.Outlined" Class="mt-3" For="@(() => registerModel.UserName)" Margin="Margin.Dense" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Person"/>
 
-                    <MudButton ButtonType="ButtonType.Submit" 
-                               Variant="Variant.Filled" 
-                               Color="Color.Primary" 
-                               Size="Size.Large" 
-                               FullWidth="true" 
-                               Class="mt-6">
-                        Kayıt Ol
+                    <MudTextField Label="E-Posta Adresi" @bind-Value="registerModel.Email" Variant="Variant.Outlined" Class="mt-3" For="@(() => registerModel.Email)" Margin="Margin.Dense" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Email"/>
+
+                    <MudGrid Spacing="2" Class="mt-1 mb-4">
+                        <MudItem xs="6">
+                            <MudTextField Label="Şifre"
+                                          @bind-Value="registerModel.Password"
+                                          Variant="Variant.Outlined"
+                                          InputType="@PasswordInput"
+                                          Adornment="Adornment.End"
+                                          AdornmentIcon="@PasswordInputIcon"
+                                          OnAdornmentClick="TogglePasswordVisibility"
+                                          For="@(() => registerModel.Password)"
+                                          Margin="Margin.Dense"/>
+                        </MudItem>
+                        <MudItem xs="6">
+                            <MudTextField Label="Şifre Tekrar"
+                                          @bind-Value="registerModel.ConfirmPassword"
+                                          Variant="Variant.Outlined"
+                                          InputType="@PasswordInput"
+                                          For="@(() => registerModel.ConfirmPassword)"
+                                          Margin="Margin.Dense"/>
+                        </MudItem>
+                    </MudGrid>
+
+                    <MudButton ButtonType="ButtonType.Submit"
+                               Variant="Variant.Filled"
+                               Color="Color.Primary"
+                               Size="Size.Large"
+                               FullWidth="true"
+                               Class="py-3 rounded-lg fw-bold hover-scale">
+                        HESAP OLUŞTUR
                     </MudButton>
+
+                    <div class="d-flex justify-center mt-6">
+                        <MudText Typo="Typo.body2" Class="mr-2">Zaten hesabın var mı?</MudText>
+                        <MudLink Href="/login" Color="Color.Secondary" Style="font-weight: bold; color:#2E7D32;">Giriş Yap</MudLink>
+                    </div>
                 </EditForm>
-            </MudCardContent>
-            
-            <MudCardActions Class="d-flex justify-center pb-4">
-                <MudText Typo="Typo.body2">Zaten hesabın var mı?</MudText>
-                <MudLink Href="/login" Color="Color.Secondary" Class="ml-2 font-weight-bold">Giriş Yap</MudLink>
-            </MudCardActions>
-        </MudCard>
+            </div>
+        </MudContainer>
     </MudItem>
 </MudGrid>
 
-@code {
-    private RegisterDto registerModel = new();
+<style>
+    /* Navbar olduğu için yüksekliği min-height yapıyoruz */
+    .auth-container { min-height: 90vh; }
 
-    private async Task HandleRegister()
-    {
-        try
-        {
-            var response = await Http.PostAsJsonAsync("api/Auth/register", registerModel);
-
-            if (response.IsSuccessStatusCode)
-            {
-                Snackbar.Add("Kayıt Başarılı! Giriş yapabilirsiniz.", Severity.Success);
-                // Başarılı olunca Login sayfasına yönlendir
-                await Task.Delay(1000);
-                Navigation.NavigateTo("/login");
-            }
-            else
-            {
-                // Backend'den gelen hatayı oku (Örn: Email zaten kayıtlı)
-                var error = await response.Content.ReadAsStringAsync();
-                
-                // Hata mesajı bazen JSON formatında karmaşık gelebilir, basitçe gösterelim
-                if (error.Contains("DuplicateUserName")) Snackbar.Add("Bu kullanıcı adı zaten alınmış.", Severity.Error);
-                else if (error.Contains("DuplicateEmail")) Snackbar.Add("Bu E-posta zaten sistemde kayıtlı.", Severity.Error);
-                else if (error.Contains("Password")) Snackbar.Add("Şifreniz yeterince güçlü değil.", Severity.Warning);
-                else Snackbar.Add($"Hata: {error}", Severity.Error);
-            }
-        }
-        catch (Exception ex)
-        {
-            Snackbar.Add("Sunucuya bağlanılamadı.", Severity.Error);
-        }
+    /* Sol Taraf Görseli - Login ile uyumlu */
+    .auth-image-side {
+        /* Login sayfasındaki görselin aynısı veya farklı bir kort görseli */
+        background-image: url('https://images.unsplash.com/photo-1622163642998-1ea36746b555?q=80&w=2669&auto=format&fit=crop');
+        background-size: cover;
+        background-position: center;
+        position: relative;
+        /* Navbar yüksekliğini hesaba katarak tam ekran hissi verelim */
+        min-height: calc(100vh - 80px);
     }
+
+    .auth-overlay {
+        position: absolute;
+        top: 0; left: 0; right: 0; bottom: 0;
+        /* Yeşil Gradient */
+        background: linear-gradient(135deg, rgba(46, 125, 50, 0.9), rgba(0, 0, 0, 0.6));
+    }
+
+    .bg-white { background-color: white; }
+    .text-muted { color: #757575; }
+    .text-white-50 { color: rgba(255,255,255,0.7); }
+    .z-10 { z-index: 10; }
+    .fw-bold { font-weight: 700; }
+    .relative { position: relative; }
+
+    /* Animasyonlar */
+    .animate-up { animation: slideUp 0.8s ease-out; }
+    .animate-fade-in { animation: fadeIn 1s ease-out; }
+    .hover-scale:hover { transform: scale(1.02); transition: transform 0.2s; }
+
+    @@keyframes slideUp {
+         from { transform: translateY(30px); opacity: 0; }
+         to { transform: translateY(0); opacity: 1; }
+     }
+    @@keyframes fadeIn {
+         from { opacity: 0; }
+         to { opacity: 1; }
+     }
+
+    /* Mobilde görseli gizle */
+    @@media (max-width: 960px) {
+        .auth-image-side { display: none; }
+    }
+</style>
+
+@code {
+private RegisterDto registerModel = new RegisterDto();
+
+// Şifre Göster/Gizle Mantığı
+bool isShow;
+InputType PasswordInput = InputType.Password;
+string PasswordInputIcon = Icons.Material.Filled.VisibilityOff;
+
+void TogglePasswordVisibility()
+{
+if (isShow)
+{
+isShow = false;
+PasswordInputIcon = Icons.Material.Filled.VisibilityOff;
+PasswordInput = InputType.Password;
+}
+else
+{
+isShow = true;
+PasswordInputIcon = Icons.Material.Filled.Visibility;
+PasswordInput = InputType.Text;
+}
+}
+
+private async Task HandleRegister()
+{
+try
+{
+var response = await Http.PostAsJsonAsync("api/Auth/register", registerModel);
+
+if (response.IsSuccessStatusCode)
+{
+Snackbar.Add("Kayıt başarılı! Lütfen giriş yapınız. 🎾", Severity.Success);
+await Task.Delay(1500);
+Navigation.NavigateTo("/login");
+}
+else
+{
+var error = await response.Content.ReadAsStringAsync();
+// Basit hata mesajı temizleme (JSON gelirse temizle)
+if(error.Contains("{")) error = "Bilgileri kontrol ediniz (Kullanıcı adı veya TC alınmış olabilir).";
+
+Snackbar.Add($"Kayıt Başarısız: {error}", Severity.Error);
+}
+}
+catch (Exception)
+{
+Snackbar.Add("Sunucuya bağlanılamadı.", Severity.Error);
+}
+}
 }

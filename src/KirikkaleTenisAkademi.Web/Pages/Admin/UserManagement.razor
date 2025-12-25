@@ -6,102 +6,171 @@
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
 
-<MudContainer MaxWidth="MaxWidth.Large" Class="mt-5">
-    <MudText Typo="Typo.h4" Color="Color.Primary" Class="mb-4">👥 Kullanıcı Yönetimi</MudText>
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-8 mb-8">
+
+    <div class="mb-4">
+        <MudText Typo="Typo.h4" Color="Color.Primary" Style="font-weight: 800;">👥 Kullanıcı Yönetimi</MudText>
+        <MudText Typo="Typo.body2" Class="text-muted">Tüm kullanıcıların detaylı listesi.</MudText>
+    </div>
 
     @if (users == null)
     {
-        <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
+    <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="rounded-xl"/>
     }
     else
     {
-        <MudTable Items="@users" Hover="true" Striped="true" Filter="new Func<UserDto,bool>(FilterFunc)">
+    <MudPaper Elevation="4" Class="rounded-xl overflow-hidden">
+        <MudTable Items="@users" Hover="true" Striped="true" Filter="new Func<UserProfileDto,bool>(FilterFunc)" Dense="true">
             <ToolBarContent>
-                <MudText Typo="Typo.h6">Kayıtlı Kişiler</MudText>
+                <MudText Typo="Typo.h6" Color="Color.Primary">Kayıtlı Kişiler</MudText>
                 <MudSpacer />
-                <MudTextField @bind-Value="searchString" Placeholder="İsim veya Email Ara..." Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
+                <MudTextField @bind-Value="searchString" Placeholder="Ara (İsim, TC, Tel...)" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" Margin="Margin.Dense" Variant="Variant.Outlined"/>
             </ToolBarContent>
+
             <HeaderContent>
+                <MudTh>TC Kimlik</MudTh>
                 <MudTh>Ad Soyad</MudTh>
-                <MudTh>E-Posta</MudTh>
-                <MudTh>Roller</MudTh>
-                <MudTh>İşlemler</MudTh>
+                <MudTh>İletişim</MudTh>
+                <MudTh>Fiziksel</MudTh> <MudTh>Roller</MudTh>
+                <MudTh Style="text-align:center">İşlemler</MudTh>
             </HeaderContent>
+
             <RowTemplate>
-                <MudTd DataLabel="Ad Soyad">@context.FullName</MudTd>
-                <MudTd DataLabel="E-Posta">@context.Email</MudTd>
+                <MudTd DataLabel="TCKN">
+                    <MudChip T="string" Variant="Variant.Text" Size="Size.Small" Color="Color.Default">@context.TCKN</MudChip>
+                </MudTd>
+
+                <MudTd DataLabel="Ad Soyad">
+                    <div class="d-flex flex-column">
+                        <span style="font-weight:600">@context.FullName</span>
+                        <span style="font-size: 0.75rem; color: #757575;">@context.UserName</span>
+                    </div>
+                </MudTd>
+
+                <MudTd DataLabel="İletişim">
+                    <div class="d-flex flex-column">
+                        <div class="d-flex align-center gap-1">
+                            <MudIcon Icon="@Icons.Material.Filled.Phone" Size="Size.Small" style="font-size:14px; color:gray"/>
+                            <span style="font-size: 0.85rem">@context.PhoneNumber</span>
+                        </div>
+                        <div class="d-flex align-center gap-1">
+                            <MudIcon Icon="@Icons.Material.Filled.Email" Size="Size.Small" style="font-size:14px; color:gray"/>
+                            <span style="font-size: 0.85rem">@context.Email</span>
+                        </div>
+                    </div>
+                </MudTd>
+
+                <MudTd DataLabel="Fiziksel">
+                    @if(context.Height > 0 || context.Weight > 0)
+                    {
+                    <span style="font-size: 0.85rem">Boy: @context.Height cm / Kilo: @context.Weight kg</span>
+                    }
+                    else
+                    {
+                    <span style="color:#ccc">-</span>
+                    }
+                </MudTd>
+
                 <MudTd DataLabel="Roller">
                     @foreach (var role in context.Roles)
                     {
-                        <MudChip T="string" Color="@GetRoleColor(role)" Size="Size.Small">@role</MudChip>
+                    <MudChip T="string" Color="@GetRoleColor(role)" Size="Size.Small" Class="mr-1">@role</MudChip>
                     }
                 </MudTd>
-                <MudTd DataLabel="İşlemler">
-                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" OnClick="@(() => DeleteUser(context))" />
+
+                <MudTd DataLabel="İşlemler" Style="text-align:center">
+                    <MudTooltip Text="Detaylı İncele">
+                        <MudIconButton Icon="@Icons.Material.Filled.Info" Color="Color.Info" Size="Size.Small" OnClick="@(() => ShowUserDetail(context))" />
+                    </MudTooltip>
+                    <MudTooltip Text="Sil">
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => DeleteUser(context))" />
+                    </MudTooltip>
                 </MudTd>
             </RowTemplate>
+
             <PagerContent>
                 <MudTablePager />
             </PagerContent>
         </MudTable>
+    </MudPaper>
     }
 </MudContainer>
 
 @code {
-    private List<UserDto>? users;
-    private string searchString = "";
+// Listemiz artık UserProfileDto tipinde
+private List<UserProfileDto>? users;
+private string searchString = "";
 
-    protected override async Task OnInitializedAsync()
-    {
-        await LoadUsers();
-    }
+protected override async Task OnInitializedAsync()
+{
+await LoadUsers();
+}
 
-    private async Task LoadUsers()
-    {
-        users = await Http.GetFromJsonAsync<List<UserDto>>("api/Admin/users");
-    }
+private async Task LoadUsers()
+{
+try
+{
+users = await Http.GetFromJsonAsync<List<UserProfileDto>>("api/Admin/users");
+}
+catch(Exception)
+{
+Snackbar.Add("Kullanıcı listesi yüklenemedi.", Severity.Error);
+}
+}
 
-    private Color GetRoleColor(string role)
-    {
-        return role switch
-        {
-            "Admin" => Color.Error,      // Kırmızı
-            "Coach" => Color.Success,    // Yeşil
-            "Student" => Color.Info,     // Mavi
-            _ => Color.Default
-        };
-    }
+private Color GetRoleColor(string role)
+{
+return role switch
+{
+"Admin" => Color.Error,
+"Coach" => Color.Success,
+"Student" => Color.Info,
+_ => Color.Default
+};
+}
 
-    private async Task DeleteUser(UserDto user)
-    {
-        // Onay Kutusu (Dialog) Göster
-        bool? result = await DialogService.ShowMessageBox(
-            "Dikkat", 
-            $"{user.FullName} kişisini silmek istediğinize emin misiniz? (Eğer bu bir Koç ise, profili de silinecektir!)", 
-            yesText: "Evet, Sil!", cancelText: "İptal");
+private void ShowUserDetail(UserProfileDto user)
+{
+// Elimizde zaten tüm veriler var (UserProfileDto sayesinde), direkt gösterebiliriz.
+string info = $"Doğum Tarihi: {user.BirthDate?.ToString("dd.MM.yyyy") ?? "Yok"}\n\n" +
+$"Seviye: {user.Level}\n" +
+$"El: {user.DominantHand}\n" +
+$"Backhand: {user.BackhandStyle}\n\n" +
+$"Acil Durum: {user.EmergencyContactName} ({user.EmergencyContactPhone})";
 
-        if (result == true)
-        {
-            var response = await Http.DeleteAsync($"api/Admin/users/{user.Id}");
-            
-            if (response.IsSuccessStatusCode)
-            {
-                Snackbar.Add("Kullanıcı silindi.", Severity.Success);
-                await LoadUsers(); // Listeyi yenile
-            }
-            else
-            {
-                var error = await response.Content.ReadAsStringAsync();
-                Snackbar.Add($"Hata: {error}", Severity.Error);
-            }
-        }
-    }
+DialogService.ShowMessageBox($"{user.FullName} - Detaylar", info, yesText:"Kapat");
+}
 
-    private bool FilterFunc(UserDto element)
-    {
-        if (string.IsNullOrWhiteSpace(searchString)) return true;
-        if (element.FullName.Contains(searchString, StringComparison.OrdinalIgnoreCase)) return true;
-        if (element.Email.Contains(searchString, StringComparison.OrdinalIgnoreCase)) return true;
-        return false;
-    }
+private async Task DeleteUser(UserProfileDto user)
+{
+bool? result = await DialogService.ShowMessageBox(
+"Kullanıcı Silinecek",
+$"{user.FullName} kişisini silmek istediğinize emin misiniz?",
+yesText: "Evet, Sil!", cancelText: "İptal");
+
+if (result == true)
+{
+var response = await Http.DeleteAsync($"api/Admin/users/{user.Id}");
+
+if (response.IsSuccessStatusCode)
+{
+Snackbar.Add("Kullanıcı silindi.", Severity.Success);
+await LoadUsers();
+}
+else
+{
+Snackbar.Add("Silme işlemi başarısız.", Severity.Error);
+}
+}
+}
+
+private bool FilterFunc(UserProfileDto element)
+{
+if (string.IsNullOrWhiteSpace(searchString)) return true;
+if (element.FullName?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
+if (element.Email?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
+if (element.PhoneNumber?.Contains(searchString) == true) return true;
+if (element.TCKN?.Contains(searchString) == true) return true;
+return false;
+}
 }

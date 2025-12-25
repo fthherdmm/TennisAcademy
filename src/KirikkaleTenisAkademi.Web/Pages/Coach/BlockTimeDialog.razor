@@ -6,31 +6,54 @@
 
 <MudDialog>
     <DialogContent>
-        <MudText Typo="Typo.h6" Class="mb-3">
-            @SelectedDate.ToString("dd MMMM dddd", new System.Globalization.CultureInfo("tr-TR"))
-        </MudText>
-        <MudText Class="mb-4">Bu günü saat <b>@SelectedDate.ToString("HH:00")</b> itibarıyla ne kadar süre kapatmak istersiniz?</MudText>
+        <div class="d-flex align-center mb-4">
+            <MudIcon Icon="@Icons.Material.Filled.EventBusy" Color="Color.Error" Size="Size.Large" Class="mr-3"/>
+            <div>
+                <MudText Typo="Typo.h6">Zamanı Kapat</MudText>
+                <MudText Typo="Typo.body2" Class="text-muted">
+                    @SelectedDate.ToString("d MMMM dddd", new System.Globalization.CultureInfo("tr-TR"))
+                </MudText>
+            </div>
+        </div>
 
-        <MudSelect T="int" Label="Süre Seçiniz" @bind-Value="DurationHours" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter">
+        <MudAlert Severity="Severity.Warning" Class="mb-4" Dense="true">
+            Seçilen saat aralığı öğrenci rezervasyonuna kapatılacaktır.
+        </MudAlert>
+
+        <MudGrid>
+            <MudItem xs="6">
+                 <MudTextField Value="@SelectedDate.ToString("HH:00")" Label="Başlangıç" ReadOnly="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
+            </MudItem>
+            <MudItem xs="6">
+                 <MudTextField Value="@SelectedDate.AddHours(DurationHours).ToString("HH:00")" Label="Bitiş" ReadOnly="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
+            </MudItem>
+        </MudGrid>
+
+        <MudSelect T="int" Label="Kapatılacak Süre" @bind-Value="DurationHours" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter" Class="mt-4">
             <MudSelectItem Value="1">1 Saat</MudSelectItem>
             <MudSelectItem Value="2">2 Saat</MudSelectItem>
             <MudSelectItem Value="3">3 Saat</MudSelectItem>
             <MudSelectItem Value="4">4 Saat (Yarım Gün)</MudSelectItem>
-            <MudSelectItem Value="8">Tüm Gün</MudSelectItem>
+            <MudSelectItem Value="5">5 Saat</MudSelectItem>
+            <MudSelectItem Value="8">Tüm Gün (8 Saat)</MudSelectItem>
         </MudSelect>
 
-        <MudTextField @bind-Value="Reason" Label="Sebep (Opsiyonel)" Placeholder="Örn: Dinlenme" Class="mt-3" />
+        <MudTextField @bind-Value="Reason" Label="Sebep (Opsiyonel)" Placeholder="Örn: Dinlenme, Özel Ders, Bakım" Lines="2" Variant="Variant.Outlined" Class="mt-4" />
     </DialogContent>
+    
     <DialogActions>
-        <MudButton OnClick="Cancel">İptal</MudButton>
-        <MudButton Color="Color.Error" Variant="Variant.Filled" OnClick="Submit">Kapat</MudButton>
+        <MudButton OnClick="Cancel">Vazgeç</MudButton>
+        <MudButton Color="Color.Error" Variant="Variant.Filled" OnClick="Submit" StartIcon="@Icons.Material.Filled.Block">Onayla ve Kapat</MudButton>
     </DialogActions>
 </MudDialog>
 
+<style>
+    .text-muted { color: #757575; }
+</style>
+
 @code {
-    // DÜZELTME BURADA: Sınıf yerine Interface kullandık (Başına 'I' geldi)
-    [CascadingParameter] 
-    public IMudDialogInstance MudDialog { get; set; }
+    // MudBlazor v7 uyumlu Interface kullanımı
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
 
     [Parameter] public DateTime SelectedDate { get; set; }
 
@@ -41,6 +64,10 @@
 
     private async Task Submit()
     {
+        // ÖNEMLİ: Burada .ToUniversalTime() KULLANMIYORUZ.
+        // Backend'de yazdığımız yeni kod (TimeZoneInfo), gelen saati "Türkiye Saati" kabul edip
+        // kendisi UTC'ye çevirip kaydedecek.
+        
         var request = new BlockTimeRequest
         {
             StartTime = SelectedDate,
@@ -51,21 +78,26 @@
         try
         {
             var response = await HttpClient.PostAsJsonAsync("api/Coach/block-time", request);
+            
             if (response.IsSuccessStatusCode)
             {
-                Snackbar.Add("Zaman kapatıldı.", Severity.Success);
-                // Interface'de de Close metodu vardır
+                // Başarılı
                 MudDialog.Close(DialogResult.Ok(true));
             }
             else
             {
+                // Backend'den gelen hatayı oku (Örn: "Geçmiş tarih" veya "Ders var")
                 var msg = await response.Content.ReadAsStringAsync();
-                Snackbar.Add("Hata: " + msg, Severity.Error);
+                
+                // Gelen mesaj bazen JSON objesi olabilir, temizleyelim
+                if (msg.Contains("{")) msg = "İşlem başarısız (Çakışma veya Hatalı Saat).";
+                
+                Snackbar.Add(msg, Severity.Error);
             }
         }
         catch
         {
-            Snackbar.Add("Sunucu hatası.", Severity.Error);
+            Snackbar.Add("Sunucuya erişilemiyor.", Severity.Error);
         }
     }
 }

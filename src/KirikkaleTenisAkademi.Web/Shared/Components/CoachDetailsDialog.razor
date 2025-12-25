@@ -1,0 +1,74 @@
+﻿@using KirikkaleTenisAkademi.Web.Models
+@using MudBlazor 
+@inject NavigationManager Navigation
+
+<MudDialog>
+    <DialogContent>
+        <MudGrid Class="pa-2">
+            <MudItem xs="12" sm="5" Class="d-flex justify-center align-start">
+                <MudImage Src="@Coach.ImageUrl" 
+                          Alt="@Coach.FirstName" 
+                          ObjectFit="ObjectFit.Cover" 
+                          Class="rounded-lg elevation-4" 
+                          Style="width:100%; max-height:300px;" />
+            </MudItem>
+
+            <MudItem xs="12" sm="7">
+                <MudText Typo="Typo.h4" Color="Color.Primary" Style="font-weight:800;">
+                    @Coach.FirstName @Coach.LastName
+                </MudText>
+                
+                <MudChip T="string" Color="Color.Secondary" Size="Size.Small" Class="mt-2 mb-4 fw-bold">
+                    @Coach.Specialty
+                </MudChip>
+
+                <MudText Typo="Typo.body1" Class="text-muted mb-4" Style="line-height:1.6;">
+                    @Coach.Bio
+                </MudText>
+
+                <div class="d-flex gap-4 mt-4">
+                    <div class="text-center">
+                        <MudText Typo="Typo.h6" Color="Color.Primary"><b>50+</b></MudText>
+                        <MudText Typo="Typo.caption">Öğrenci</MudText>
+                    </div>
+                    <div class="text-center">
+                        <MudText Typo="Typo.h6" Color="Color.Primary"><b>4.9</b></MudText>
+                        <MudText Typo="Typo.caption">Puan</MudText>
+                    </div>
+                </div>
+            </MudItem>
+        </MudGrid>
+    </DialogContent>
+    
+    <DialogActions>
+        <MudButton OnClick="Cancel" Color="Color.Inherit">Kapat</MudButton>
+        
+        <AuthorizeView Roles="Student">
+            <Authorized>
+                <MudButton Variant="Variant.Filled" 
+                           Color="Color.Primary" 
+                           StartIcon="@Icons.Material.Filled.DateRange"
+                           OnClick="GoToBooking"
+                           Class="rounded-pill px-6">
+                    Hemen Ders Al
+                </MudButton>
+            </Authorized>
+        </AuthorizeView>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    // 👇 DÜZELTME BURADA: 'MudDialogInstance' yerine 'IMudDialogInstance' yaptık.
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter] public CoachDto Coach { get; set; } = new();
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private void GoToBooking()
+    {
+        // DialogResult.Ok(true) kullanımı v7'de de geçerlidir
+        MudDialog.Close(DialogResult.Ok(true));
+        Navigation.NavigateTo($"/booking/{Coach.Id}");
+    }
+}

@@ -7,6 +7,8 @@ using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 using System.Text;
 using KirikkaleTenisAkademi.Application.DTOs.Auth;
+using KirikkaleTenisAkademi.Web.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.IdentityModel.Tokens;
 
 namespace KirikkaleTenisAkademi.API.Controllers
@@ -51,10 +53,15 @@ namespace KirikkaleTenisAkademi.API.Controllers
                 NormalizedEmail = request.Email.ToUpperInvariant(),
                 FirstName = request.FirstName,
                 LastName = request.LastName,
+                TCKN = request.TCKN,
+                PhoneNumber = request.PhoneNumber,
+                BirthDate = request.BirthDate,
                 LessonCredits = 0,
                 EmailConfirmed = false,
                 SecurityStamp = Guid.NewGuid().ToString(),
-                ConcurrencyStamp = Guid.NewGuid().ToString()
+                ConcurrencyStamp = Guid.NewGuid().ToString(),
+                Level = Domain.Enums.TennisLevel.Beginner,
+                RegistrationDate = DateTime.UtcNow
             };
 
             // 3. Şifreyi Manuel Hash'le
@@ -176,47 +183,100 @@ namespace KirikkaleTenisAkademi.API.Controllers
         // Frontend'in kredi bilgisini çekmesi için gerekli endpoint
         // AuthController.cs içine ekle:
 
+        // AuthController.cs içine eklenecek metotlar:
         [HttpGet("profile")]
-        [Microsoft.AspNetCore.Authorization.Authorize] // Sadece giriş yapmış olanlar görebilir
+        [Authorize] // Sadece giriş yapanlar
         public async Task<IActionResult> GetProfile()
         {
-            // 1. Token'dan User ID'yi al
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userId)) return Unauthorized();
 
-            if (string.IsNullOrEmpty(userId))
+            // Veritabanından kullanıcıyı tüm detaylarıyla çekiyoruz
+            var user = await _userManager.FindByIdAsync(userId);
+            if (user == null) return NotFound("Kullanıcı bulunamadı.");
+
+            // Entity -> DTO Dönüşümü
+            var profile = new UserProfileDto
             {
-                return Unauthorized("Kullanıcı bulunamadı.");
-            }
+                FirstName = user.FirstName,
+                LastName = user.LastName,
+                Email = user.Email,
+                UserName = user.UserName,
+                PhoneNumber = user.PhoneNumber,
+                TCKN = user.TCKN,
+                BirthDate = user.BirthDate,
+                
+                // Fiziksel
+                Height = user.Height,
+                Weight = user.Weight,
+                
+                // Enum'ları string olarak frontend'e gönderiyoruz
+                Level = user.Level.ToString(),
+                DominantHand = user.DominantHand.ToString(),
+                BackhandStyle = user.BackhandStyle.ToString(),
+                
+                // Acil Durum
+                EmergencyContactName = user.EmergencyContactName,
+                EmergencyContactPhone = user.EmergencyContactPhone
+            };
 
-            // 2. Veritabanından kullanıcıyı ve güncel kredisini çek
-            var user = await _context.Users
-                .AsNoTracking() // Sadece okuma yapıyoruz, hız kazandırır
-                .FirstOrDefaultAsync(u => u.Id == userId);
-
-            if (user == null) 
-            {
-                return NotFound("Kullanıcı veritabanında yok.");
-            }
-
-            // 3. Frontend'e gönder
-            return Ok(new 
-            {
-                fullName = user.FirstName,
-                email = user.Email,
-                lessonCredits = user.LessonCredits // İşte burası bakiyeyi güncelleyen kısım
-            });
+            return Ok(profile);
         }
-        
-        
+
+        [HttpPut("profile")]
+        [Authorize]
+        public async Task<IActionResult> UpdateProfile([FromBody] UserProfileDto model)
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var user = await _userManager.FindByIdAsync(userId);
+            if (user == null) return NotFound();
+
+            // Gelen verileri veritabanı nesnesine aktarıyoruz
+            user.FirstName = model.FirstName;
+            user.LastName = model.LastName;
+            user.PhoneNumber = model.PhoneNumber;
+            user.BirthDate = model.BirthDate;
+            user.Height = model.Height;
+            user.Weight = model.Weight;
+            user.EmergencyContactName = model.EmergencyContactName;
+            user.EmergencyContactPhone = model.EmergencyContactPhone;
+
+            // String gelen Enum değerlerini güvenli şekilde çeviriyoruz
+            if (Enum.TryParse<Domain.Enums.TennisLevel>(model.Level, out var level)) 
+                user.Level = level;
+                
+            if (Enum.TryParse<Domain.Enums.DominantHand>(model.DominantHand, out var hand)) 
+                user.DominantHand = hand;
+                
+            if (Enum.TryParse<Domain.Enums.BackhandStyle>(model.BackhandStyle, out var back)) 
+                user.BackhandStyle = back;
+
+            // Güncelleme işlemi
+            var result = await _userManager.UpdateAsync(user);
+
+            if (result.Succeeded)
+            {
+                return Ok(new { message = "Profil güncellendi." });
+            }
+
+            return BadRequest(result.Errors);
+        }
     }
 
     // Register için Gelen Veri Modeli
     public class RegisterRequest
     {
-        public string FirstName { get; set; }
-        public string LastName { get; set; }
-        public string UserName { get; set; }
-        public string Email { get; set; }
-        public string Password { get; set; }
+        public string FirstName { get; set; } = string.Empty;
+        public string LastName { get; set; } = string.Empty;
+        public string UserName { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public string Password { get; set; } = string.Empty;
+
+        // Yeni Eklenen Alanlar
+        public string TCKN { get; set; } = string.Empty;
+        public string PhoneNumber { get; set; } = string.Empty;
+        public DateTime BirthDate { get; set; }
+
+        public DateTime RegistrationDate = DateTime.UtcNow;
     }
 }

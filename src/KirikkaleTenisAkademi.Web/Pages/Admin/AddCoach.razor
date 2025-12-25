@@ -7,59 +7,87 @@
 @inject ISnackbar Snackbar
 @inject NavigationManager Navigation
 
-<MudContainer MaxWidth="MaxWidth.Medium" Class="mt-5">
-    <MudText Typo="Typo.h4" Color="Color.Primary" Class="mb-4" Align="Align.Center">
-        <MudIcon Icon="@Icons.Material.Filled.PersonAdd" Size="Size.Large" Class="mr-2"/>
-        Yeni Eğitmen Ekle
-    </MudText>
+<MudContainer MaxWidth="MaxWidth.Medium" Class="mt-8 mb-8">
+    
+    <div class="d-flex align-center gap-4 mb-6">
+        <MudAvatar Color="Color.Primary" Variant="Variant.Filled" Size="Size.Large">
+            <MudIcon Icon="@Icons.Material.Filled.PersonAdd" Size="Size.Medium" />
+        </MudAvatar>
+        <div>
+            <MudText Typo="Typo.h4" Style="font-weight: 800;">Yeni Eğitmen Ekle</MudText>
+            <MudText Typo="Typo.body2" Class="text-muted">Akademi kadrosuna yeni bir profesyonel dahil edin.</MudText>
+        </div>
+    </div>
 
-    <MudCard Elevation="4" Class="pa-4">
+    <MudCard Elevation="4" Class="rounded-xl pa-4">
         <EditForm Model="@coachModel" OnValidSubmit="HandleCreateCoach">
             <DataAnnotationsValidator />
             
             <MudGrid>
-                <MudItem xs="12" sm="6">
-                    <MudTextField Label="Ad" @bind-Value="coachModel.FirstName" Variant="Variant.Outlined" Margin="Margin.Dense" For="@(() => coachModel.FirstName)" />
-                </MudItem>
-                <MudItem xs="12" sm="6">
-                    <MudTextField Label="Soyad" @bind-Value="coachModel.LastName" Variant="Variant.Outlined" Margin="Margin.Dense" For="@(() => coachModel.LastName)" />
-                </MudItem>
-
-                <MudItem xs="12" sm="6">
-                    <MudTextField Label="E-Posta (Kullanıcı Adı)" @bind-Value="coachModel.Email" Variant="Variant.Outlined" InputType="InputType.Email" Margin="Margin.Dense" For="@(() => coachModel.Email)" />
-                </MudItem>
-                <MudItem xs="12" sm="6">
-                    <MudTextField Label="Şifre" @bind-Value="coachModel.Password" Variant="Variant.Outlined" InputType="InputType.Password" Margin="Margin.Dense" For="@(() => coachModel.Password)" />
-                </MudItem>
-
-                <MudItem xs="12">
-                    <MudTextField Label="Uzmanlık Alanı (Örn: Backhand, Kondisyon)" @bind-Value="coachModel.Specialty" Variant="Variant.Outlined" Margin="Margin.Dense" For="@(() => coachModel.Specialty)" />
-                </MudItem>
                 
-                <MudItem xs="12">
-                    <MudTextField Label="Biyografi / Hakkında" @bind-Value="coachModel.Bio" Variant="Variant.Outlined" Lines="3" Margin="Margin.Dense" />
-                </MudItem>
-
-                <MudItem xs="12">
-                    <MudFileUpload T="IBrowserFile" FilesChanged="UploadFiles">
+                <MudItem xs="12" Class="d-flex justify-center mb-4">
+                     <MudFileUpload T="IBrowserFile" FilesChanged="UploadFiles">
                         <ActivatorContent>
-                            <MudPaper Height="100px" Outlined="true" Class="d-flex flex-column align-center justify-center cursor-pointer border-dashed pa-4">
-                                @if (string.IsNullOrEmpty(coachModel.ImageUrl) || coachModel.ImageUrl.Length < 100)
+                            <div class="d-flex flex-column align-center cursor-pointer">
+                                @if (string.IsNullOrEmpty(coachModel.ImageUrl))
                                 {
-                                <MudIcon Icon="@Icons.Material.Filled.CloudUpload" Size="Size.Large" Color="Color.Primary" />
-                                <MudText>Fotoğrafı buraya sürükleyin veya tıklayın</MudText>
+                                    <MudAvatar Style="height:120px; width:120px; font-size:2rem;" Color="Color.Default" Variant="Variant.Outlined">
+                                        <MudIcon Icon="@Icons.Material.Filled.CloudUpload" />
+                                    </MudAvatar>
+                                    <MudText Typo="Typo.caption" Class="mt-2 text-muted">Fotoğraf Yükle</MudText>
                                 }
                                 else
                                 {
-                                <MudText Color="Color.Success">Fotoğraf Seçildi! ✅</MudText>
+                                    <MudAvatar Image="@coachModel.ImageUrl" Style="height:120px; width:120px;" Class="elevation-4" />
+                                    <MudChip T="string" Color="Color.Success" Size="Size.Small" Class="mt-2" Icon="@Icons.Material.Filled.Check">Yüklendi</MudChip>
                                 }
-                            </MudPaper>
+                            </div>
                         </ActivatorContent>
                     </MudFileUpload>
                 </MudItem>
 
-                <MudItem xs="12" Class="d-flex justify-center mt-3">
-                    <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" StartIcon="@Icons.Material.Filled.Save">Eğitmeni Kaydet</MudButton>
+                <MudItem xs="12" sm="6">
+                    <MudTextField Label="Ad" @bind-Value="coachModel.FirstName" Variant="Variant.Outlined" Margin="Margin.Dense" 
+                                  Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Person"
+                                  For="@(() => coachModel.FirstName)" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField Label="Soyad" @bind-Value="coachModel.LastName" Variant="Variant.Outlined" Margin="Margin.Dense" 
+                                  For="@(() => coachModel.LastName)" />
+                </MudItem>
+
+                <MudItem xs="12" sm="6">
+                    <MudTextField Label="E-Posta (Kullanıcı Adı)" @bind-Value="coachModel.Email" Variant="Variant.Outlined" InputType="InputType.Email" Margin="Margin.Dense" 
+                                  Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Email"
+                                  For="@(() => coachModel.Email)" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField Label="Şifre" @bind-Value="coachModel.Password" Variant="Variant.Outlined" InputType="@PasswordInput" Margin="Margin.Dense" 
+                                  Adornment="Adornment.End" AdornmentIcon="@PasswordInputIcon" OnAdornmentClick="TogglePasswordVisibility"
+                                  For="@(() => coachModel.Password)" />
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudTextField Label="Uzmanlık Alanı" @bind-Value="coachModel.Specialty" Variant="Variant.Outlined" Margin="Margin.Dense" 
+                                  Placeholder="Örn: Performans Tenisi, Çocuk Gelişimi, Kondisyon..."
+                                  Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Star"
+                                  For="@(() => coachModel.Specialty)" />
+                </MudItem>
+                
+                <MudItem xs="12">
+                    <MudTextField Label="Biyografi / Hakkında" @bind-Value="coachModel.Bio" Variant="Variant.Outlined" Lines="4" Margin="Margin.Dense" 
+                                  Placeholder="Eğitmenin geçmişi ve başarıları hakkında kısa bilgi..." />
+                </MudItem>
+
+                <MudItem xs="12" Class="d-flex justify-end mt-4">
+                    <MudButton ButtonType="ButtonType.Submit" 
+                               Variant="Variant.Filled" 
+                               Color="Color.Primary" 
+                               Size="Size.Large" 
+                               StartIcon="@Icons.Material.Filled.Save"
+                               Class="rounded-pill px-8">
+                        EĞİTMENİ KAYDET
+                    </MudButton>
                 </MudItem>
             </MudGrid>
         </EditForm>
@@ -68,23 +96,43 @@
 
 @code {
     private CreateCoachDto coachModel = new();
+    
+    // Şifre Göster/Gizle Mantığı
+    bool isShow;
+    InputType PasswordInput = InputType.Password;
+    string PasswordInputIcon = Icons.Material.Filled.VisibilityOff;
+
+    void TogglePasswordVisibility()
+    {
+        if (isShow)
+        {
+            isShow = false;
+            PasswordInputIcon = Icons.Material.Filled.VisibilityOff;
+            PasswordInput = InputType.Password;
+        }
+        else
+        {
+            isShow = true;
+            PasswordInputIcon = Icons.Material.Filled.Visibility;
+            PasswordInput = InputType.Text;
+        }
+    }
 
     private async Task HandleCreateCoach()
     {
         try
         {
-            // API'ye gönder (Token otomatik ekleniyor CustomAuthStateProvider sayesinde)
             var response = await Http.PostAsJsonAsync("api/Admin/create-coach", coachModel);
 
             if (response.IsSuccessStatusCode)
             {
-                Snackbar.Add($"{coachModel.FirstName} {coachModel.LastName} başarıyla eklendi!", Severity.Success);
+                Snackbar.Add($"{coachModel.FirstName} {coachModel.LastName} başarıyla eklendi! 🎉", Severity.Success);
                 
                 // Formu temizle
                 coachModel = new CreateCoachDto();
                 
-                // İstersen eğitmenler listesine yönlendir
-                // Navigation.NavigateTo("/coaches");
+                // İsteğe bağlı: Listeye yönlendir
+                // Navigation.NavigateTo("/admin/users"); 
             }
             else
             {
@@ -95,33 +143,29 @@
         catch (Exception ex)
         {
             Snackbar.Add("Sunucuya ulaşılamadı.", Severity.Error);
-            Console.WriteLine(ex.Message);
         }
     }
     
     private async Task UploadFiles(IBrowserFile file)
     {
-        // Dosya boyutunu kontrol et (Max 5MB olsun)
+        // Dosya boyutunu kontrol et (Max 5MB)
         long maxFileSize = 1024 * 1024 * 5; 
 
         try
         {
-            // Dosyayı oku
             var buffer = new byte[file.Size];
             await file.OpenReadStream(maxFileSize).ReadAsync(buffer);
             
-            // Base64 string'e çevir ("data:image/png;base64,..." formatında)
             var format = file.ContentType;
             var base64 = Convert.ToBase64String(buffer);
             
-            // Modele ata
             coachModel.ImageUrl = $"data:{format};base64,{base64}";
             
             Snackbar.Add("Fotoğraf yüklendi!", Severity.Success);
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            Snackbar.Add($"Hata: Dosya çok büyük veya format hatalı.", Severity.Error);
+            Snackbar.Add($"Hata: Dosya boyutu 5MB'dan büyük olamaz.", Severity.Warning);
         }
     }
 }

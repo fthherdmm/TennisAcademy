@@ -1,57 +1,172 @@
 ﻿@page "/profile"
+@using KirikkaleTenisAkademi.Web.Models
 @using Microsoft.AspNetCore.Authorization
 @attribute [Authorize]
 @inject HttpClient Http
 @inject ISnackbar Snackbar
 @inject AuthenticationStateProvider AuthStateProvider
 
-<MudContainer MaxWidth="MaxWidth.Small" Class="mt-5">
-    <MudCard>
-        <MudCardHeader>
-            <CardHeaderContent>
-                <MudText Typo="Typo.h5">Profil Bilgilerim</MudText>
-            </CardHeaderContent>
-        </MudCardHeader>
-        <MudCardContent>
-             <MudTextField @bind-Value="fullName" Label="Ad Soyad" Variant="Variant.Outlined" Class="mb-3"/>
-             <MudTextField @bind-Value="userName" Label="Kullanıcı Adı" Variant="Variant.Outlined" Class="mb-3"/>
-             <MudTextField Value="@email" Label="E-Posta" Variant="Variant.Outlined" ReadOnly="true" HelperText="E-posta değiştirilemez." Disabled="true"/>
-             
-             <MudButton OnClick="SaveProfile" Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" Class="mt-2">Kaydet</MudButton>
-        </MudCardContent>
+<MudContainer MaxWidth="MaxWidth.Medium" Class="mb-16" Style="margin-top: 120px;">
+
+    <div class="d-flex align-center gap-4 mb-8">
+        <MudAvatar Color="Color.Primary" Style="height:80px; width:80px; font-size:2rem;">
+            @(model.FirstName?.FirstOrDefault().ToString() ?? "U")
+        </MudAvatar>
+        <div>
+            <MudText Typo="Typo.h4" Style="font-weight: 800;">Profilim</MudText>
+            <MudText Typo="Typo.body1" Class="text-muted">Kişisel bilgilerinizi ve sporcu verilerinizi güncelleyin.</MudText>
+        </div>
+    </div>
+
+    @if (_loading)
+    {
+    <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="my-4"/>
+    }
+    else
+    {
+    <MudCard Elevation="4" Class="rounded-xl">
+        <MudTabs Elevation="0" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-6" Color="Color.Primary">
+
+            <MudTabPanel Text="Kişisel Bilgiler" Icon="@Icons.Material.Filled.Person">
+                <MudGrid>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="model.FirstName" Label="Ad" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="model.LastName" Label="Soyad" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6">
+                        <MudTextField Value="model.TCKN" Label="TC Kimlik No" ReadOnly="true" Variant="Variant.Filled" HelperText="Değiştirilemez" Margin="Margin.Dense" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudDatePicker @bind-Date="model.BirthDate" Label="Doğum Tarihi" Variant="Variant.Outlined" Margin="Margin.Dense" Editable="true" Mask="@(new DateMask("dd.MM.yyyy"))" />
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6">
+                        <MudTextField Value="model.Email" Label="E-Posta" ReadOnly="true" Variant="Variant.Filled" HelperText="E-posta değiştirilemez" Margin="Margin.Dense" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Email" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="model.PhoneNumber" Label="Telefon" Variant="Variant.Outlined" Margin="Margin.Dense" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Phone" />
+                    </MudItem>
+                </MudGrid>
+            </MudTabPanel>
+
+            <MudTabPanel Text="Sporcu Künyesi" Icon="@Icons.Material.Filled.SportsTennis">
+                <MudGrid>
+                    <MudItem xs="6">
+                        <MudNumericField @bind-Value="model.Height" Label="Boy (cm)" Variant="Variant.Outlined" Margin="Margin.Dense" Adornment="Adornment.End" AdornmentText="cm" />
+                    </MudItem>
+                    <MudItem xs="6">
+                        <MudNumericField @bind-Value="model.Weight" Label="Kilo (kg)" Variant="Variant.Outlined" Margin="Margin.Dense" Adornment="Adornment.End" AdornmentText="kg" />
+                    </MudItem>
+
+                    <MudItem xs="12" sm="4">
+                        <MudSelect T="string" Label="Tenis Seviyesi" @bind-Value="model.Level" Variant="Variant.Outlined" Margin="Margin.Dense" AnchorOrigin="Origin.BottomCenter">
+                            <MudSelectItem Value="@("Beginner")">Başlangıç</MudSelectItem>
+                            <MudSelectItem Value="@("Intermediate")">Orta Seviye</MudSelectItem>
+                            <MudSelectItem Value="@("Advanced")">İleri Seviye</MudSelectItem>
+                            <MudSelectItem Value="@("Pro")">Profesyonel</MudSelectItem>
+                        </MudSelect>
+                    </MudItem>
+
+                    <MudItem xs="12" sm="4">
+                        <MudSelect T="string" Label="Baskın El" @bind-Value="model.DominantHand" Variant="Variant.Outlined" Margin="Margin.Dense" AnchorOrigin="Origin.BottomCenter">
+                            <MudSelectItem Value="@("Right")">Sağ</MudSelectItem>
+                            <MudSelectItem Value="@("Left")">Sol</MudSelectItem>
+                        </MudSelect>
+                    </MudItem>
+
+                    <MudItem xs="12" sm="4">
+                        <MudSelect T="string" Label="Backhand Stili" @bind-Value="model.BackhandStyle" Variant="Variant.Outlined" Margin="Margin.Dense" AnchorOrigin="Origin.BottomCenter">
+                            <MudSelectItem Value="@("OneHanded")">Tek El</MudSelectItem>
+                            <MudSelectItem Value="@("TwoHanded")">Çift El</MudSelectItem>
+                        </MudSelect>
+                    </MudItem>
+                </MudGrid>
+            </MudTabPanel>
+
+            <MudTabPanel Text="Acil Durum" Icon="@Icons.Material.Filled.Emergency">
+                <MudAlert Severity="Severity.Warning" Dense="true" Class="mb-4">
+                    Acil durumlarda ulaşılacak kişi bilgileri hayati önem taşır.
+                </MudAlert>
+                <MudGrid>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="model.EmergencyContactName" Label="Yakını (Ad Soyad)" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="model.EmergencyContactPhone" Label="Yakını (Telefon)" Variant="Variant.Outlined" Margin="Margin.Dense" InputType="InputType.Telephone" />
+                    </MudItem>
+                </MudGrid>
+            </MudTabPanel>
+        </MudTabs>
+
+        <MudDivider />
+
+        <div class="pa-4 d-flex justify-end">
+            <MudButton OnClick="SaveProfile"
+                       Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       Size="Size.Large"
+                       StartIcon="@Icons.Material.Filled.Save"
+                       Class="rounded-pill px-8">
+                DEĞİŞİKLİKLERİ KAYDET
+            </MudButton>
+        </div>
     </MudCard>
+    }
 </MudContainer>
 
 @code {
-    string fullName = "";
-    string userName = "";
-    string email = "";
+private UserProfileDto model = new();
+private bool _loading = true;
 
-    protected override async Task OnInitializedAsync()
-    {
-        // Mevcut bilgileri Token'dan (AuthState) okuyalım
-        var state = await AuthStateProvider.GetAuthenticationStateAsync();
-        var user = state.User;
+protected override async Task OnInitializedAsync()
+{
+await LoadProfile();
+}
 
-        fullName = user.Identity.Name; // Basitçe Name claim'ini alıyoruz (veya özel claim)
-        // Not: Token içindeki veriler güncel olmayabilir, en doğrusu API'den "GetMyProfile" diye çekmektir.
-        // Ama şimdilik hızlı çözüm için burayı boş geçip API'ye odaklanabiliriz.
-        // Daha iyi yöntem:
-        // fullName = user.FindFirst("FullName")?.Value; 
-    }
+private async Task LoadProfile()
+{
+try
+{
+_loading = true;
+// API'den mevcut verileri çek
+var response = await Http.GetFromJsonAsync<UserProfileDto>("api/Auth/profile");
+if (response != null)
+{
+model = response;
+}
+}
+catch (Exception)
+{
+Snackbar.Add("Profil bilgileri yüklenemedi.", Severity.Error);
+}
+finally
+{
+_loading = false;
+}
+}
 
-    async Task SaveProfile()
-    {
-        var model = new { FullName = fullName, UserName = userName };
-        var response = await Http.PutAsJsonAsync("api/Auth/profile", model);
-        
-        if (response.IsSuccessStatusCode)
-        {
-            Snackbar.Add("Profil güncellendi! Lütfen tekrar giriş yapın.", Severity.Success);
-        }
-        else
-        {
-            Snackbar.Add("Hata oluştu.", Severity.Error);
-        }
-    }
+private async Task SaveProfile()
+{
+try
+{
+var response = await Http.PutAsJsonAsync("api/Auth/profile", model);
+
+if (response.IsSuccessStatusCode)
+{
+Snackbar.Add("Profiliniz başarıyla güncellendi! ✅", Severity.Success);
+}
+else
+{
+var error = await response.Content.ReadAsStringAsync();
+Snackbar.Add("Güncelleme başarısız: " + error, Severity.Error);
+}
+}
+catch (Exception)
+{
+Snackbar.Add("Sunucu hatası.", Severity.Error);
+}
+}
 }

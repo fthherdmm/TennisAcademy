@@ -7,28 +7,67 @@
 @inject NavigationManager Navigation
 @inject IDialogService DialogService
 
-<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
-    <div class="d-flex align-center mb-4">
-        <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" OnClick="@(() => Navigation.NavigateTo("/coaches"))" />
-        <MudText Typo="Typo.h4" Class="ml-2">Ders Rezervasyonu</MudText>
+<MudContainer MaxWidth="MaxWidth.Large" Class="mb-16" Style="margin-top: 120px;">
+    
+    <div class="d-flex align-center mb-6">
+        <MudButton Variant="Variant.Text" 
+                   StartIcon="@Icons.Material.Filled.ArrowBack" 
+                   Color="Color.Primary" 
+                   OnClick="@(() => Navigation.NavigateTo("/coaches"))"
+                   Class="mr-4">
+            Eğitmenlere Dön
+        </MudButton>
+        <div>
+            <MudText Typo="Typo.h4" Color="Color.Primary" Style="font-weight: 800;">Ders Rezervasyonu</MudText>
+            <MudText Typo="Typo.body2" Class="text-muted">Size uygun saat aralığını seçerek rezervasyon yapabilirsiniz.</MudText>
+        </div>
     </div>
 
     @if (_loading)
     {
-        <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="mb-4"/>
-        <MudText Align="Align.Center">Eğitmen takvimi yükleniyor...</MudText>
+        <div class="d-flex flex-column align-center justify-center py-12">
+            <MudProgressCircular Color="Color.Primary" Size="Size.Large" Indeterminate="true" />
+            <MudText Class="mt-4">Eğitmen takvimi yükleniyor...</MudText>
+        </div>
     }
     else
     {
-        <MudAlert Severity="Severity.Info" Class="mb-4">
-            Aşağıdaki takvimden <b>beyaz (boş)</b> kutucuklara tıklayerek ders satın alabilirsiniz.
-        </MudAlert>
+        <MudGrid>
+            <MudItem xs="12" md="3">
+                <MudPaper Elevation="0" Class="pa-4 rounded-xl" Style="background-color: #F1F8E9; border: 1px solid #C8E6C9;">
+                    <div class="d-flex align-center mb-2">
+                        <MudIcon Icon="@Icons.Material.Filled.Info" Color="Color.Primary" Class="mr-2"/>
+                        <MudText Typo="Typo.subtitle1" Style="font-weight:bold; color:#2E7D32;">Nasıl Çalışır?</MudText>
+                    </div>
+                    <MudText Typo="Typo.body2" Style="color:#1B5E20; line-height: 1.6;">
+                        Takvimdeki <b>beyaz (boş)</b> alanlar rezervasyona açıktır. <b>1 Kredi</b> karşılığında anında onaylanır.
+                    </MudText>
+                    <MudDivider Class="my-3"/>
+                    <div class="d-flex align-center gap-2">
+                        <div style="width:16px; height:16px; background-color:#e0e0e0; border-radius:4px;"></div>
+                        <MudText Typo="Typo.caption">Geçmiş / Kapalı</MudText>
+                    </div>
+                    <div class="d-flex align-center gap-2 mt-1">
+                        <div style="width:16px; height:16px; background-color:#FFCDD2; border-radius:4px;"></div>
+                        <MudText Typo="Typo.caption">Dolu</MudText>
+                    </div>
+                     <div class="d-flex align-center gap-2 mt-1">
+                        <div style="width:16px; height:16px; background-color:#ffffff; border:1px solid #ccc; border-radius:4px;"></div>
+                        <MudText Typo="Typo.caption">Müsait</MudText>
+                    </div>
+                </MudPaper>
+            </MudItem>
 
-        <WeeklyScheduler 
-            StartHour="9" 
-            EndHour="22" 
-            BusySlots="@_calendarData" 
-            OnSlotClicked="HandleSlotClick" />
+            <MudItem xs="12" md="9">
+                <MudPaper Elevation="3" Class="pa-6 rounded-xl">
+                    <WeeklyScheduler 
+                        StartHour="9" 
+                        EndHour="22" 
+                        BusySlots="@_calendarData" 
+                        OnSlotClicked="HandleSlotClick" />
+                </MudPaper>
+            </MudItem>
+        </MudGrid>
     }
 </MudContainer>
 
@@ -36,8 +75,7 @@
     [Parameter] public int CoachId { get; set; }
 
     private bool _loading = true;
-    
-    // Takvimin anlayacağı veri yapısı: [Tarih] -> (Tip, Ekranda Yazacak Metin)
+    // Takvim Verisi
     private Dictionary<DateTime, (string Type, string Text)> _calendarData = new();
 
     protected override async Task OnInitializedAsync()
@@ -50,39 +88,37 @@
         _loading = true;
         try
         {
-            // 1. API'den veriyi çek
             var scheduleItems = await HttpClient.GetFromJsonAsync<List<PublicCoachScheduleDto>>($"api/Coach/{CoachId}/public-schedule");
 
             if (scheduleItems != null)
             {
                 _calendarData.Clear();
 
-                // 2. Gelen veriyi Takvimin anlayacağı formata çevir
+                // 1. API'den Gelen Dolu/Kapalı Saatleri İşle
                 foreach (var item in scheduleItems)
                 {
                     var current = item.StartTime;
-                    // Başlangıçtan bitişe kadar olan her saati "Dolu" olarak işaretle
                     while (current < item.EndTime)
                     {
-                        // Dakikaları sıfırla (Saat başı mantığı)
                         var key = new DateTime(current.Year, current.Month, current.Day, current.Hour, 0, 0);
                         
                         if (!_calendarData.ContainsKey(key))
                         {
-                            string type = item.Type; // "Lesson" veya "Blocked"
+                            string type = item.Type; 
                             string text = type == "Lesson" ? "Dolu" : "Kapalı";
-                            
                             _calendarData.Add(key, (type, text));
                         }
                         current = current.AddHours(1);
                     }
                 }
+
+                // 2. YENİ EKLENEN KISIM: Geçmiş Saatleri "Blocked" (Gri) Yap
+                MarkPastSlotsAsBlocked();
             }
         }
         catch (Exception ex)
         {
-            Snackbar.Add("Takvim yüklenemedi: " + ex.Message, Severity.Error);
-            Console.WriteLine(ex.Message);
+            Snackbar.Add("Takvim yüklenirken hata oluştu.", Severity.Error);
         }
         finally
         {
@@ -90,21 +126,59 @@
         }
     }
 
-    // Öğrenci boş bir yere tıkladığında çalışır
+    // 👇 GEÇMİŞ SAATLERİ GRİ YAPMAK İÇİN YENİ METOD
+    private void MarkPastSlotsAsBlocked()
+    {
+        var now = DateTime.Now;
+        
+        // Bu haftanın başını bul (Pazartesi)
+        var today = now.Date;
+        var dayOfWeek = (int)today.DayOfWeek;
+        if (dayOfWeek == 0) dayOfWeek = 7; // Pazar gününü 7 yap (TR standardı)
+        var startOfWeek = today.AddDays(1 - dayOfWeek);
+
+        // Bu haftanın 7 günü için döngü
+        for (int i = 0; i < 7; i++)
+        {
+            var currentDay = startOfWeek.AddDays(i);
+
+            // Sabah 9'dan Akşam 22'ye kadar kontrol et
+            for (int hour = 9; hour < 22; hour++)
+            {
+                var slotTime = new DateTime(currentDay.Year, currentDay.Month, currentDay.Day, hour, 0, 0);
+
+                // Eğer slot geçmişteyse VE listede yoksa -> "Blocked" olarak ekle
+                if (slotTime < now && !_calendarData.ContainsKey(slotTime))
+                {
+                    _calendarData.Add(slotTime, ("Blocked", "Geçmiş"));
+                }
+            }
+        }
+    }
+
     private async Task HandleSlotClick(DateTime clickedTime)
     {
-        // Dolu yere tıklarsa uyarı ver (Takvim bileşeni bunu renklendiriyor ama yine de kontrol)
+        // 1. Geçmiş Kontrolü (Ekstra güvenlik)
+        if (clickedTime < DateTime.Now)
+        {
+             Snackbar.Add("Geçmiş zamana rezervasyon yapılamaz.", Severity.Warning);
+             return;
+        }
+
+        // 2. Doluluk Kontrolü
         if (_calendarData.ContainsKey(clickedTime))
         {
-            Snackbar.Add("Bu saat zaten dolu.", Severity.Warning);
+            var status = _calendarData[clickedTime];
+            if (status.Type == "Lesson") Snackbar.Add("Bu saat zaten dolu.", Severity.Warning);
+            else Snackbar.Add("Eğitmen bu saatte müsait değil.", Severity.Warning);
             return;
         }
 
-        // Onay Kutusu Aç
+        // 3. Onay Dialogu
         bool? result = await DialogService.ShowMessageBox(
             "Rezervasyon Onayı", 
-            $"Tarih: {clickedTime:dd.MM.yyyy}\nSaat: {clickedTime:HH:00}\n\nBu dersi 1 Kredi karşılığında onaylıyor musunuz?", 
-            yesText: "Evet, Satın Al", cancelText: "Vazgeç");
+            $"Seçilen Tarih: {clickedTime:dd.MM.yyyy}\nSeçilen Saat: {clickedTime:HH:00} - {clickedTime.AddHours(1):HH:00}\n\nBu dersi 1 Kredi karşılığında onaylıyor musunuz?", 
+            yesText: "Evet, Onayla", cancelText: "Vazgeç");
 
         if (result == true)
         {
@@ -114,33 +188,32 @@
 
     private async Task CreateBooking(DateTime time)
     {
-        // Rezervasyon isteği gönder
-        // DİKKAT: Backend'de bu modeli karşılayan bir endpoint olmalı (LessonController -> Book)
         var bookingRequest = new 
         {
             CoachId = CoachId,
             StartTime = time,
-            EndTime = time.AddHours(1) // 1 Saatlik ders
+            EndTime = time.AddHours(1) 
         };
 
         try
         {
-            var response = await HttpClient.PostAsJsonAsync("api/Lesson/book", bookingRequest);
+            var response = await HttpClient.PostAsJsonAsync("api/Bookings/book", bookingRequest);
             
             if (response.IsSuccessStatusCode)
             {
-                Snackbar.Add("Rezervasyonunuz başarıyla oluşturuldu! İyi dersler. 🎾", Severity.Success);
+                Snackbar.Add("Rezervasyonunuz ONAYLANDI! İyi dersler. 🎾", Severity.Success);
                 Navigation.NavigateTo("/my-bookings");
             }
             else
             {
                 var errorMsg = await response.Content.ReadAsStringAsync();
+                if (errorMsg.Contains("{")) errorMsg = "İşlem başarısız."; 
                 Snackbar.Add($"Hata: {errorMsg}", Severity.Error);
             }
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            Snackbar.Add("Bağlantı hatası oluştu.", Severity.Error);
+            Snackbar.Add("Sunucu ile iletişim hatası.", Severity.Error);
         }
     }
 }
