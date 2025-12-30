@@ -48,6 +48,10 @@ namespace KirikkaleTenisAkademi.Infrastructure.Persistence
                 .HasOne(b => b.Coach)
                 .WithMany()
                 .HasForeignKey(b => b.CoachId);
+            
+            builder.Entity<LessonPacket>()
+                .Property(p => p.Id)
+                .UseIdentityColumn();
         }
     }
 }

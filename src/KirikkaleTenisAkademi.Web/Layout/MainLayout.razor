@@ -5,6 +5,7 @@
 @inject AuthenticationStateProvider AuthStateProvider
 @inject ILocalStorageService LocalStorage
 @inject HttpClient Http
+@implements IDisposable
 
 <MudThemeProvider Theme="_tennisTheme" />
 <MudDialogProvider />
@@ -55,6 +56,10 @@
                             <MudMenuItem Href="/admin/dashboard" Icon="@Icons.Material.Filled.Dashboard">Panel Özeti</MudMenuItem>
                             <MudMenuItem Href="/admin/users" Icon="@Icons.Material.Filled.People">Kullanıcılar</MudMenuItem>
                             <MudMenuItem Href="/admin/add-coach" Icon="@Icons.Material.Filled.PersonAdd">Koç Ekle</MudMenuItem>
+                            <MudDivider />
+                            <MudMenuItem Href="/admin/add-packet" Icon="@Icons.Material.Filled.AddShoppingCart">Paket Ekle</MudMenuItem>
+                            <MudDivider />
+                            <MudMenuItem Href="/admin/packets" Icon="@Icons.Material.Filled.Inventory">Paketleri Yönet</MudMenuItem>
                         </MudMenu>
                     </Authorized>
                 </AuthorizeView>
@@ -128,6 +133,8 @@
                     <MudNavLink Href="/admin/dashboard" Icon="@Icons.Material.Filled.Dashboard">Panel Özeti</MudNavLink>
                     <MudNavLink Href="/admin/users" Icon="@Icons.Material.Filled.SupervisedUserCircle">Kullanıcılar</MudNavLink>
                     <MudNavLink Href="/admin/add-coach" Icon="@Icons.Material.Filled.PersonAdd">Koç Ekle</MudNavLink>
+                    <MudNavLink Href="/admin/add-packet" Icon="@Icons.Material.Filled.AddShoppingCart">Paket Ekle</MudNavLink>
+                    <MudNavLink Href="/admin/packets" Icon="@Icons.Material.Filled.Inventory">Paketleri Yönet</MudNavLink>
                 </Authorized>
             </AuthorizeView>
 
@@ -152,7 +159,6 @@
 </MudLayout>
 
 <style>
-    /* Modern Stil Eklemeleri */
     .navbar-glass {
         background-color: rgba(255, 255, 255, 0.95) !important;
         backdrop-filter: blur(10px);
@@ -178,35 +184,82 @@
 bool _drawerOpen = false;
 private int lessonCredits = 0;
 
+// Sonsuz döngü ve çakışma koruması
+private bool _isFetching = false;
+
 protected override async Task OnInitializedAsync()
 {
+// Eventleri bağlıyoruz
+Navigation.LocationChanged += OnLocationChanged;
+AuthStateProvider.AuthenticationStateChanged += OnAuthStateChanged;
+
+await LoadCredits();
+}
+
+public void Dispose()
+{
+// Eventleri temizliyoruz (Memory Leak olmaması için)
+Navigation.LocationChanged -= OnLocationChanged;
+AuthStateProvider.AuthenticationStateChanged -= OnAuthStateChanged;
+}
+
+// Lambda yerine metod referansı kullanıyoruz ki Dispose içinde silebilelim
+private void OnLocationChanged(object? sender, LocationChangedEventArgs e) => InvokeAsync(LoadCredits);
+private void OnAuthStateChanged(Task<AuthenticationState> task) => InvokeAsync(LoadCredits);
+
+private async Task LoadCredits()
+{
+// Eğer zaten istek atılıyorsa tekrar atma
+if (_isFetching) return;
+
+try
+{
+_isFetching = true;
+
+var token = await LocalStorage.GetItemAsync<string>("authToken");
+
+if (string.IsNullOrEmpty(token))
+{
+if(lessonCredits != 0) { lessonCredits = 0; StateHasChanged(); }
+return;
+}
+
 var state = await AuthStateProvider.GetAuthenticationStateAsync();
 if (state.User.Identity?.IsAuthenticated == true && state.User.IsInRole("Student"))
 {
-await FetchUserCredits();
-}
-}
+// Token'ı başlığa ekle
+Http.DefaultRequestHeaders.Authorization = null;
+Http.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
 
-private async Task FetchUserCredits()
-{
-try
-{
-// Basit profil bilgisi çeken DTO (Kredi için)
-var profile = await Http.GetFromJsonAsync<SimpleProfileDto>("api/Auth/profile");
-if (profile != null)
+// API'den veriyi çek
+var profile = await Http.GetFromJsonAsync<UserProfileDto>("api/Auth/profile");
+
+// SADECE kredi değiştiyse ekranı yenile (Döngü Koruması)
+if (profile != null && lessonCredits != profile.LessonCredits)
 {
 lessonCredits = profile.LessonCredits;
 StateHasChanged();
 }
 }
-catch (Exception ex) { Console.WriteLine(ex.Message); }
+}
+catch (Exception)
+{
+// Sessizce devam et
+}
+finally
+{
+// Kilidi aç
+_isFetching = false;
+}
 }
 
 async Task Logout()
 {
 await LocalStorage.RemoveItemAsync("authToken");
+Http.DefaultRequestHeaders.Authorization = null;
 await AuthStateProvider.GetAuthenticationStateAsync();
 Navigation.NavigateTo("/login");
+lessonCredits = 0;
 }
 
 MudTheme _tennisTheme = new MudTheme()
@@ -219,21 +272,14 @@ AppbarBackground = "#FFFFFF",
 Background = "#F9FAFB",
 TextPrimary = "#212121",
 },
-Typography = new Typography()
-{
-Default = new DefaultTypography()
-{
-FontFamily = new[] { "Montserrat", "Roboto", "Helvetica", "Arial", "sans-serif" }
-},
-H2 = new H2Typography() { FontWeight = 900.ToString() },
-Button = new ButtonTypography() { FontWeight = 600.ToString() }
-},
 LayoutProperties = new LayoutProperties() { DefaultBorderRadius = "12px" }
 };
 
-// Sadece Navbar için gerekli basit DTO
-public class SimpleProfileDto
+public class UserProfileDto
 {
+public string FirstName { get; set; } = "";
+public string LastName { get; set; } = "";
+public string Email { get; set; } = "";
 public int LessonCredits { get; set; }
 }
 }

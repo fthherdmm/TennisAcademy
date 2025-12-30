@@ -6,6 +6,7 @@ using System.Text;
 using KirikkaleTenisAkademi.Domain.Entities;
 using Microsoft.AspNetCore.Identity;
 
+// Postgresql timestamp sorunu için fix
 AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 
 var builder = WebApplication.CreateBuilder(args);
@@ -14,22 +15,26 @@ var builder = WebApplication.CreateBuilder(args);
 // 1. AYARLAR VE SERVİSLER
 // ==========================================
 
-// CORS Politikası: Her yerden gelen isteğe izin ver (Geliştirme aşaması için)
+// 🔴 DÜZELTME 1: CORS Politikası (Frontend'e Özel)
+// "AllowAll" yerine Web projenin adresine özel izin veriyoruz.
+// Bu sayede "Preflight Redirect" hatalarını engelleriz.
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowAll",
+    options.AddPolicy("AllowWeb",
         policy =>
         {
-            policy.AllowAnyOrigin()
+            // BURAYA DİKKAT: Web projenin HTTPS adresi (7207 senin hatanda görünen port)
+            policy.WithOrigins("https://localhost:7207", "https://localhost:7045") 
                 .AllowAnyMethod()
-                .AllowAnyHeader();
+                .AllowAnyHeader()
+                .AllowCredentials(); // Cookie veya Token taşıyabilmek için şart
         });
 });
 
 // Controller Desteği
 builder.Services.AddControllers();
 
-// Swagger Ayarları (JWT Kilit Butonu Dahil)
+// Swagger Ayarları
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(option =>
 {
@@ -59,13 +64,14 @@ builder.Services.AddSwaggerGen(option =>
     });
 });
 
-// Altyapı (Infrastructure) Katmanını Ekle
-// NOT: AddInfrastructure metodunun içinde AddIdentity<AppUser, IdentityRole> olduğundan emin ol!
+// Altyapı Katmanı
 builder.Services.AddInfrastructure(builder.Configuration);
 
 // JWT Auth Ayarları
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
-var secretKey = Encoding.UTF8.GetBytes(jwtSettings["Secret"]!);
+// Eğer secret key boşsa patlamaması için varsayılan bir değer atayalım (Production'da tehlikeli ama dev için ok)
+var secretStr = jwtSettings["Secret"] ?? "bu_varsayilan_cok_gizli_bir_anahtardir_en_az_32_karakter"; 
+var secretKey = Encoding.UTF8.GetBytes(secretStr);
 
 builder.Services.AddAuthentication(options =>
 {
@@ -91,7 +97,7 @@ builder.Services.AddAuthorization();
 var app = builder.Build();
 
 // ==========================================
-// 2. MIDDLEWARE KATMANI
+// 2. MIDDLEWARE KATMANI (SIRALAMA ÇOK ÖNEMLİ)
 // ==========================================
 
 if (app.Environment.IsDevelopment())
@@ -100,16 +106,24 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+// 🔴 Loglama Middleware (En başta dursun ki her şeyi görelim)
+app.Use(async (context, next) =>
+{
+    Console.WriteLine($"🌍 GELEN İSTEK: {context.Request.Method} {context.Request.Path}");
+    await next();
+});
+
+// HTTPS Yönlendirmesi
 app.UseHttpsRedirection();
 
-app.UseCors("AllowAll"); // Frontend (Blazor) erişimi için şart
+// 🔴 DÜZELTME 2: CORS Middleware'i (Authentication'dan ÖNCE olmalı)
+// Yukarıda tanımladığımız "AllowWeb" politikasını kullan.
+app.UseCors("AllowWeb"); 
 
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
-
-// ... (Kodun üst kısımları aynı kalsın) ...
 
 // ==========================================
 // 3. SEED DATA (OTOMATİK VERİ OLUŞTURMA)
@@ -121,64 +135,48 @@ using (var scope = app.Services.CreateScope())
         var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<AppUser>>();
 
-        // 1. Rolleri Kontrol Et ve Oluştur
         string[] roles = { "Admin", "Coach", "Student" };
         foreach (var role in roles)
         {
             if (!await roleManager.RoleExistsAsync(role))
             {
                 await roleManager.CreateAsync(new IdentityRole(role));
-                Console.WriteLine($">>> ROL OLUŞTURULDU: {role}");
             }
         }
 
-        // 2. Admin Kullanıcısı İşlemleri (GARANTİ YÖNTEM)
         var adminEmail = "admin@tenis.com";
-        
-        // Önce veritabanında bu email ile kayıtlı biri var mı bak
         var existingAdmin = await userManager.FindByEmailAsync(adminEmail);
         
         if (existingAdmin != null)
         {
-            // VARSA SİL! (Çünkü şifresi bozuk olabilir veya eski yapıdan kalmış olabilir)
-            Console.WriteLine(">>> ESKİ ADMIN KAYDI BULUNDU. TEMİZ KURULUM İÇİN SİLİNİYOR...");
-            await userManager.DeleteAsync(existingAdmin);
-        }
-
-        // Şimdi TERTEMİZ bir Admin oluştur
-        var newAdmin = new AppUser() 
-        {
-            UserName = "admin", // Login olurken UserName kullanıyorsan buna dikkat!
-            Email = adminEmail,
-            FirstName = "Sistem", 
-            LastName = "Yöneticisi", 
-            EmailConfirmed = true,
-            LessonCredits = 9999, // Bol kredi
-            SecurityStamp = Guid.NewGuid().ToString() // Bu olmazsa Login hata verir!
-        };
-
-        // Kullanıcıyı oluştur ve şifresini belirle
-        var createResult = await userManager.CreateAsync(newAdmin, "Admin123!"); 
-
-        if (createResult.Succeeded)
-        {
-            // Rolünü ver
-            await userManager.AddToRoleAsync(newAdmin, "Admin");
-            Console.WriteLine(">>> ✅ BAŞARILI: Yeni Admin kullanıcısı (AppUser) oluşturuldu.");
-            Console.WriteLine($">>> Giriş Bilgileri: Email: {adminEmail} | Şifre: Admin123!");
+            // Mevcut admin varsa ellemiyoruz (Silmek bazen veri kaybı yaratabilir, development için silebilirsin ama productionda riskli)
+            // Eğer şifreyi unuttuysan delete satırını açabilirsin.
+             // await userManager.DeleteAsync(existingAdmin); 
         }
         else
         {
-            Console.WriteLine(">>> ❌ HATA: Admin kullanıcısı oluşturulamadı!");
-            foreach (var error in createResult.Errors)
+            var newAdmin = new AppUser() 
             {
-                Console.WriteLine($">>> HATA DETAYI: {error.Description}");
+                UserName = "admin",
+                Email = adminEmail,
+                FirstName = "Sistem", 
+                LastName = "Yöneticisi", 
+                EmailConfirmed = true,
+                LessonCredits = 9999,
+                SecurityStamp = Guid.NewGuid().ToString()
+            };
+
+            var createResult = await userManager.CreateAsync(newAdmin, "Admin123!"); 
+            if (createResult.Succeeded)
+            {
+                await userManager.AddToRoleAsync(newAdmin, "Admin");
+                Console.WriteLine(">>> ✅ ADMIN OLUŞTURULDU: admin@tenis.com / Admin123!");
             }
         }
     }
     catch (Exception ex)
     {
-        Console.WriteLine($">>> 💥 KRİTİK SEED DATA HATASI: {ex.Message}");
+        Console.WriteLine($">>> SEED DATA HATASI: {ex.Message}");
     }
 }
 

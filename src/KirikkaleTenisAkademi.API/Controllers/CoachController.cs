@@ -58,6 +58,35 @@ namespace KirikkaleTenisAkademi.API.Controllers
         }
 
         // ==========================================
+// 5. ÖĞRENCİNİN YAKLAŞAN DERSLERİ
+// ==========================================
+        [HttpGet("student-lessons/{studentId}")]
+        public async Task<IActionResult> GetStudentLessons(string studentId)
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var coach = await _context.Coaches.FirstOrDefaultAsync(c => c.AppUserId == userId);
+            if (coach == null) return Unauthorized("Koç bulunamadı.");
+
+            // Koçun, sadece kendisine ait ve o öğrenciyle olan derslerini getir
+            // İptal edilenleri veya geçmiş dersleri göstermiyoruz (Sadece gelecek dersler)
+            var lessons = await _context.LessonBookings
+                .Where(b => b.CoachId == coach.Id 
+                            && b.StudentId == studentId
+                            && b.Status != BookingStatus.Cancelled
+                            && b.StartTime >= DateTime.UtcNow) // Sadece gelecek dersler
+                .OrderBy(b => b.StartTime)
+                .Select(b => new 
+                {
+                    Id = b.Id,
+                    StartTime = b.StartTime,
+                    EndTime = b.EndTime
+                })
+                .ToListAsync();
+
+            return Ok(lessons);
+        }
+        
+        // ==========================================
         // 2. DERS İPTAL ET & KREDİ İADE ET (Refund)
         // ==========================================
         [HttpPost("cancel-lesson/{bookingId}")]

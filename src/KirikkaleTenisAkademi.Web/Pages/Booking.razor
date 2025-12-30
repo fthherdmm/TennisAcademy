@@ -75,7 +75,6 @@
     [Parameter] public int CoachId { get; set; }
 
     private bool _loading = true;
-    // Takvim Verisi
     private Dictionary<DateTime, (string Type, string Text)> _calendarData = new();
 
     protected override async Task OnInitializedAsync()
@@ -94,8 +93,15 @@
             {
                 _calendarData.Clear();
 
-                // 1. API'den Gelen Dolu/Kapalı Saatleri İşle
-                foreach (var item in scheduleItems)
+                // 1. DÜZELTME: API'den gelen UTC saatleri Yerel Saate (TR +3) çevir
+                var localItems = scheduleItems.Select(x => {
+                    x.StartTime = x.StartTime.ToLocalTime();
+                    x.EndTime = x.EndTime.ToLocalTime();
+                    return x;
+                }).ToList();
+
+                // 2. Takvimi doldur
+                foreach (var item in localItems)
                 {
                     var current = item.StartTime;
                     while (current < item.EndTime)
@@ -112,7 +118,7 @@
                     }
                 }
 
-                // 2. YENİ EKLENEN KISIM: Geçmiş Saatleri "Blocked" (Gri) Yap
+                // 3. Geçmiş Saatleri Kapat
                 MarkPastSlotsAsBlocked();
             }
         }
@@ -126,28 +132,23 @@
         }
     }
 
-    // 👇 GEÇMİŞ SAATLERİ GRİ YAPMAK İÇİN YENİ METOD
     private void MarkPastSlotsAsBlocked()
     {
-        var now = DateTime.Now;
+        var now = DateTime.Now; // Burası zaten Yerel Saat çalışır
         
-        // Bu haftanın başını bul (Pazartesi)
         var today = now.Date;
         var dayOfWeek = (int)today.DayOfWeek;
-        if (dayOfWeek == 0) dayOfWeek = 7; // Pazar gününü 7 yap (TR standardı)
+        if (dayOfWeek == 0) dayOfWeek = 7; 
         var startOfWeek = today.AddDays(1 - dayOfWeek);
 
-        // Bu haftanın 7 günü için döngü
         for (int i = 0; i < 7; i++)
         {
             var currentDay = startOfWeek.AddDays(i);
 
-            // Sabah 9'dan Akşam 22'ye kadar kontrol et
             for (int hour = 9; hour < 22; hour++)
             {
                 var slotTime = new DateTime(currentDay.Year, currentDay.Month, currentDay.Day, hour, 0, 0);
 
-                // Eğer slot geçmişteyse VE listede yoksa -> "Blocked" olarak ekle
                 if (slotTime < now && !_calendarData.ContainsKey(slotTime))
                 {
                     _calendarData.Add(slotTime, ("Blocked", "Geçmiş"));
@@ -158,14 +159,14 @@
 
     private async Task HandleSlotClick(DateTime clickedTime)
     {
-        // 1. Geçmiş Kontrolü (Ekstra güvenlik)
+        // Geçmiş kontrolü
         if (clickedTime < DateTime.Now)
         {
              Snackbar.Add("Geçmiş zamana rezervasyon yapılamaz.", Severity.Warning);
              return;
         }
 
-        // 2. Doluluk Kontrolü
+        // Doluluk kontrolü
         if (_calendarData.ContainsKey(clickedTime))
         {
             var status = _calendarData[clickedTime];
@@ -174,7 +175,6 @@
             return;
         }
 
-        // 3. Onay Dialogu
         bool? result = await DialogService.ShowMessageBox(
             "Rezervasyon Onayı", 
             $"Seçilen Tarih: {clickedTime:dd.MM.yyyy}\nSeçilen Saat: {clickedTime:HH:00} - {clickedTime.AddHours(1):HH:00}\n\nBu dersi 1 Kredi karşılığında onaylıyor musunuz?", 
@@ -188,11 +188,12 @@
 
     private async Task CreateBooking(DateTime time)
     {
+        // 4. DÜZELTME: Seçilen yerel saati UTC'ye çevirip sunucuya gönder
         var bookingRequest = new 
         {
             CoachId = CoachId,
-            StartTime = time,
-            EndTime = time.AddHours(1) 
+            StartTime = time.ToUniversalTime(), // <--- UTC'ye çevrildi
+            EndTime = time.AddHours(1).ToUniversalTime() // <--- UTC'ye çevrildi
         };
 
         try
@@ -207,7 +208,8 @@
             else
             {
                 var errorMsg = await response.Content.ReadAsStringAsync();
-                if (errorMsg.Contains("{")) errorMsg = "İşlem başarısız."; 
+                // Basit hata mesajı temizliği
+                if (errorMsg.Contains("{")) errorMsg = "İşlem başarısız veya krediniz yetersiz."; 
                 Snackbar.Add($"Hata: {errorMsg}", Severity.Error);
             }
         }

@@ -56,7 +56,6 @@
             @for (int day = 1; day <= _daysInMonth; day++)
             {
             var date = new DateTime(_currentMonth.Year, _currentMonth.Month, day);
-            // DÜZELTME: Tek bir ders değil, o günün TÜM derslerini çekiyoruz
             var dailyBookings = GetActiveBookingsForDate(date);
             var isToday = date.Date == DateTime.Now.Date;
             var hasBooking = dailyBookings.Any();
@@ -187,88 +186,98 @@
 </style>
 
 @code {
-private bool _loading = true;
-private bool _isCalendarView = true;
-private List<MyBookingDto> _bookings = new();
-private List<CoachSelectDto> _coaches = new();
+    private bool _loading = true;
+    private bool _isCalendarView = true;
+    private List<MyBookingDto> _bookings = new();
+    private List<CoachSelectDto> _coaches = new();
 
-private DateTime _currentMonth = DateTime.Now;
-private int _daysInMonth;
-private int _offsetDays;
+    private DateTime _currentMonth = DateTime.Now;
+    private int _daysInMonth;
+    private int _offsetDays;
 
-protected override async Task OnInitializedAsync()
-{
-UpdateCalendarInfo();
-await LoadData();
-}
+    protected override async Task OnInitializedAsync()
+    {
+        UpdateCalendarInfo();
+        await LoadData();
+    }
 
-private void UpdateCalendarInfo()
-{
-_daysInMonth = DateTime.DaysInMonth(_currentMonth.Year, _currentMonth.Month);
-var firstDay = new DateTime(_currentMonth.Year, _currentMonth.Month, 1);
-int dayOfWeek = (int)firstDay.DayOfWeek;
-_offsetDays = dayOfWeek == 0 ? 6 : dayOfWeek - 1;
-}
+    private void UpdateCalendarInfo()
+    {
+        _daysInMonth = DateTime.DaysInMonth(_currentMonth.Year, _currentMonth.Month);
+        var firstDay = new DateTime(_currentMonth.Year, _currentMonth.Month, 1);
+        int dayOfWeek = (int)firstDay.DayOfWeek;
+        _offsetDays = dayOfWeek == 0 ? 6 : dayOfWeek - 1;
+    }
 
-private void NextMonth() { _currentMonth = _currentMonth.AddMonths(1); UpdateCalendarInfo(); }
-private void PrevMonth() { _currentMonth = _currentMonth.AddMonths(-1); UpdateCalendarInfo(); }
+    private void NextMonth() { _currentMonth = _currentMonth.AddMonths(1); UpdateCalendarInfo(); }
+    private void PrevMonth() { _currentMonth = _currentMonth.AddMonths(-1); UpdateCalendarInfo(); }
 
-private async Task LoadData()
-{
-try
-{
-_loading = true;
-_bookings = await HttpClient.GetFromJsonAsync<List<MyBookingDto>>("api/Lesson/my-bookings");
-_coaches = await HttpClient.GetFromJsonAsync<List<CoachSelectDto>>("api/Bookings/coaches-list");
-}
-catch(Exception) { Snackbar.Add("Hata oluştu.", Severity.Error); }
-finally { _loading = false; }
-}
+    private async Task LoadData()
+    {
+        try
+        {
+            _loading = true;
+            var result = await HttpClient.GetFromJsonAsync<List<MyBookingDto>>("api/Lesson/my-bookings");
+            
+            // DÜZELTME: Saatleri Türkiye saatine çevir
+            if(result != null)
+            {
+                _bookings = result.Select(b => {
+                    b.StartTime = b.StartTime.ToLocalTime();
+                    b.EndTime = b.EndTime.ToLocalTime();
+                    return b;
+                }).ToList();
+            }
 
-// DÜZELTME: O güne ait TÜM dersleri getiren fonksiyon
-private List<MyBookingDto> GetActiveBookingsForDate(DateTime date)
-{
-return _bookings
-.Where(b => b.StartTime.Date == date.Date && b.Status != "Cancelled")
-.OrderBy(b => b.StartTime)
-.ToList();
-}
+            _coaches = await HttpClient.GetFromJsonAsync<List<CoachSelectDto>>("api/Bookings/coaches-list");
+        }
+        catch(Exception) { Snackbar.Add("Hata oluştu.", Severity.Error); }
+        finally { _loading = false; }
+    }
 
-private async Task OnBookingClick(MyBookingDto booking)
-{
-var parameters = new DialogParameters<BookingDetailDialog> { { x => x.Booking, booking } };
-var dialog = await DialogService.ShowAsync<BookingDetailDialog>("Ders Detayı", parameters);
-var result = await dialog.Result;
+    private List<MyBookingDto> GetActiveBookingsForDate(DateTime date)
+    {
+        return _bookings
+        .Where(b => b.StartTime.Date == date.Date && b.Status != "Cancelled")
+        .OrderBy(b => b.StartTime)
+        .ToList();
+    }
 
-if (!result.Canceled && (bool)result.Data == true)
-{
-await CancelLesson(booking.Id);
-}
-}
+    private async Task OnBookingClick(MyBookingDto booking)
+    {
+        var parameters = new DialogParameters<BookingDetailDialog> { { x => x.Booking, booking } };
+        var dialog = await DialogService.ShowAsync<BookingDetailDialog>("Ders Detayı", parameters);
+        var result = await dialog.Result;
 
-private async Task OpenCoachSelection()
-{
-var parameters = new DialogParameters<CoachSelectionDialog> { { x => x.Coaches, _coaches } };
-var dialog = await DialogService.ShowAsync<CoachSelectionDialog>("Eğitmen Seç", parameters);
-var result = await dialog.Result;
+        if (!result.Canceled && (bool)result.Data == true)
+        {
+            await CancelLesson(booking.Id);
+        }
+    }
 
-if (!result.Canceled)
-{
-int coachId = (int)result.Data;
-NavigationManager.NavigateTo($"/booking/{coachId}");
-}
-}
+    private async Task OpenCoachSelection()
+    {
+        var parameters = new DialogParameters<CoachSelectionDialog> { { x => x.Coaches, _coaches } };
+        var dialog = await DialogService.ShowAsync<CoachSelectionDialog>("Eğitmen Seç", parameters);
+        var result = await dialog.Result;
 
-private async Task CancelLesson(int bookingId)
-{
-bool? confirm = await DialogService.ShowMessageBox("Onay", "Dersi iptal etmek istediğinize emin misiniz?", yesText: "Evet", cancelText: "Hayır");
-if (confirm == true)
-{
-var response = await HttpClient.PutAsync($"api/Lesson/cancel-my-booking/{bookingId}", null);
-if (response.IsSuccessStatusCode) { Snackbar.Add("İptal edildi.", Severity.Success); await LoadData(); }
-else { Snackbar.Add("İşlem başarısız.", Severity.Error); }
-}
-}
+        if (!result.Canceled)
+        {
+            int coachId = (int)result.Data;
+            NavigationManager.NavigateTo($"/booking/{coachId}");
+        }
+    }
 
-public class CoachSelectDto { public int Id { get; set; } public string FullName { get; set; } = string.Empty; }
+    private async Task CancelLesson(int bookingId)
+    {
+        bool? confirm = await DialogService.ShowMessageBox("Onay", "Dersi iptal etmek istediğinize emin misiniz?", yesText: "Evet", cancelText: "Hayır");
+        if (confirm == true)
+        {
+            var response = await HttpClient.PutAsync($"api/Lesson/cancel-my-booking/{bookingId}", null);
+            if (response.IsSuccessStatusCode) { Snackbar.Add("İptal edildi.", Severity.Success); await LoadData(); }
+            else { Snackbar.Add("İşlem başarısız.", Severity.Error); }
+        }
+    }
+
+    public class CoachSelectDto { public int Id { get; set; } public string FullName { get; set; } = string.Empty; }
 }

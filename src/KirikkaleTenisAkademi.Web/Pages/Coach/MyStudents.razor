@@ -12,7 +12,7 @@
 
     <div class="mb-6">
         <MudText Typo="Typo.h4" Color="Color.Primary" Style="font-weight: 800;">🎓 Öğrenci Portföyü</MudText>
-        <MudText Typo="Typo.body2" Class="text-muted">Öğrencilerinizin gelişimini ve fiziksel durumlarını buradan takip edin.</MudText>
+        <MudText Typo="Typo.body2" Class="text-muted">Öğrencilerinizin gelişimini, ders programını ve fiziksel durumlarını buradan takip edin.</MudText>
     </div>
 
     <MudGrid>
@@ -74,6 +74,40 @@
                 <MudDivider Class="my-4"/>
 
                 <MudTabs Elevation="0" Rounded="true" ApplyEffectsToContainer="true" PanelClass="mt-4" Color="Color.Transparent">
+
+                    <MudTabPanel Text="Ders Programı" Icon="@Icons.Material.Filled.CalendarMonth">
+                        @if (_loadingLessons)
+                        {
+                        <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="my-4"/>
+                        }
+                        else if (_studentLessons.Any())
+                        {
+                        <MudTable Items="_studentLessons" Hover="true" Dense="true" Elevation="0" Class="mt-2">
+                            <HeaderContent>
+                                <MudTh>Tarih</MudTh>
+                                <MudTh>Saat</MudTh>
+                                <MudTh>İşlem</MudTh>
+                            </HeaderContent>
+                            <RowTemplate Context="lesson">
+                                <MudTd>@lesson.StartTime.ToString("dd.MM.yyyy")</MudTd>
+                                <MudTd>@lesson.StartTime.ToString("HH:mm") - @lesson.EndTime.ToString("HH:mm")</MudTd>
+                                <MudTd>
+                                    <MudButton Variant="Variant.Outlined"
+                                               Color="Color.Error"
+                                               Size="Size.Small"
+                                               StartIcon="@Icons.Material.Filled.Cancel"
+                                               OnClick="@(() => CancelLesson(lesson))">
+                                        İptal Et
+                                    </MudButton>
+                                </MudTd>
+                            </RowTemplate>
+                        </MudTable>
+                        }
+                        else
+                        {
+                        <MudAlert Severity="Severity.Info" Class="mt-2">Bu öğrenci ile planlanmış yaklaşan dersiniz bulunmamaktadır.</MudAlert>
+                        }
+                    </MudTabPanel>
 
                     <MudTabPanel Text="Kimlik & İletişim" Icon="@Icons.Material.Filled.Badge">
                         <MudGrid>
@@ -145,7 +179,7 @@
 <style>
     .text-muted { color: #616161; }
     .border-t-4 { border-top-width: 4px !important; }
-    .border-secondary { border-color: #76FF03 !important; } /* Neon Yeşil */
+    .border-secondary { border-color: #76FF03 !important; }
 
     .sticky-top {
         position: sticky;
@@ -162,6 +196,10 @@
     private List<MyStudentDto> _students = new();
     private MyStudentDto? _selectedStudent;
 
+    // --- YENİ EKLENEN DEĞİŞKENLER ---
+    private List<StudentLessonDto> _studentLessons = new();
+    private bool _loadingLessons = false;
+
     protected override async Task OnInitializedAsync()
     {
         await LoadStudents();
@@ -171,15 +209,87 @@
     {
         try
         {
-            var result = await HttpClient.GetFromJsonAsync<List<MyStudentDto>>("api/Coach/my-students-portfolio");
-            if (result != null) _students = result;
+        var result = await HttpClient.GetFromJsonAsync<List<MyStudentDto>>("api/Coach/my-students-portfolio");
+        if (result != null) _students = result;
         }
-        catch (Exception) {}
+        catch (Exception) {}                
     }
 
-    private void OnStudentClicked(TableRowClickEventArgs<MyStudentDto> args)
+    private async Task OnStudentClicked(TableRowClickEventArgs<MyStudentDto> args)
     {
         _selectedStudent = args.Item;
+        // Öğrenciye tıklandığında derslerini yükle
+        await LoadStudentLessons(_selectedStudent.StudentId);
+    }
+
+    // --- YENİ EKLENEN METODLAR ---
+
+    // 1. Seçilen öğrencinin yaklaşan derslerini getir
+    private async Task LoadStudentLessons(string studentId)
+    {
+        _loadingLessons = true;
+        _studentLessons.Clear();
+        try
+        {
+            // Bu endpoint yoksa CoachController'a eklemen gerekebilir: 
+            // GET api/Coach/student-lessons/{studentId}
+            var result = await HttpClient.GetFromJsonAsync<List<StudentLessonDto>>($"api/Coach/student-lessons/{studentId}");
+
+            // Timezone düzeltmesi
+            if (result != null)
+            {
+            _studentLessons = result.Select(x => {
+            x.StartTime = x.StartTime.ToLocalTime();
+            x.EndTime = x.EndTime.ToLocalTime();
+            return x;
+            }).ToList();
+            }
+        }
+        catch (Exception)
+        {
+            // Hata olursa veya endpoint yoksa sessiz kal veya logla
+        }
+        finally
+        {
+            _loadingLessons = false;
+        }
+    }
+
+    // 2. Dersi İptal Et
+    private async Task CancelLesson(StudentLessonDto lesson)
+    {
+        var parameters = new DialogParameters();
+        bool? result = await DialogService.ShowMessageBox(
+        "Ders İptali",
+        $"{lesson.StartTime:dd.MM.yyyy HH:mm} tarihindeki dersi iptal etmek istediğinize emin misiniz?\n\n(Öğrenciye kredisi iade edilecektir.)",
+        yesText: "Evet, İptal Et", cancelText: "Vazgeç");
+
+        if (result == true)
+        {
+            try
+            {
+            // Controller'daki iptal endpoint'i
+            var response = await HttpClient.PostAsync($"api/Coach/cancel-lesson/{lesson.Id}", null);
+
+            if (response.IsSuccessStatusCode)
+            {
+            Snackbar.Add("Ders başarıyla iptal edildi.", Severity.Success);
+            // Listeyi yenile
+            await LoadStudentLessons(_selectedStudent!.StudentId);
+
+            // Öğrenci kredisini ekranda güncelle (iade edildiği için)
+            _selectedStudent.CurrentCredits += 1;
+            }
+            else
+            {
+            Snackbar.Add("Ders iptal edilirken bir hata oluştu.", Severity.Error);
+            }
+            }
+            catch(Exception)
+            {
+            Snackbar.Add("Sunucu hatası.", Severity.Error);
+            }
+        }
     }
 
     private bool FilterStudents(MyStudentDto element)
@@ -203,19 +313,24 @@
             }
         }
     }
-    
+
     private async Task OpenEditDialog(MyStudentDto student)
     {
         var parameters = new DialogParameters<StudentEditDialog> { { x => x.Student, student } };
-        
         var dialog = await DialogService.ShowAsync<KirikkaleTenisAkademi.Web.Shared.Components.StudentEditDialog>("Öğrenci Düzenle", parameters);
-        
         var result = await dialog.Result;
-        
-        // Dialog kapandığında listeyi yenile ki güncel veriler görünsün
+
         if (!result.Canceled)
         {
             await LoadStudents();
         }
+    }
+
+    // Basit DTO
+    public class StudentLessonDto
+    {
+        public int Id { get; set; }
+        public DateTime StartTime { get; set; }
+        public DateTime EndTime { get; set; }
     }
 }

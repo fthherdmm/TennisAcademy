@@ -1,0 +1,104 @@
+﻿@page "/admin/add-packet"
+@using KirikkaleTenisAkademi.Domain.Entities
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize(Roles = "Admin")]
+@inject HttpClient Http
+@inject ISnackbar Snackbar
+@inject NavigationManager Navigation
+
+<MudContainer MaxWidth="MaxWidth.Medium" Class="mt-8">
+    <MudText Typo="Typo.h4" Color="Color.Primary" Class="mb-4 fw-bold">Yeni Paket Oluştur</MudText>
+    <MudText Typo="Typo.body1" Class="mb-6">Kullanıcıların satın alabileceği yeni bir ders kredisi paketi tanımlayın.</MudText>
+
+    <MudCard Elevation="3" Class="pa-4 rounded-lg">
+        <MudForm @ref="form" @bind-IsValid="@success">
+            <MudGrid>
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="packet.Name" 
+                                  Label="Paket Adı" 
+                                  Variant="Variant.Outlined" 
+                                  Required="true" 
+                                  RequiredError="Paket adı zorunludur!"
+                                  Adornment="Adornment.Start" 
+                                  AdornmentIcon="@Icons.Material.Filled.Label" />
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="packet.Description" 
+                                  Label="Açıklama" 
+                                  Variant="Variant.Outlined" 
+                                  Lines="3"
+                                  HelperText="Paketin içeriği hakkında kısa bilgi (Örn: 1 Ay geçerli)" />
+                </MudItem>
+
+                <MudItem xs="12" sm="6">
+                    <MudNumericField @bind-Value="packet.Price" 
+                                     Label="Fiyat (TL)" 
+                                     Variant="Variant.Outlined" 
+                                     Adornment="Adornment.Start" 
+                                     AdornmentIcon="@Icons.Material.Filled.AttachMoney" 
+                                     Min="0" />
+                </MudItem>
+
+                <MudItem xs="12" sm="6">
+                    <MudNumericField @bind-Value="packet.CreditAmount" 
+                                     Label="Kredi Miktarı (Ders Sayısı)" 
+                                     Variant="Variant.Outlined" 
+                                     Adornment="Adornment.Start" 
+                                     AdornmentIcon="@Icons.Material.Filled.Stars" 
+                                     Min="1" />
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudSwitch @bind-Value="packet.IsActive" 
+                               Color="Color.Success" 
+                               Label="Paket Satışa Açık Olsun mu?" />
+                </MudItem>
+
+                <MudItem xs="12" Class="d-flex justify-end mt-4">
+                    <MudButton Variant="Variant.Filled" 
+                               Color="Color.Primary" 
+                               Size="Size.Large" 
+                               OnClick="SavePacket"
+                               Disabled="@(!success)"
+                               StartIcon="@Icons.Material.Filled.Save">
+                        Paketi Kaydet
+                    </MudButton>
+                </MudItem>
+            </MudGrid>
+        </MudForm>
+    </MudCard>
+</MudContainer>
+
+@code {
+    bool success;
+    MudForm form;
+    
+    // API ile aynı namespace'de olduğu için direkt Entity kullanabiliriz 
+    // veya DTO oluşturabilirsin. Şimdilik Entity kullanıyoruz.
+    LessonPacket packet = new LessonPacket();
+
+    private async Task SavePacket()
+    {
+        try
+        {
+            var response = await Http.PostAsJsonAsync("api/LessonPackets", packet);
+
+            if (response.IsSuccessStatusCode)
+            {
+                Snackbar.Add("Paket başarıyla oluşturuldu!", Severity.Success);
+                // Formu temizle
+                packet = new LessonPacket { IsActive = true };
+                // İstersen listeye yönlendir: Navigation.NavigateTo("/admin/packets");
+            }
+            else
+            {
+                Snackbar.Add("Hata oluştu, lütfen tekrar deneyin.", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Sistem Hatası: {ex.Message}", Severity.Error);
+        }
+    }
+}

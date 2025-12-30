@@ -23,8 +23,10 @@ public static class DependencyInjection
             .AddDefaultTokenProviders();
         
         // 3. Auth Servisini Kaydet
-        //IAuthService istendiğinde AuthService ver.
         services.AddScoped<IAuthService, AuthService>();
+
+        // 4. Ödeme Servisini Kaydet (BURAYA EKLİYORUZ) ✅
+        services.AddScoped<IPaymentService, PaymentService>();
 
         return services;
     }

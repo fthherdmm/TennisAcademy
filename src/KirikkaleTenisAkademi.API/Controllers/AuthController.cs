@@ -217,7 +217,8 @@ namespace KirikkaleTenisAkademi.API.Controllers
                 
                 // Acil Durum
                 EmergencyContactName = user.EmergencyContactName,
-                EmergencyContactPhone = user.EmergencyContactPhone
+                EmergencyContactPhone = user.EmergencyContactPhone,
+                LessonCredits = user.LessonCredits
             };
 
             return Ok(profile);

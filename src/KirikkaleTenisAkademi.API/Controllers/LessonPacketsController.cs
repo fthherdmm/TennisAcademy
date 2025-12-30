@@ -26,6 +26,45 @@ namespace KirikkaleTenisAkademi.API.Controllers
                 .Where(p => p.IsActive)
                 .ToListAsync();
         }
+        
+        [HttpPost]
+        [Authorize(Roles = "Admin")] // Sadece Admin ekleyebilir
+        public async Task<ActionResult<LessonPacket>> CreatePacket(LessonPacket packet)
+        {
+            _context.LessonPackets.Add(packet);
+            await _context.SaveChangesAsync();
+
+            return Ok(packet);
+        }
+        
+        // PUT: api/LessonPackets/5/toggle-status
+        [HttpPut("{id}/toggle-status")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> ToggleStatus(int id)
+        {
+            var packet = await _context.LessonPackets.FindAsync(id);
+            if (packet == null) return NotFound("Paket bulunamadı.");
+
+            // Durumu tersine çevir (Aktifse Pasif, Pasifse Aktif yap)
+            packet.IsActive = !packet.IsActive;
+    
+            await _context.SaveChangesAsync();
+            return Ok(packet); // Güncel hali dön
+        }
+
+        // DELETE: api/LessonPackets/5
+        [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> DeletePacket(int id)
+        {
+            var packet = await _context.LessonPackets.FindAsync(id);
+            if (packet == null) return NotFound("Paket bulunamadı.");
+
+            _context.LessonPackets.Remove(packet);
+            await _context.SaveChangesAsync();
+
+            return NoContent(); // 204 Başarılı ve içerik yok
+        }
 
         // 2. Paket Satın Al (Kredi Yükle)
         [HttpPost("purchase/{packetId}")]
@@ -52,26 +91,6 @@ namespace KirikkaleTenisAkademi.API.Controllers
                 message = $"{packet.Name} başarıyla alındı.", 
                 newBalance = user.LessonCredits 
             });
-        }
-
-        // 3. Test İçin Rastgele Paketler Oluştur (Admin veya Herkes - Test bitince sileriz)
-        [HttpPost("create-dummy")]
-        public async Task<IActionResult> CreateDummyPackets()
-        {
-            if (_context.LessonPackets.Any()) 
-                return BadRequest("Zaten paketler var.");
-
-            var packets = new List<LessonPacket>
-            {
-                new LessonPacket { Name = "Tek Ders", Description = "Deneme amaçlı tek ders.", Price = 750, CreditAmount = 1, IsActive = true },
-                new LessonPacket { Name = "5'li Paket", Description = "%10 İndirimli 5 ders.", Price = 3375, CreditAmount = 5, IsActive = true },
-                new LessonPacket { Name = "10'lu Pro Paket", Description = "Profesyonel gelişim için.", Price = 6000, CreditAmount = 10, IsActive = true }
-            };
-
-            _context.LessonPackets.AddRange(packets);
-            await _context.SaveChangesAsync();
-
-            return Ok("Örnek paketler oluşturuldu.");
         }
     }
 }

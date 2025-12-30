@@ -26,5 +26,6 @@
         // ACİL DURUM
         public string EmergencyContactName { get; set; } = string.Empty;
         public string EmergencyContactPhone { get; set; } = string.Empty;
+        public int LessonCredits { get; set; }
     }
 }

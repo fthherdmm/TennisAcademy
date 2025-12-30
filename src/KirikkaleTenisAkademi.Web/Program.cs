@@ -12,7 +12,7 @@ builder.RootComponents.Add<HeadOutlet>("head::after");
 
 // "https://localhost:7123" yerine SENİN API PORTUNU yaz.
 // API terminalindeki adresi kopyala. Sonunda "/" olmasın.
-builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri("http://localhost:5152") });
+builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri("https://localhost:7111/") });
 
 // 1. LocalStorage Servisi
 builder.Services.AddBlazoredLocalStorage();
