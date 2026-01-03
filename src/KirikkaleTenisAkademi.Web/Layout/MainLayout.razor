@@ -31,9 +31,20 @@
 
                 <AuthorizeView Roles="Student">
                     <Authorized>
-                        <MudChip T="string" Icon="@Icons.Material.Filled.Stars" Color="Color.Primary" Variant="Variant.Outlined" Class="mr-2 fw-bold">
-                            @lessonCredits Kredi
-                        </MudChip>
+                        <div class="d-flex gap-2 mr-2">
+                            <MudTooltip Text="Bireysel Özel Ders Kredisi">
+                                <MudChip T="string" Icon="@Icons.Material.Filled.Person" Color="Color.Primary" Variant="Variant.Outlined" Class="fw-bold cursor-default">
+                                    @lessonCredits Özel
+                                </MudChip>
+                            </MudTooltip>
+                            
+                            <MudTooltip Text="Grup/Klinik Ders Kredisi">
+                                <MudChip T="string" Icon="@Icons.Material.Filled.Groups" Color="Color.Info" Variant="Variant.Outlined" Class="fw-bold cursor-default">
+                                    @groupCredits Grup
+                                </MudChip>
+                            </MudTooltip>
+                        </div>
+
                         <MudButton Variant="Variant.Text" Class="nav-link" Href="/my-bookings">Derslerim</MudButton>
                         <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small" Href="/packets" Class="rounded-pill px-4 ml-2 hover-scale">
                             Paket Al
@@ -110,7 +121,14 @@
             <AuthorizeView Roles="Student">
                 <Authorized>
                     <MudPaper Class="pa-3 mx-2 my-2 mud-theme-primary rounded-lg" Elevation="0">
-                        <MudText Typo="Typo.subtitle2" Align="Align.Center" Style="color:white;">Kredi: <b>@lessonCredits</b></MudText>
+                        <div class="d-flex justify-space-between px-2">
+                            <MudText Typo="Typo.body2" Style="color:white;">Özel Ders:</MudText>
+                            <MudText Typo="Typo.body2" Style="color:white; font-weight:bold;">@lessonCredits</MudText>
+                        </div>
+                        <div class="d-flex justify-space-between px-2 mt-1">
+                            <MudText Typo="Typo.body2" Style="color:white;">Grup Dersi:</MudText>
+                            <MudText Typo="Typo.body2" Style="color:#76FF03; font-weight:bold;">@groupCredits</MudText>
+                        </div>
                     </MudPaper>
                     <MudNavLink Href="/packets" Icon="@Icons.Material.Filled.ShoppingBag">Paket Al</MudNavLink>
                     <MudNavLink Href="/my-bookings" Icon="@Icons.Material.Filled.Event">Derslerim</MudNavLink>
@@ -172,8 +190,8 @@
         text-transform: none !important;
         letter-spacing: 0.5px;
     }
+    
     .nav-link:hover { color: #2E7D32 !important; background: transparent !important; }
-
     .hover-scale { transition: transform 0.2s; }
     .hover-scale:hover { transform: scale(1.05); }
 
@@ -181,105 +199,107 @@
 </style>
 
 @code {
-bool _drawerOpen = false;
-private int lessonCredits = 0;
+    bool _drawerOpen = false;
+    private int lessonCredits = 0;
+    private int groupCredits = 0; // YENİ: Grup Kredisi değişkeni
 
-// Sonsuz döngü ve çakışma koruması
-private bool _isFetching = false;
+    private bool _isFetching = false;
 
-protected override async Task OnInitializedAsync()
-{
-// Eventleri bağlıyoruz
-Navigation.LocationChanged += OnLocationChanged;
-AuthStateProvider.AuthenticationStateChanged += OnAuthStateChanged;
+    protected override async Task OnInitializedAsync()
+    {
+        Navigation.LocationChanged += OnLocationChanged;
+        AuthStateProvider.AuthenticationStateChanged += OnAuthStateChanged;
+        await LoadCredits();
+    }
 
-await LoadCredits();
-}
+    public void Dispose()
+    {
+        Navigation.LocationChanged -= OnLocationChanged;
+        AuthStateProvider.AuthenticationStateChanged -= OnAuthStateChanged;
+    }
 
-public void Dispose()
-{
-// Eventleri temizliyoruz (Memory Leak olmaması için)
-Navigation.LocationChanged -= OnLocationChanged;
-AuthStateProvider.AuthenticationStateChanged -= OnAuthStateChanged;
-}
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs e) => InvokeAsync(LoadCredits);
+    private void OnAuthStateChanged(Task<AuthenticationState> task) => InvokeAsync(LoadCredits);
 
-// Lambda yerine metod referansı kullanıyoruz ki Dispose içinde silebilelim
-private void OnLocationChanged(object? sender, LocationChangedEventArgs e) => InvokeAsync(LoadCredits);
-private void OnAuthStateChanged(Task<AuthenticationState> task) => InvokeAsync(LoadCredits);
+    private async Task LoadCredits()
+    {
+        if (_isFetching) return;
 
-private async Task LoadCredits()
-{
-// Eğer zaten istek atılıyorsa tekrar atma
-if (_isFetching) return;
+        try
+        {
+            _isFetching = true;
 
-try
-{
-_isFetching = true;
+            var token = await LocalStorage.GetItemAsync<string>("authToken");
 
-var token = await LocalStorage.GetItemAsync<string>("authToken");
+            if (string.IsNullOrEmpty(token))
+            {
+                if(lessonCredits != 0 || groupCredits != 0) 
+                { 
+                    lessonCredits = 0; 
+                    groupCredits = 0; 
+                    StateHasChanged(); 
+                }
+                return;
+            }
 
-if (string.IsNullOrEmpty(token))
-{
-if(lessonCredits != 0) { lessonCredits = 0; StateHasChanged(); }
-return;
-}
+            var state = await AuthStateProvider.GetAuthenticationStateAsync();
+            if (state.User.Identity?.IsAuthenticated == true && state.User.IsInRole("Student"))
+            {
+                Http.DefaultRequestHeaders.Authorization = null;
+                Http.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
 
-var state = await AuthStateProvider.GetAuthenticationStateAsync();
-if (state.User.Identity?.IsAuthenticated == true && state.User.IsInRole("Student"))
-{
-// Token'ı başlığa ekle
-Http.DefaultRequestHeaders.Authorization = null;
-Http.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+                // API'den veriyi çek
+                var profile = await Http.GetFromJsonAsync<UserProfileDto>("api/Auth/profile");
 
-// API'den veriyi çek
-var profile = await Http.GetFromJsonAsync<UserProfileDto>("api/Auth/profile");
+                // 3. DEĞİŞİKLİK: Her iki krediyi de kontrol et ve güncelle
+                if (profile != null && (lessonCredits != profile.LessonCredits || groupCredits != profile.GroupCredits))
+                {
+                    lessonCredits = profile.LessonCredits;
+                    groupCredits = profile.GroupCredits;
+                    StateHasChanged();
+                }
+            }
+        }
+        catch (Exception)
+        {
+            // Hata olursa sessiz kal
+        }
+        finally
+        {
+            _isFetching = false;
+        }
+    }
 
-// SADECE kredi değiştiyse ekranı yenile (Döngü Koruması)
-if (profile != null && lessonCredits != profile.LessonCredits)
-{
-lessonCredits = profile.LessonCredits;
-StateHasChanged();
-}
-}
-}
-catch (Exception)
-{
-// Sessizce devam et
-}
-finally
-{
-// Kilidi aç
-_isFetching = false;
-}
-}
+    async Task Logout()
+    {
+        await LocalStorage.RemoveItemAsync("authToken");
+        Http.DefaultRequestHeaders.Authorization = null;
+        await AuthStateProvider.GetAuthenticationStateAsync();
+        Navigation.NavigateTo("/login");
+        lessonCredits = 0;
+        groupCredits = 0;
+    }
 
-async Task Logout()
-{
-await LocalStorage.RemoveItemAsync("authToken");
-Http.DefaultRequestHeaders.Authorization = null;
-await AuthStateProvider.GetAuthenticationStateAsync();
-Navigation.NavigateTo("/login");
-lessonCredits = 0;
-}
+    MudTheme _tennisTheme = new MudTheme()
+    {
+        PaletteLight = new PaletteLight()
+        {
+            Primary = "#2E7D32",
+            Secondary = "#76FF03",
+            AppbarBackground = "#FFFFFF",
+            Background = "#F9FAFB",
+            TextPrimary = "#212121",
+            Info = "#039BE5" // Grup dersi için mavi renk
+        },
+        LayoutProperties = new LayoutProperties() { DefaultBorderRadius = "12px" }
+    };
 
-MudTheme _tennisTheme = new MudTheme()
-{
-PaletteLight = new PaletteLight()
-{
-Primary = "#2E7D32",
-Secondary = "#76FF03",
-AppbarBackground = "#FFFFFF",
-Background = "#F9FAFB",
-TextPrimary = "#212121",
-},
-LayoutProperties = new LayoutProperties() { DefaultBorderRadius = "12px" }
-};
-
-public class UserProfileDto
-{
-public string FirstName { get; set; } = "";
-public string LastName { get; set; } = "";
-public string Email { get; set; } = "";
-public int LessonCredits { get; set; }
-}
+    public class UserProfileDto
+    {
+        public string FirstName { get; set; } = "";
+        public string LastName { get; set; } = "";
+        public string Email { get; set; } = "";
+        public int LessonCredits { get; set; }
+        public int GroupCredits { get; set; } // YENİ: API'den bu alanın geldiğinden emin ol (Backend DTO'su da güncel olmalı)
+    }
 }

@@ -3,6 +3,7 @@ using System;
 using KirikkaleTenisAkademi.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace KirikkaleTenisAkademi.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260101144923_UpdateAppUserSchema")]
+    partial class UpdateAppUserSchema
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -59,9 +62,6 @@ namespace KirikkaleTenisAkademi.Infrastructure.Migrations
                     b.Property<string>("FirstName")
                         .IsRequired()
                         .HasColumnType("text");
-
-                    b.Property<int>("GroupCredits")
-                        .HasColumnType("integer");
 
                     b.Property<double?>("Height")
                         .HasColumnType("double precision");
@@ -208,88 +208,6 @@ namespace KirikkaleTenisAkademi.Infrastructure.Migrations
                     b.ToTable("CoachUnavailabilities");
                 });
 
-            modelBuilder.Entity("KirikkaleTenisAkademi.Domain.Entities.GroupLesson", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("Capacity")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("CoachId")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime>("CreatedDate")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<int>("CreditCost")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("Description")
-                        .HasColumnType("text");
-
-                    b.Property<DateTime>("EndTime")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("boolean");
-
-                    b.Property<int>("MinLevel")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("RegisteredCount")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime>("StartTime")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CoachId");
-
-                    b.ToTable("GroupLessons");
-                });
-
-            modelBuilder.Entity("KirikkaleTenisAkademi.Domain.Entities.GroupLessonRegistration", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("CreatedDate")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<int>("GroupLessonId")
-                        .HasColumnType("integer");
-
-                    b.Property<bool>("IsAttended")
-                        .HasColumnType("boolean");
-
-                    b.Property<DateTime>("RegistrationDate")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<string>("StudentId")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("GroupLessonId");
-
-                    b.HasIndex("StudentId");
-
-                    b.ToTable("GroupLessonRegistrations");
-                });
-
             modelBuilder.Entity("KirikkaleTenisAkademi.Domain.Entities.LessonBooking", b =>
                 {
                     b.Property<int>("Id")
@@ -356,9 +274,6 @@ namespace KirikkaleTenisAkademi.Infrastructure.Migrations
 
                     b.Property<decimal>("Price")
                         .HasColumnType("numeric");
-
-                    b.Property<int>("Type")
-                        .HasColumnType("integer");
 
                     b.HasKey("Id");
 
@@ -620,36 +535,6 @@ namespace KirikkaleTenisAkademi.Infrastructure.Migrations
                     b.Navigation("Coach");
                 });
 
-            modelBuilder.Entity("KirikkaleTenisAkademi.Domain.Entities.GroupLesson", b =>
-                {
-                    b.HasOne("KirikkaleTenisAkademi.Domain.Entities.Coach", "Coach")
-                        .WithMany()
-                        .HasForeignKey("CoachId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Coach");
-                });
-
-            modelBuilder.Entity("KirikkaleTenisAkademi.Domain.Entities.GroupLessonRegistration", b =>
-                {
-                    b.HasOne("KirikkaleTenisAkademi.Domain.Entities.GroupLesson", "GroupLesson")
-                        .WithMany("Registrations")
-                        .HasForeignKey("GroupLessonId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("KirikkaleTenisAkademi.Domain.Entities.AppUser", "Student")
-                        .WithMany("GroupRegistrations")
-                        .HasForeignKey("StudentId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("GroupLesson");
-
-                    b.Navigation("Student");
-                });
-
             modelBuilder.Entity("KirikkaleTenisAkademi.Domain.Entities.LessonBooking", b =>
                 {
                     b.HasOne("KirikkaleTenisAkademi.Domain.Entities.Coach", "Coach")
@@ -758,16 +643,9 @@ namespace KirikkaleTenisAkademi.Infrastructure.Migrations
                 {
                     b.Navigation("Bookings");
 
-                    b.Navigation("GroupRegistrations");
-
                     b.Navigation("MatchesAsPlayer1");
 
                     b.Navigation("MatchesAsPlayer2");
-                });
-
-            modelBuilder.Entity("KirikkaleTenisAkademi.Domain.Entities.GroupLesson", b =>
-                {
-                    b.Navigation("Registrations");
                 });
 
             modelBuilder.Entity("KirikkaleTenisAkademi.Domain.Entities.Tournament", b =>

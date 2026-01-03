@@ -5,6 +5,7 @@ using Microsoft.OpenApi.Models;
 using System.Text;
 using KirikkaleTenisAkademi.Domain.Entities;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 
 // Postgresql timestamp sorunu için fix
 AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
@@ -95,6 +96,26 @@ builder.Services.AddAuthentication(options =>
 builder.Services.AddAuthorization();
 
 var app = builder.Build();
+
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    try
+    {
+        // DbContext'i bul (Adı AppDbContext ise)
+        // using Infrastructure.Persistence; ve using Microsoft.EntityFrameworkCore; eklemeyi unutma
+        var context = services.GetRequiredService<KirikkaleTenisAkademi.Infrastructure.Persistence.AppDbContext>();
+        
+        // Veritabanı yoksa oluşturur, varsa eksik migrationları yapar
+        context.Database.Migrate(); 
+    }
+    catch (Exception ex)
+    {
+        var logger = services.GetRequiredService<ILogger<Program>>();
+        logger.LogError(ex, "Veritabanı güncellenirken bir hata oluştu (Migration Error).");
+    }
+}
+
 
 // ==========================================
 // 2. MIDDLEWARE KATMANI (SIRALAMA ÇOK ÖNEMLİ)

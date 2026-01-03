@@ -7,16 +7,16 @@
 @inject IDialogService DialogService
 @inject NavigationManager Navigation
 
-<MudContainer MaxWidth="MaxWidth.Large" Class="mt-8">
-    
+<MudContainer MaxWidth="MaxWidth.Large" Class="mb-16" Style="margin-top: 120px;">
+
     <div class="d-flex justify-space-between align-center mb-6">
         <div>
             <MudText Typo="Typo.h4" Color="Color.Primary" Class="fw-bold">Paket Yönetimi</MudText>
             <MudText Typo="Typo.body2" Class="text-muted">Ders paketlerini düzenleyin, silin veya satışa kapatın.</MudText>
         </div>
-        <MudButton Variant="Variant.Filled" 
-                   StartIcon="@Icons.Material.Filled.Add" 
-                   Color="Color.Primary" 
+        <MudButton Variant="Variant.Filled"
+                   StartIcon="@Icons.Material.Filled.Add"
+                   Color="Color.Primary"
                    Href="/admin/add-packet">
             Yeni Paket Ekle
         </MudButton>
@@ -49,16 +49,16 @@
                 </div>
             </MudTd>
             <MudTd DataLabel="Durum">
-                <MudSwitch T="bool" 
-                           Value="@context.IsActive" 
+                <MudSwitch T="bool"
+                           Value="@context.IsActive"
                            Color="Color.Primary"
                            ValueChanged="@((bool val) => ToggleStatus(context))"
                            Label="@(context.IsActive ? "Satışta" : "Pasif")" />
             </MudTd>
             <MudTd DataLabel="İşlemler" Style="text-align:right">
                 <MudTooltip Text="Bu paketi kalıcı olarak sil">
-                    <MudIconButton Icon="@Icons.Material.Filled.Delete" 
-                                   Color="Color.Error" 
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                   Color="Color.Error"
                                    OnClick="@(() => DeletePacket(context))" />
                 </MudTooltip>
             </MudTd>
@@ -78,89 +78,84 @@
 </style>
 
 @code {
-    private List<LessonPacket> _packets = new();
-    private bool _loading = true;
+private List<LessonPacket> _packets = new();
+private bool _loading = true;
 
-    protected override async Task OnInitializedAsync()
-    {
-        await LoadPackets();
-    }
+protected override async Task OnInitializedAsync()
+{
+await LoadPackets();
+}
 
-    private async Task LoadPackets()
-    {
-        _loading = true;
-        try
-        {
-            // API'den TÜM paketleri çekiyoruz (Aktif/Pasif hepsi)
-            var result = await Http.GetFromJsonAsync<List<LessonPacket>>("api/LessonPackets");
-            if (result != null)
-            {
-                // ID'ye göre sıralayalım
-                _packets = result.OrderBy(p => p.Id).ToList();
-            }
-        }
-        catch (Exception ex)
-        {
-            Snackbar.Add("Paketler yüklenemedi.", Severity.Error);
-        }
-        finally
-        {
-            _loading = false;
-        }
-    }
+private async Task LoadPackets()
+{
+_loading = true;
+try
+{
+var result = await Http.GetFromJsonAsync<List<LessonPacket>>("api/LessonPackets");
+if (result != null)
+{
+_packets = result.OrderBy(p => p.Id).ToList();
+}
+}
+catch (Exception ex)
+{
+Snackbar.Add("Paketler yüklenemedi.", Severity.Error);
+}
+finally
+{
+_loading = false;
+}
+}
 
-    private async Task ToggleStatus(LessonPacket packet)
-    {
-        try
-        {
-            // API'ye durum değiştirme isteği at
-            var response = await Http.PutAsync($"api/LessonPackets/{packet.Id}/toggle-status", null);
+private async Task ToggleStatus(LessonPacket packet)
+{
+try
+{
+var response = await Http.PutAsync($"api/LessonPackets/{packet.Id}/toggle-status", null);
 
-            if (response.IsSuccessStatusCode)
-            {
-                // UI'da da güncelle (Sayfayı yenilemeye gerek kalmasın)
-                packet.IsActive = !packet.IsActive; 
-                Snackbar.Add($"Paket durumu güncellendi: {(packet.IsActive ? "Aktif" : "Pasif")}", Severity.Info);
-            }
-            else
-            {
-                Snackbar.Add("Durum değiştirilemedi.", Severity.Error);
-            }
-        }
-        catch (Exception)
-        {
-            Snackbar.Add("Sunucu hatası.", Severity.Error);
-        }
-    }
+if (response.IsSuccessStatusCode)
+{
+packet.IsActive = !packet.IsActive;
+Snackbar.Add($"Paket durumu güncellendi: {(packet.IsActive ? "Aktif" : "Pasif")}", Severity.Info);
+}
+else
+{
+Snackbar.Add("Durum değiştirilemedi.", Severity.Error);
+}
+}
+catch (Exception)
+{
+Snackbar.Add("Sunucu hatası.", Severity.Error);
+}
+}
 
-    private async Task DeletePacket(LessonPacket packet)
-    {
-        // Silmeden önce onay kutusu göster
-        bool? result = await DialogService.ShowMessageBox(
-            "Paketi Sil", 
-            $"'{packet.Name}' paketini silmek istediğinize emin misiniz? Bu işlem geri alınamaz!", 
-            yesText: "Sil", cancelText: "İptal");
+private async Task DeletePacket(LessonPacket packet)
+{
+bool? result = await DialogService.ShowMessageBox(
+"Paketi Sil",
+$"'{packet.Name}' paketini silmek istediğinize emin misiniz? Bu işlem geri alınamaz!",
+yesText: "Sil", cancelText: "İptal");
 
-        if (result == true)
-        {
-            try
-            {
-                var response = await Http.DeleteAsync($"api/LessonPackets/{packet.Id}");
+if (result == true)
+{
+try
+{
+var response = await Http.DeleteAsync($"api/LessonPackets/{packet.Id}");
 
-                if (response.IsSuccessStatusCode)
-                {
-                    _packets.Remove(packet); // Listeden kaldır
-                    Snackbar.Add("Paket başarıyla silindi.", Severity.Success);
-                }
-                else
-                {
-                    Snackbar.Add("Silme işlemi başarısız.", Severity.Error);
-                }
-            }
-            catch (Exception)
-            {
-                Snackbar.Add("Sunucu hatası.", Severity.Error);
-            }
-        }
-    }
+if (response.IsSuccessStatusCode)
+{
+_packets.Remove(packet);
+Snackbar.Add("Paket başarıyla silindi.", Severity.Success);
+}
+else
+{
+Snackbar.Add("Silme işlemi başarısız.", Severity.Error);
+}
+}
+catch (Exception)
+{
+Snackbar.Add("Sunucu hatası.", Severity.Error);
+}
+}
+}
 }

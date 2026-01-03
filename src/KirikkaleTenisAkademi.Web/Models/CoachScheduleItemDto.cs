@@ -8,5 +8,6 @@
         public DateTime EndTime { get; set; }
         public string Type { get; set; } // "Lesson" veya "Block"
         public string Title { get; set; } // "Ahmet Yılmaz" veya "Doktor Randevusu"
+        public string LessonType { get; set; } = "Private";
     }
 }

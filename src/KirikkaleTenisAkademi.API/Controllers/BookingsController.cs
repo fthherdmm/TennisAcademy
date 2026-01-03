@@ -22,26 +22,24 @@ namespace KirikkaleTenisAkademi.API.Controllers
         public class BookingRequest
         {
             public int CoachId { get; set; }
-            public DateTime StartTime { get; set; } // UTC Olarak gelecek
+            public DateTime StartTime { get; set; } // UTC Olarak gelmesi bekleniyor ama biz yine de garantiliyoruz
+            public string LessonType { get; set; } = "Private"; // Varsayılan: Private. "Group" gelebilir.
         }
 
+        [HttpPost("book")]
+        [Authorize(Roles = "Student")]
         [HttpPost("book")]
 [Authorize(Roles = "Student")]
 public async Task<IActionResult> BookLesson([FromBody] BookingRequest request)
 {
     // ==============================================================================
-    // 1. SAAT DÜZELTMESİ (Timezone Fix)
+    // 1. SAAT DÜZELTMESİ (Timezone Fix - ORTAK)
     // ==============================================================================
-    
-    // Frontend'den gelen saati (Örn: 14:00) Türkiye Saati olarak kabul ediyoruz.
-    // Bunu veritabanına UTC (Örn: 11:00) olarak kaydetmeliyiz.
-    
     DateTime startUtc;
     DateTime endUtc;
 
     try 
     {
-        // Sunucu Windows ise "Turkey Standard Time", Linux/Docker ise "Europe/Istanbul"
         string timeZoneId = System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows) 
             ? "Turkey Standard Time" 
             : "Europe/Istanbul";
@@ -51,95 +49,150 @@ public async Task<IActionResult> BookLesson([FromBody] BookingRequest request)
         // Gelen tarihi TR saati kabul et -> UTC'ye çevir
         startUtc = TimeZoneInfo.ConvertTimeToUtc(request.StartTime, trTimeZone);
         
-        // Bitiş saati = Başlangıç + 1 Saat
+        // Bitiş saati = Başlangıç + 1 Saat (Grup derslerinde süre farklı olabilir ama başlangıç saati esastır)
         endUtc = startUtc.AddHours(1);
     }
     catch
     {
-        // Eğer sunucuda timezone bulunamazsa manuel -3 saat yap (Yedek plan)
         startUtc = request.StartTime.AddHours(-3);
         endUtc = startUtc.AddHours(1);
     }
 
-    // ==============================================================================
-    // 2. KULLANICI VE KREDİ KONTROLÜ
-    // ==============================================================================
-
+    // Kullanıcıyı Bul
     var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
     var user = await _context.Users.FindAsync(userId);
-
     if (user == null) return Unauthorized("Kullanıcı bulunamadı.");
-
-    if (user.LessonCredits < 1)
-        return BadRequest("Ders almak için yeterli krediniz yok. Lütfen paket satın alın.");
-
-    // ==============================================================================
-    // 3. MÜSAİTLİK KONTROLLERİ (UTC SAATLERLE)
-    // ==============================================================================
-
-    // A. Koç o saatte "Müsait Değil" olarak işaretlemiş mi? (Blocked)
-    var isCoachBlocked = await _context.CoachUnavailabilities
-        .AnyAsync(u => u.CoachId == request.CoachId &&
-                       (u.StartTime < endUtc && u.EndTime > startUtc)); 
-
-    if (isCoachBlocked)
-        return BadRequest("Koç bu saatte müsait değil (Kapalı).");
-
-    // B. Koçun o saatte BAŞKA bir dersi var mı?
-    var isCoachBusy = await _context.LessonBookings
-        .AnyAsync(b => b.CoachId == request.CoachId &&
-                       b.Status != BookingStatus.Cancelled && 
-                       b.Status != BookingStatus.Rejected &&
-                       (b.StartTime < endUtc && b.EndTime > startUtc));
-
-    if (isCoachBusy)
-        return BadRequest("Bu saatte koçun başka bir dersi var.");
-
-    // C. (YENİ) ÖĞRENCİNİN o saatte başka dersi var mı? (Kendini kopyalayamaz)
-    var isStudentBusy = await _context.LessonBookings
-        .AnyAsync(b => b.StudentId == userId &&
-                       b.Status != BookingStatus.Cancelled &&
-                       b.Status != BookingStatus.Rejected &&
-                       (b.StartTime < endUtc && b.EndTime > startUtc));
-
-    if (isStudentBusy)
-        return BadRequest("Bu saat aralığında zaten başka bir dersiniz var.");
-
-    // ==============================================================================
-    // 4. REZERVASYON OLUŞTURMA (Transaction ile Güvenli Kayıt)
-    // ==============================================================================
     
-    using var transaction = await _context.Database.BeginTransactionAsync();
-    try
+    // ==============================================================================
+    // A. GRUP DERSİ SENARYOSU
+    // ==============================================================================
+    if (request.LessonType == "Group")
     {
-        // Krediyi düş
-        user.LessonCredits -= 1;
-        _context.Users.Update(user); // User tablosunu güncelle
+        // 1. Kredi Kontrolü (Grup Kredisi)
+        if (user.GroupCredits < 1)
+            return BadRequest("Grup dersine katılmak için yeterli 'Grup Krediniz' yok.");
 
-        // Rezervasyonu oluştur
-        var booking = new LessonBooking
+        // 2. Ders Kontrolü: O saatte koçun açtığı bir grup dersi var mı?
+        // Not: StartTime dakika hassasiyeti önemlidir.
+        var groupLesson = await _context.GroupLessons
+            .Include(g => g.Registrations)
+            .FirstOrDefaultAsync(g => g.CoachId == request.CoachId 
+                                   && g.StartTime == startUtc 
+                                   && g.IsActive);
+
+        if (groupLesson == null)
+            return BadRequest("Seçilen saatte bu eğitmenin planlanmış bir grup dersi bulunmuyor.");
+
+        // 3. Kapasite Kontrolü
+        if (groupLesson.Registrations.Count >= groupLesson.Capacity)
+            return BadRequest("Bu grup dersinin kontenjanı dolmuş.");
+
+        // 4. Mükerrer Kayıt Kontrolü (Zaten kayıtlı mı?)
+        if (groupLesson.Registrations.Any(r => r.StudentId == userId))
+            return BadRequest("Bu derse zaten kayıtlısınız.");
+
+        // 5. İŞLEM (Transaction)
+        using var transaction = await _context.Database.BeginTransactionAsync();
+        try
         {
-            StudentId = userId,
-            CoachId = request.CoachId,
-            StartTime = startUtc, // Hesapladığımız doğru UTC zamanı
-            EndTime = endUtc,     // Hesapladığımız doğru UTC zamanı
-            Status = BookingStatus.Confirmed, // Kredili olduğu için direkt ONAYLI
-            CreatedDate = DateTime.UtcNow
-        };
+            // Grup Kredisini Düş
+            user.GroupCredits -= groupLesson.CreditCost; // Genelde 1'dir ama dinamik alalım
+            _context.Users.Update(user);
 
-        _context.LessonBookings.Add(booking);
-        
-        // Hepsini kaydet ve işlemi tamamla
-        await _context.SaveChangesAsync();
-        await transaction.CommitAsync();
+            // Kaydı Oluştur
+            var registration = new GroupLessonRegistration
+            {
+                GroupLessonId = groupLesson.Id,
+                StudentId = userId,
+                RegistrationDate = DateTime.UtcNow
+            };
+            _context.GroupLessonRegistrations.Add(registration);
 
-        return Ok(new { message = "Rezervasyonunuz başarıyla oluşturuldu.", remainingCredits = user.LessonCredits });
+            await _context.SaveChangesAsync();
+            await transaction.CommitAsync();
+
+            return Ok(new { message = "Grup dersine kaydınız başarıyla yapıldı.", remainingCredits = user.GroupCredits });
+        }
+        catch (Exception ex)
+        {
+            await transaction.RollbackAsync();
+            return StatusCode(500, "Grup kaydı sırasında hata: " + ex.Message);
+        }
     }
-    catch (Exception ex)
+    // ==============================================================================
+    // B. ÖZEL DERS SENARYOSU (Mevcut Kod)
+    // ==============================================================================
+    else 
     {
-        // Hata olursa işlemi geri al (Kredi yanmasın)
-        await transaction.RollbackAsync();
-        return StatusCode(500, "İşlem sırasında bir hata oluştu: " + ex.Message);
+        // 1. Kredi Kontrolü (Özel Ders Kredisi)
+        if (user.LessonCredits < 1)
+            return BadRequest("Özel ders almak için yeterli krediniz yok.");
+
+        // 2. Müsaitlik Kontrolleri
+        
+        // Koç engelli mi?
+        var isCoachBlocked = await _context.CoachUnavailabilities
+            .AnyAsync(u => u.CoachId == request.CoachId &&
+                        (u.StartTime < endUtc && u.EndTime > startUtc)); 
+
+        if (isCoachBlocked) return BadRequest("Koç bu saatte müsait değil (Kapalı).");
+
+        // Koçun başka dersi var mı? (Özel Ders)
+        var isCoachBusyPrivate = await _context.LessonBookings
+            .AnyAsync(b => b.CoachId == request.CoachId &&
+                        b.Status != BookingStatus.Cancelled && 
+                        b.Status != BookingStatus.Rejected &&
+                        (b.StartTime < endUtc && b.EndTime > startUtc));
+
+        // Koçun o saatte Grup Dersi var mı? (Çakışma Kontrolü)
+        var isCoachBusyGroup = await _context.GroupLessons
+            .AnyAsync(g => g.CoachId == request.CoachId &&
+                           g.IsActive &&
+                           (g.StartTime < endUtc && g.EndTime > startUtc));
+
+        if (isCoachBusyPrivate || isCoachBusyGroup)
+            return BadRequest("Bu saatte koçun başka bir dersi (Özel veya Grup) var.");
+
+        // Öğrenci meşgul mü?
+        var isStudentBusy = await _context.LessonBookings
+            .AnyAsync(b => b.StudentId == userId &&
+                        b.Status != BookingStatus.Cancelled &&
+                        b.Status != BookingStatus.Rejected &&
+                        (b.StartTime < endUtc && b.EndTime > startUtc));
+
+        if (isStudentBusy)
+            return BadRequest("Bu saat aralığında zaten başka bir dersiniz var.");
+
+        // 3. İŞLEM (Transaction)
+        using var transaction = await _context.Database.BeginTransactionAsync();
+        try
+        {
+            // Özel Ders Kredisini Düş
+            user.LessonCredits -= 1;
+            _context.Users.Update(user);
+
+            var booking = new LessonBooking
+            {
+                StudentId = userId,
+                CoachId = request.CoachId,
+                StartTime = startUtc,
+                EndTime = endUtc,
+                Status = BookingStatus.Confirmed,
+                CreatedDate = DateTime.UtcNow
+            };
+
+            _context.LessonBookings.Add(booking);
+            
+            await _context.SaveChangesAsync();
+            await transaction.CommitAsync();
+
+            return Ok(new { message = "Özel ders rezervasyonunuz oluşturuldu.", remainingCredits = user.LessonCredits });
+        }
+        catch (Exception ex)
+        {
+            await transaction.RollbackAsync();
+            return StatusCode(500, "Özel ders kaydı sırasında hata: " + ex.Message);
+        }
     }
 }
 

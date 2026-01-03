@@ -1,5 +1,6 @@
 ﻿using System.Security.Claims;
 using KirikkaleTenisAkademi.Domain.Entities;
+using KirikkaleTenisAkademi.Domain.Enums;
 using KirikkaleTenisAkademi.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -68,28 +69,36 @@ namespace KirikkaleTenisAkademi.API.Controllers
 
         // 2. Paket Satın Al (Kredi Yükle)
         [HttpPost("purchase/{packetId}")]
-        [Authorize(Roles = "Student")] // Sadece öğrenciler
+        [Authorize(Roles = "Student")] 
         public async Task<IActionResult> PurchasePacket(int packetId)
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            var user = await _context.Users.FindAsync(userId);
+            // AppUser kullandığımız için _context.Users yerine _userManager veya cast işlemi gerekebilir
+            // En temizi AppUser cast etmektir:
+            var user = await _context.Users.OfType<AppUser>().FirstOrDefaultAsync(u => u.Id == userId);
+        
             var packet = await _context.LessonPackets.FindAsync(packetId);
 
             if (user == null || packet == null) return NotFound("Kullanıcı veya paket bulunamadı.");
             if (!packet.IsActive) return BadRequest("Bu paket artık satışta değil.");
 
-            // --- BURADA ÖDEME İŞLEMİ SİMÜLE EDİLİR ---
-            // Eğer gerçek bir ödeme sistemi (Iyzico, Stripe vb.) olsaydı burada çalışacaktı.
-            // Şimdilik ödeme başarılı sayıyoruz ve krediyi ekliyoruz.
-
-            user.LessonCredits += packet.CreditAmount; // Krediyi ekle
-            
+            // ⚠️ DÜZELTME: Paket tipine göre doğru bakiyeyi artır
+            if (packet.Type == LessonType.Group)
+            {
+                user.GroupCredits += packet.CreditAmount;
+            }
+            else
+            {
+                user.LessonCredits += packet.CreditAmount;
+            }
+        
             await _context.SaveChangesAsync();
 
             return Ok(new 
             { 
                 message = $"{packet.Name} başarıyla alındı.", 
-                newBalance = user.LessonCredits 
+                newLessonBalance = user.LessonCredits,
+                newGroupBalance = user.GroupCredits
             });
         }
     }

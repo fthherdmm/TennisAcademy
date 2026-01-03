@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using Iyzipay.Model;
 using KirikkaleTenisAkademi.Infrastructure.Persistence; 
 using Microsoft.AspNetCore.Http;
+using KirikkaleTenisAkademi.Domain.Enums; // Enum için gerekli
 
 namespace KirikkaleTenisAkademi.API.Controllers
 {
@@ -40,18 +41,20 @@ namespace KirikkaleTenisAkademi.API.Controllers
 
             decimal price = packet.Price;
             int creditAmount = packet.CreditAmount;
+            int packetType = (int)packet.Type; // 1: Private, 2: Group
 
-            string conversationId = $"{user.Id}|ORDER_{DateTime.Now.Ticks}|{creditAmount}";
+            // 🔴 DEĞİŞİKLİK: ID formatına Paket Tipini ekledik (Sona)
+            // Format: UserId | UniqueID | CreditAmount | PacketType
+            string conversationId = $"{user.Id}|ORDER_{DateTime.Now.Ticks}|{creditAmount}|{packetType}";
 
-            var form = await _paymentService.GetPaymentForm(user, price, creditAmount, conversationId);
+            // Service'e paket adını da gönderiyoruz ki Iyzico ekranında güzel görünsün
+            var form = await _paymentService.GetPaymentForm(user, price, creditAmount, conversationId, packet.Name);
 
             if (form.Status != "success")
             {
                 return BadRequest($"Iyzico Hatası: {form.ErrorMessage}");
             }
 
-            Console.WriteLine("🚀 CALLBACK TETİKLENDİ...");
-            
             return Ok(new { 
                 token = form.Token, 
                 paymentPageUrl = form.PaymentPageUrl 
@@ -62,11 +65,10 @@ namespace KirikkaleTenisAkademi.API.Controllers
         [AllowAnonymous]
         [IgnoreAntiforgeryToken]
         [Consumes("application/x-www-form-urlencoded")]
-        // 🔴 DEĞİŞİKLİK 1: Parametreye 'backupId' eklendi
         public async Task<IActionResult> Callback(IFormCollection form, [FromQuery] string? backupId)
         {
             string debugMessage = "";
-            string webBaseUrl = "https://localhost:7207"; 
+            string webBaseUrl = "https://localhost:7207"; // Frontend URL'in
 
             try
             {
@@ -78,13 +80,11 @@ namespace KirikkaleTenisAkademi.API.Controllers
 
                 if (result.Status == "success" && result.PaymentStatus == "SUCCESS")
                 {
-                    // 🔴 DEĞİŞİKLİK 2: Veriyi Garantiye Alıyoruz
-                    // Önce Iyzico'dan gelene bak, yoksa URL'den (backupId) al.
                     string finalConversationId = result.ConversationId;
 
                     if (string.IsNullOrEmpty(finalConversationId))
                     {
-                        finalConversationId = backupId; // URL'deki yedeği kullan
+                        finalConversationId = backupId; 
                         debugMessage += "⚠️ Uyarı: Iyzico ID boş döndü, Yedek (URL) ID kullanıldı.<br/>";
                     }
 
@@ -94,36 +94,56 @@ namespace KirikkaleTenisAkademi.API.Controllers
                         
                         var parts = finalConversationId.Split('|');
                         
-                        if (parts.Length >= 3)
+                        // 🔴 DEĞİŞİKLİK: Artık 4 parça bekliyoruz (Type eklendi)
+                        if (parts.Length >= 4)
                         {
                             var userId = parts[0];
                             var creditsString = parts[2];
+                            var typeString = parts[3]; // Paket Tipi (1 veya 2)
 
-                            if (int.TryParse(creditsString, out int creditsToAdd))
+                            if (int.TryParse(creditsString, out int creditsToAdd) && int.TryParse(typeString, out int typeId))
                             {
                                 var user = await _userManager.FindByIdAsync(userId);
                                 
                                 if (user != null)
                                 {
-                                    int oldCredits = user.LessonCredits;
-                                    user.LessonCredits += creditsToAdd;
+                                    // 🔴 DEĞİŞİKLİK: Krediyi doğru yere yükle
+                                    string creditTypeMsg = "";
+                                    int oldCredits = 0;
+                                    int newCredits = 0;
+
+                                    if (typeId == (int)LessonType.Group)
+                                    {
+                                        // GRUP KREDİSİ
+                                        oldCredits = user.GroupCredits;
+                                        user.GroupCredits += creditsToAdd;
+                                        newCredits = user.GroupCredits;
+                                        creditTypeMsg = "GRUP Dersi";
+                                    }
+                                    else
+                                    {
+                                        // BİREYSEL KREDİ (Varsayılan)
+                                        oldCredits = user.LessonCredits;
+                                        user.LessonCredits += creditsToAdd;
+                                        newCredits = user.LessonCredits;
+                                        creditTypeMsg = "ÖZEL Ders";
+                                    }
 
                                     var updateResult = await _userManager.UpdateAsync(user);
 
                                     if (updateResult.Succeeded)
                                     {
-                                        // ✅ BAŞARILI
                                         string successHtml = $@"
                                             <html>
                                             <head><title>Ödeme Başarılı</title></head>
                                             <body style='text-align:center; padding-top:50px; font-family:sans-serif;'>
-                                                <h1 style='color:green;'>✅ Kredi Yüklendi!</h1>
-                                                <p><b>{user.Email}</b> hesabına {creditsToAdd} kredi eklendi.</p>
-                                                <p>Eski: {oldCredits} -> Yeni: {user.LessonCredits}</p>
+                                                <h1 style='color:green;'>✅ Ödeme Başarılı!</h1>
+                                                <p><b>{user.Email}</b> hesabına {creditsToAdd} adet <b>{creditTypeMsg}</b> kredisi yüklendi.</p>
+                                                <p>Eski: {oldCredits} -> Yeni: {newCredits}</p>
                                                 <script>
                                                     setTimeout(function() {{
                                                         window.location.href = '{webBaseUrl}/payment-success';
-                                                    }}, 3000);
+                                                    }}, 4000);
                                                 </script>
                                             </body>
                                             </html>";
@@ -142,12 +162,12 @@ namespace KirikkaleTenisAkademi.API.Controllers
                             }
                             else
                             {
-                                debugMessage += $"❌ Kredi miktarı sayı değil: {creditsString}";
+                                debugMessage += "❌ ID Ayrıştırma hatası (Sayısal değerler okunamadı).";
                             }
                         }
                         else
                         {
-                            debugMessage += $"❌ ID Formatı Hatalı. Gelen: {finalConversationId}";
+                            debugMessage += $"❌ ID Formatı Hatalı (Eksik Veri). Gelen: {finalConversationId}";
                         }
                     }
                     else
@@ -165,7 +185,6 @@ namespace KirikkaleTenisAkademi.API.Controllers
                 debugMessage += $"💥 SİSTEM HATASI: {ex.Message}";
             }
 
-            // HATA EKRANI
             string errorHtml = $@"
                 <html>
                 <body style='text-align:center; padding-top:20px; font-family:sans-serif;'>

@@ -16,16 +16,14 @@ namespace KirikkaleTenisAkademi.Infrastructure.Services
             _configuration = configuration;
         }
 
-        // 1. ÖDEME FORMUNU OLUŞTURMA
-        public async Task<CheckoutFormInitialize> GetPaymentForm(AppUser user, decimal price, int creditAmount, string conversationId)
+        // 🔴 DEĞİŞİKLİK: 'packetName' parametresi eklendi
+        public async Task<CheckoutFormInitialize> GetPaymentForm(AppUser user, decimal price, int creditAmount, string conversationId, string packetName)
         {
-            // 1. Iyzico Ayarları
             Options options = new Options();
             options.ApiKey = _configuration["Iyzico:ApiKey"];
             options.SecretKey = _configuration["Iyzico:SecretKey"];
             options.BaseUrl = _configuration["Iyzico:BaseUrl"];
 
-            // 2. İstek Oluşturma
             CreateCheckoutFormInitializeRequest request = new CreateCheckoutFormInitializeRequest();
             request.Locale = Locale.TR.ToString();
             request.ConversationId = conversationId;
@@ -35,12 +33,11 @@ namespace KirikkaleTenisAkademi.Infrastructure.Services
             request.BasketId = "B" + DateTime.Now.Ticks;
             request.PaymentGroup = PaymentGroup.PRODUCT.ToString();
             
-            // 🔴 API Callback Adresi (Dönüş Adresi)
+            // Callback URL
             request.CallbackUrl = $"https://localhost:7111/api/Payment/callback?backupId={conversationId}";
 
             request.EnabledInstallments = new List<int>() { 2, 3, 6, 9 };
 
-            // 3. Alıcı (Buyer) Bilgileri
             Buyer buyer = new Buyer();
             buyer.Id = user.Id;
             buyer.Name = string.IsNullOrEmpty(user.FirstName) ? "Misafir" : user.FirstName;
@@ -57,7 +54,6 @@ namespace KirikkaleTenisAkademi.Infrastructure.Services
             buyer.ZipCode = "71100";
             request.Buyer = buyer;
 
-            // 4. Adres Bilgileri
             Address billingAddress = new Address();
             billingAddress.ContactName = user.FirstName + " " + user.LastName;
             billingAddress.City = "Kirikkale";
@@ -67,11 +63,13 @@ namespace KirikkaleTenisAkademi.Infrastructure.Services
             request.BillingAddress = billingAddress;
             request.ShippingAddress = billingAddress;
 
-            // 5. Sepet (Basket) İçeriği
             List<BasketItem> basketItems = new List<BasketItem>();
             BasketItem item = new BasketItem();
             item.Id = "KREDI_" + creditAmount;
-            item.Name = creditAmount + " Ders Kredisi";
+            
+            // 🔴 DEĞİŞİKLİK: Sepet adı artık paketin gerçek adını (Örn: "Yetişkin Grup Paketi") taşıyor
+            item.Name = packetName; 
+            
             item.Category1 = "Egitim";
             item.ItemType = BasketItemType.VIRTUAL.ToString();
             item.Price = price.ToString(new CultureInfo("en-US"));
@@ -79,13 +77,14 @@ namespace KirikkaleTenisAkademi.Infrastructure.Services
 
             request.BasketItems = basketItems;
             
-            // 🚀 PERFORMANS AYARI:
-            // Iyzico kütüphanesi senkron çalıştığı için, ana thread'i (iş parçacığını) kilitlememek adına
-            // işlemi Task.Run ile arka planda çalıştırıp sonucunu bekliyoruz (await).
             return await Task.Run(() => CheckoutFormInitialize.Create(request, options));
         }
-        
-        // 2. ÖDEME SONUCUNU SORGULAMA
+
+        public Task<CheckoutFormInitialize> GetPaymentForm(AppUser user, decimal price, int creditAmount, string conversationId)
+        {
+            throw new NotImplementedException();
+        }
+
         public async Task<CheckoutForm> RetrievePaymentResult(string token)
         {
             Options options = new Options();
@@ -96,7 +95,6 @@ namespace KirikkaleTenisAkademi.Infrastructure.Services
             RetrieveCheckoutFormRequest request = new RetrieveCheckoutFormRequest();
             request.Token = token;
 
-            // Burada da aynı şekilde Task.Run kullanıyoruz.
             return await Task.Run(() => CheckoutForm.Retrieve(request, options));
         }
     }

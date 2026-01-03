@@ -1,4 +1,5 @@
 ﻿using KirikkaleTenisAkademi.Domain.Common;
+using KirikkaleTenisAkademi.Domain.Enums;
 
 namespace KirikkaleTenisAkademi.Domain.Entities
 {
@@ -10,5 +11,6 @@ namespace KirikkaleTenisAkademi.Domain.Entities
         public decimal Price { get; set; } // Ücret
         public int CreditAmount { get; set; } // Bu paket kaç ders hakkı veriyor? (1, 5, 10 vb.)
         public bool IsActive { get; set; } = true; // Kampanya bittiyse false yaparız
+        public LessonType Type { get; set; }
     }
 }

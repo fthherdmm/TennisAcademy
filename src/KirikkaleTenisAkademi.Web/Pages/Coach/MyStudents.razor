@@ -78,34 +78,45 @@
                     <MudTabPanel Text="Ders Programı" Icon="@Icons.Material.Filled.CalendarMonth">
                         @if (_loadingLessons)
                         {
-                        <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="my-4"/>
+                            <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="my-4"/>
                         }
                         else if (_studentLessons.Any())
                         {
-                        <MudTable Items="_studentLessons" Hover="true" Dense="true" Elevation="0" Class="mt-2">
-                            <HeaderContent>
-                                <MudTh>Tarih</MudTh>
-                                <MudTh>Saat</MudTh>
-                                <MudTh>İşlem</MudTh>
-                            </HeaderContent>
-                            <RowTemplate Context="lesson">
-                                <MudTd>@lesson.StartTime.ToString("dd.MM.yyyy")</MudTd>
-                                <MudTd>@lesson.StartTime.ToString("HH:mm") - @lesson.EndTime.ToString("HH:mm")</MudTd>
-                                <MudTd>
-                                    <MudButton Variant="Variant.Outlined"
-                                               Color="Color.Error"
-                                               Size="Size.Small"
-                                               StartIcon="@Icons.Material.Filled.Cancel"
-                                               OnClick="@(() => CancelLesson(lesson))">
-                                        İptal Et
-                                    </MudButton>
-                                </MudTd>
-                            </RowTemplate>
-                        </MudTable>
+                            <MudTable Items="_studentLessons" Hover="true" Dense="true" Elevation="0" Class="mt-2">
+                                <HeaderContent>
+                                    <MudTh>Tür</MudTh>
+                                    <MudTh>Tarih</MudTh>
+                                    <MudTh>Saat</MudTh>
+                                    <MudTh>İşlem</MudTh>
+                                </HeaderContent>
+                                <RowTemplate Context="lesson">
+                                    <MudTd>
+                                        @if(lesson.Type == "Group")
+                                        {
+                                            <MudChip T="string" Size="Size.Small" Color="Color.Info" Icon="@Icons.Material.Filled.Groups">Grup</MudChip>
+                                        }
+                                        else
+                                        {
+                                            <MudChip T="string" Size="Size.Small" Color="Color.Success" Icon="@Icons.Material.Filled.Person">Özel</MudChip>
+                                        }
+                                    </MudTd>
+                                    <MudTd>@lesson.StartTime.ToString("dd.MM.yyyy")</MudTd>
+                                    <MudTd>@lesson.StartTime.ToString("HH:mm") - @lesson.EndTime.ToString("HH:mm")</MudTd>
+                                    <MudTd>
+                                        <MudButton Variant="Variant.Outlined"
+                                                   Color="Color.Error"
+                                                   Size="Size.Small"
+                                                   StartIcon="@Icons.Material.Filled.Cancel"
+                                                   OnClick="@(() => CancelLesson(lesson))">
+                                            İptal Et
+                                        </MudButton>
+                                    </MudTd>
+                                </RowTemplate>
+                            </MudTable>
                         }
                         else
                         {
-                        <MudAlert Severity="Severity.Info" Class="mt-2">Bu öğrenci ile planlanmış yaklaşan dersiniz bulunmamaktadır.</MudAlert>
+                            <MudAlert Severity="Severity.Info" Class="mt-2">Bu öğrenci ile planlanmış yaklaşan dersiniz bulunmamaktadır.</MudAlert>
                         }
                     </MudTabPanel>
 
@@ -196,7 +207,6 @@
     private List<MyStudentDto> _students = new();
     private MyStudentDto? _selectedStudent;
 
-    // --- YENİ EKLENEN DEĞİŞKENLER ---
     private List<StudentLessonDto> _studentLessons = new();
     private bool _loadingLessons = false;
 
@@ -218,76 +228,80 @@
     private async Task OnStudentClicked(TableRowClickEventArgs<MyStudentDto> args)
     {
         _selectedStudent = args.Item;
-        // Öğrenciye tıklandığında derslerini yükle
         await LoadStudentLessons(_selectedStudent.StudentId);
     }
 
-    // --- YENİ EKLENEN METODLAR ---
-
-    // 1. Seçilen öğrencinin yaklaşan derslerini getir
     private async Task LoadStudentLessons(string studentId)
     {
         _loadingLessons = true;
         _studentLessons.Clear();
         try
         {
-            // Bu endpoint yoksa CoachController'a eklemen gerekebilir: 
-            // GET api/Coach/student-lessons/{studentId}
             var result = await HttpClient.GetFromJsonAsync<List<StudentLessonDto>>($"api/Coach/student-lessons/{studentId}");
 
-            // Timezone düzeltmesi
             if (result != null)
             {
-            _studentLessons = result.Select(x => {
-            x.StartTime = x.StartTime.ToLocalTime();
-            x.EndTime = x.EndTime.ToLocalTime();
-            return x;
-            }).ToList();
+                _studentLessons = result.Select(x => {
+                    x.StartTime = x.StartTime.ToLocalTime();
+                    x.EndTime = x.EndTime.ToLocalTime();
+                    return x;
+                }).ToList();
             }
         }
-        catch (Exception)
-        {
-            // Hata olursa veya endpoint yoksa sessiz kal veya logla
-        }
-        finally
-        {
-            _loadingLessons = false;
-        }
+        catch (Exception) { }
+        finally { _loadingLessons = false; }
     }
 
-    // 2. Dersi İptal Et
     private async Task CancelLesson(StudentLessonDto lesson)
     {
-        var parameters = new DialogParameters();
+        string lessonTypeText = lesson.Type == "Group" ? "Grup Dersi" : "Özel Ders";
+        string refundText = lesson.Type == "Group" 
+            ? "(Grup dersi tamamen iptal edilecek ve kredi öğrenciye iade edilecektir.)" 
+            : "(Özel ders iptal edilecek ve kredi öğrenciye iade edilecektir.)";
+
         bool? result = await DialogService.ShowMessageBox(
-        "Ders İptali",
-        $"{lesson.StartTime:dd.MM.yyyy HH:mm} tarihindeki dersi iptal etmek istediğinize emin misiniz?\n\n(Öğrenciye kredisi iade edilecektir.)",
-        yesText: "Evet, İptal Et", cancelText: "Vazgeç");
+            "Ders İptali",
+            $"{lesson.StartTime:dd.MM.yyyy HH:mm} tarihindeki {lessonTypeText}ni iptal etmek istediğinize emin misiniz?\n\n{refundText}",
+            yesText: "Evet, İptal Et", cancelText: "Vazgeç");
 
         if (result == true)
         {
             try
             {
-            // Controller'daki iptal endpoint'i
-            var response = await HttpClient.PostAsync($"api/Coach/cancel-lesson/{lesson.Id}", null);
+                HttpResponseMessage response;
 
-            if (response.IsSuccessStatusCode)
-            {
-            Snackbar.Add("Ders başarıyla iptal edildi.", Severity.Success);
-            // Listeyi yenile
-            await LoadStudentLessons(_selectedStudent!.StudentId);
+                // --- DEĞİŞİKLİK BURADA ---
+                if (lesson.Type == "Group")
+                {
+                    // Grup Dersini KOMPLE İptal Eden Endpoint
+                    response = await HttpClient.PostAsync($"api/Coach/cancel-group-lesson/{lesson.Id}", null);
+                }
+                else
+                {
+                    // Özel Dersi İptal Eden Endpoint
+                    response = await HttpClient.PostAsync($"api/Coach/cancel-lesson/{lesson.Id}", null);
+                }
+                // -------------------------
 
-            // Öğrenci kredisini ekranda güncelle (iade edildiği için)
-            _selectedStudent.CurrentCredits += 1;
-            }
-            else
-            {
-            Snackbar.Add("Ders iptal edilirken bir hata oluştu.", Severity.Error);
-            }
+                if (response.IsSuccessStatusCode)
+                {
+                    Snackbar.Add($"{lessonTypeText} iptal edildi.", Severity.Success);
+                    
+                    // Listeyi yenile
+                    await LoadStudentLessons(_selectedStudent!.StudentId);
+                    
+                    // Öğrenci listesini de yenile (Kredi güncellensin diye)
+                    await LoadStudents();
+                }
+                else
+                {
+                    var err = await response.Content.ReadAsStringAsync();
+                    Snackbar.Add("İptal başarısız: " + err, Severity.Error);
+                }
             }
             catch(Exception)
             {
-            Snackbar.Add("Sunucu hatası.", Severity.Error);
+                Snackbar.Add("Sunucu hatası.", Severity.Error);
             }
         }
     }
@@ -326,11 +340,12 @@
         }
     }
 
-    // Basit DTO
     public class StudentLessonDto
     {
         public int Id { get; set; }
         public DateTime StartTime { get; set; }
         public DateTime EndTime { get; set; }
+        public string Type { get; set; } = "Private"; 
+        public string Title { get; set; }
     }
 }

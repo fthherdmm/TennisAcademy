@@ -8,7 +8,7 @@
 @inject IDialogService DialogService
 @inject NavigationManager NavigationManager
 
-<MudContainer MaxWidth="MaxWidth.Large" Class="pt-24 mb-16">
+<MudContainer MaxWidth="MaxWidth.Large" Class="mb-16" Style="margin-top: 120px;">
 
     <div class="d-flex justify-space-between align-center mb-6">
         <div>
@@ -24,114 +24,119 @@
 
     @if (_loading)
     {
-    <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
+        <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
     }
     else
     {
-    @if (_isCalendarView)
-    {
-    <MudPaper Elevation="3" Class="pa-4 rounded-xl">
-        <div class="d-flex justify-space-between align-center mb-4">
-            <MudIconButton Icon="@Icons.Material.Filled.ChevronLeft" OnClick="PrevMonth" />
-            <MudText Typo="Typo.h5" Style="font-weight:bold;">
-                @_currentMonth.ToString("MMMM yyyy", new CultureInfo("tr-TR"))
-            </MudText>
-            <MudIconButton Icon="@Icons.Material.Filled.ChevronRight" OnClick="NextMonth" />
-        </div>
+        @if (_isCalendarView)
+        {
+            <MudPaper Elevation="3" Class="pa-4 rounded-xl">
+                <div class="d-flex justify-space-between align-center mb-4">
+                    <MudIconButton Icon="@Icons.Material.Filled.ChevronLeft" OnClick="PrevMonth" />
+                    <MudText Typo="Typo.h5" Style="font-weight:bold;">
+                        @_currentMonth.ToString("MMMM yyyy", new CultureInfo("tr-TR"))
+                    </MudText>
+                    <MudIconButton Icon="@Icons.Material.Filled.ChevronRight" OnClick="NextMonth" />
+                </div>
 
-        <div class="calendar-grid">
-            <div class="day-name">Pzt</div>
-            <div class="day-name">Sal</div>
-            <div class="day-name">Çar</div>
-            <div class="day-name">Per</div>
-            <div class="day-name">Cum</div>
-            <div class="day-name">Cmt</div>
-            <div class="day-name">Paz</div>
+                <div class="calendar-grid">
+                    <div class="day-name">Pzt</div>
+                    <div class="day-name">Sal</div>
+                    <div class="day-name">Çar</div>
+                    <div class="day-name">Per</div>
+                    <div class="day-name">Cum</div>
+                    <div class="day-name">Cmt</div>
+                    <div class="day-name">Paz</div>
 
-            @for (int i = 0; i < _offsetDays; i++)
-            {
-            <div class="calendar-cell empty"></div>
-            }
-
-            @for (int day = 1; day <= _daysInMonth; day++)
-            {
-            var date = new DateTime(_currentMonth.Year, _currentMonth.Month, day);
-            var dailyBookings = GetActiveBookingsForDate(date);
-            var isToday = date.Date == DateTime.Now.Date;
-            var hasBooking = dailyBookings.Any();
-
-            <div class="calendar-cell @(isToday ? "today" : "")" style="@(hasBooking ? "background-color:#F1F8E9;" : "")">
-                <span class="day-number">@day</span>
-
-                <div class="events-container">
-                    @foreach (var booking in dailyBookings)
+                    @for (int i = 0; i < _offsetDays; i++)
                     {
-                    <div class="event-chip confirmed" @onclick="@(() => OnBookingClick(booking))">
-                        @booking.StartTime.ToString("HH:mm") <br/>
-                        @booking.CoachName.Split(' ')[0]
-                    </div>
+                        <div class="calendar-cell empty"></div>
+                    }
+
+                    @for (int day = 1; day <= _daysInMonth; day++)
+                    {
+                        var date = new DateTime(_currentMonth.Year, _currentMonth.Month, day);
+                        var dailyBookings = GetActiveBookingsForDate(date);
+                        var isToday = date.Date == DateTime.Now.Date;
+                        var hasBooking = dailyBookings.Any();
+
+                        <div class="calendar-cell @(isToday ? "today" : "")" style="@(hasBooking ? "background-color:#F1F8E9;" : "")">
+                            <span class="day-number">@day</span>
+
+                            <div class="events-container">
+                                @foreach (var booking in dailyBookings)
+                                {
+                                    bool isGroup = booking.LessonType == "Group"; 
+                                    
+                                    <div class="event-chip @(isGroup ? "group-lesson" : "private-lesson")" @onclick="@(() => OnBookingClick(booking))">
+                                        <div class="d-flex justify-center align-center gap-1">
+                                            <MudIcon Icon="@(isGroup ? Icons.Material.Filled.Groups : Icons.Material.Filled.Person)" Size="Size.Small" Style="font-size:12px;"/>
+                                            <span>@booking.StartTime.ToString("HH:mm")</span>
+                                        </div>
+                                        <div style="font-size: 0.7rem;">@booking.CoachName.Split(' ')[0]</div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
                     }
                 </div>
+            </MudPaper>
+
+            <div class="d-flex justify-center mt-6">
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Secondary"
+                           Size="Size.Large"
+                           StartIcon="@Icons.Material.Filled.Add"
+                           OnClick="OpenCoachSelection"
+                           Class="rounded-pill px-8 fw-bold"
+                           Style="color: #1B5E20;">
+                    Hemen Ders Planla
+                </MudButton>
             </div>
-            }
-        </div>
-    </MudPaper>
-
-    <div class="d-flex justify-center mt-6">
-        <MudButton Variant="Variant.Filled"
-                   Color="Color.Secondary"
-                   Size="Size.Large"
-                   StartIcon="@Icons.Material.Filled.Add"
-                   OnClick="OpenCoachSelection"
-                   Class="rounded-pill px-8 fw-bold"
-                   Style="color: #1B5E20;">
-            Hemen Ders Planla
-        </MudButton>
-    </div>
-    }
-    else
-    {
-    <MudTable Items="@_bookings.Where(b => b.Status != "Cancelled")" Hover="true" Striped="true" Elevation="3" Class="rounded-lg">
-        <HeaderContent>
-            <MudTh>Eğitmen</MudTh>
-            <MudTh>Tarih</MudTh>
-            <MudTh>Saat</MudTh>
-            <MudTh>Durum</MudTh>
-            <MudTh>İşlemler</MudTh>
-        </HeaderContent>
-        <RowTemplate>
-            <MudTd>@context.CoachName</MudTd>
-            <MudTd>@context.StartTime.ToString("dd.MM.yyyy dddd", new CultureInfo("tr-TR"))</MudTd>
-            <MudTd>@context.StartTime.ToString("HH:mm") - @context.EndTime.ToString("HH:mm")</MudTd>
-            <MudTd><MudChip T="string" Color="Color.Success" Size="Size.Small">Onaylandı</MudChip></MudTd>
-            <MudTd>
-                @if (context.StartTime > DateTime.Now)
-                {
-                <MudButton Variant="Variant.Outlined" Color="Color.Error" Size="Size.Small" OnClick="@(() => CancelLesson(context.Id))">İptal</MudButton>
-                }
-            </MudTd>
-        </RowTemplate>
-    </MudTable>
-    }
-
-    @if (_bookings.Any(b => b.Status == "Cancelled"))
-    {
-    <div class="mt-12 mb-8">
-        <MudText Typo="Typo.h6" Class="mb-2 text-muted">İptal Edilen Dersler</MudText>
-        <MudTable Items="@_bookings.Where(b => b.Status == "Cancelled")" Hover="true" Elevation="1" Class="rounded-lg opacity-75">
-            <HeaderContent>
-                <MudTh>Eğitmen</MudTh>
-                <MudTh>Tarih</MudTh>
-                <MudTh>Durum</MudTh>
-            </HeaderContent>
-            <RowTemplate>
-                <MudTd>@context.CoachName</MudTd>
-                <MudTd>@context.StartTime.ToString("dd.MM.yyyy HH:mm")</MudTd>
-                <MudTd><MudText Color="Color.Error">İptal Edildi</MudText></MudTd>
-            </RowTemplate>
-        </MudTable>
-    </div>
-    }
+        }
+        else
+        {
+            <MudTable Items="@_bookings.Where(b => b.Status != "Cancelled")" Hover="true" Striped="true" Elevation="3" Class="rounded-lg">
+                <HeaderContent>
+                    <MudTh>Tür</MudTh> <MudTh>Eğitmen</MudTh>
+                    <MudTh>Tarih</MudTh>
+                    <MudTh>Saat</MudTh>
+                    <MudTh>Durum</MudTh>
+                    <MudTh>İşlemler</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>
+                        @if (context.LessonType == "Group")
+                        {
+                            <MudChip T="string" Color="Color.Info" Size="Size.Small" Icon="@Icons.Material.Filled.Groups">Grup</MudChip>
+                        }
+                        else
+                        {
+                            <MudChip T="string" Color="Color.Primary" Size="Size.Small" Icon="@Icons.Material.Filled.Person">Özel</MudChip>
+                        }
+                    </MudTd>
+                    <MudTd>@context.CoachName</MudTd>
+                    <MudTd>@context.StartTime.ToString("dd.MM.yyyy dddd", new CultureInfo("tr-TR"))</MudTd>
+                    <MudTd>@context.StartTime.ToString("HH:mm") - @context.EndTime.ToString("HH:mm")</MudTd>
+                    <MudTd><MudChip T="string" Color="Color.Success" Size="Size.Small">Onaylandı</MudChip></MudTd>
+                    <MudTd>
+                        @if (context.StartTime > DateTime.Now.AddHours(12))
+                        {
+                            <MudButton Variant="Variant.Outlined" Color="Color.Error" Size="Size.Small" OnClick="@(() => CancelLesson(context.Id))">İptal</MudButton>
+                        }
+                        else
+                        {
+                            <MudTooltip Text="Dese 12 saatten az kaldığı için iptal edilemez.">
+                                <div class="d-flex align-center gap-1" style="color:#FF9800; cursor: help;">
+                                    <MudIcon Icon="@Icons.Material.Filled.LockClock" Size="Size.Small" />
+                                    <MudText Typo="Typo.caption">Süre Doldu</MudText>
+                                </div>
+                            </MudTooltip>
+                        }
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+        }
     }
 </MudContainer>
 
@@ -178,7 +183,10 @@
     }
 
     .event-chip:hover { transform: scale(1.05); filter: brightness(1.1); }
-    .event-chip.confirmed { background-color: #2E7D32; }
+    
+    /* CSS RENK AYRIMI */
+    .private-lesson { background-color: #2E7D32; } /* Yeşil */
+    .group-lesson { background-color: #0288D1; }   /* Mavi */
 
     @@media (max-width: 600px) {
         .calendar-cell { min-height: 80px; font-size: 0.8rem; }
@@ -206,6 +214,7 @@
         _daysInMonth = DateTime.DaysInMonth(_currentMonth.Year, _currentMonth.Month);
         var firstDay = new DateTime(_currentMonth.Year, _currentMonth.Month, 1);
         int dayOfWeek = (int)firstDay.DayOfWeek;
+        // Pazartesi'yi 0. index yapmak için (DayOfWeek Pazar=0 dönüyor)
         _offsetDays = dayOfWeek == 0 ? 6 : dayOfWeek - 1;
     }
 
@@ -219,9 +228,9 @@
             _loading = true;
             var result = await HttpClient.GetFromJsonAsync<List<MyBookingDto>>("api/Lesson/my-bookings");
             
-            // DÜZELTME: Saatleri Türkiye saatine çevir
             if(result != null)
             {
+                // UTC'den Local'e çevir
                 _bookings = result.Select(b => {
                     b.StartTime = b.StartTime.ToLocalTime();
                     b.EndTime = b.EndTime.ToLocalTime();
@@ -229,9 +238,9 @@
                 }).ToList();
             }
 
-            _coaches = await HttpClient.GetFromJsonAsync<List<CoachSelectDto>>("api/Bookings/coaches-list");
+            _coaches = await HttpClient.GetFromJsonAsync<List<CoachSelectDto>>("api/Coach/select-list");
         }
-        catch(Exception) { Snackbar.Add("Hata oluştu.", Severity.Error); }
+        catch(Exception) { Snackbar.Add("Veriler yüklenirken hata oluştu.", Severity.Error); }
         finally { _loading = false; }
     }
 
@@ -243,12 +252,16 @@
         .ToList();
     }
 
+    // Takvimdeki derse tıklayınca
     private async Task OnBookingClick(MyBookingDto booking)
     {
-        var parameters = new DialogParameters<BookingDetailDialog> { { x => x.Booking, booking } };
+        var parameters = new DialogParameters();
+        parameters.Add("Booking", booking);
+
         var dialog = await DialogService.ShowAsync<BookingDetailDialog>("Ders Detayı", parameters);
         var result = await dialog.Result;
 
+        // Dialog'dan "Evet" döndüyse iptal et
         if (!result.Canceled && (bool)result.Data == true)
         {
             await CancelLesson(booking.Id);
@@ -257,7 +270,9 @@
 
     private async Task OpenCoachSelection()
     {
-        var parameters = new DialogParameters<CoachSelectionDialog> { { x => x.Coaches, _coaches } };
+        var parameters = new DialogParameters();
+        parameters.Add("Coaches", _coaches);
+
         var dialog = await DialogService.ShowAsync<CoachSelectionDialog>("Eğitmen Seç", parameters);
         var result = await dialog.Result;
 
@@ -268,14 +283,39 @@
         }
     }
 
+    // İptal İşlemi
     private async Task CancelLesson(int bookingId)
     {
-        bool? confirm = await DialogService.ShowMessageBox("Onay", "Dersi iptal etmek istediğinize emin misiniz?", yesText: "Evet", cancelText: "Hayır");
+        // Onay mesajında 12 saat uyarısını belirtiyoruz
+        bool? confirm = await DialogService.ShowMessageBox(
+            "Onay", 
+            "Dersi iptal etmek istediğinize emin misiniz?\n(Dersin başlamasına 12 saatten az kaldıysa iptal işlemi gerçekleşmeyecektir.)", 
+            yesText: "Evet", cancelText: "Hayır");
+            
         if (confirm == true)
         {
-            var response = await HttpClient.PutAsync($"api/Lesson/cancel-my-booking/{bookingId}", null);
-            if (response.IsSuccessStatusCode) { Snackbar.Add("İptal edildi.", Severity.Success); await LoadData(); }
-            else { Snackbar.Add("İşlem başarısız.", Severity.Error); }
+            try 
+            {
+                var response = await HttpClient.PutAsync($"api/Lesson/cancel-my-booking/{bookingId}", null);
+                
+                if (response.IsSuccessStatusCode) 
+                { 
+                    Snackbar.Add("Ders başarıyla iptal edildi.", Severity.Success); 
+                    await LoadData(); // Listeyi yenile
+                }
+                else 
+                { 
+                    // API'den gelen hatayı (12 saat kuralı vb.) kullanıcıya göster
+                    var errorMsg = await response.Content.ReadAsStringAsync();
+                    if(string.IsNullOrEmpty(errorMsg) || errorMsg.Contains("{")) errorMsg = "İptal işlemi başarısız. (Süre kısıtı olabilir)";
+                    
+                    Snackbar.Add(errorMsg, Severity.Error); 
+                }
+            }
+            catch
+            {
+                Snackbar.Add("Sunucu hatası.", Severity.Error);
+            }
         }
     }
 

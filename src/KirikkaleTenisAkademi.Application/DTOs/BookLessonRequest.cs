@@ -6,5 +6,6 @@ namespace KirikkaleTenisAkademi.Application.DTOs
         public int CoachId { get; set; }
         public DateTime StartTime { get; set; }
         public DateTime EndTime { get; set; }
+        public string LessonType { get; set; } = "Private";
     }
 }

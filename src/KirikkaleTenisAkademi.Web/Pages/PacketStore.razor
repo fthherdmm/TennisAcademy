@@ -1,5 +1,6 @@
 ﻿@page "/packets"
 @using KirikkaleTenisAkademi.Domain.Entities
+@using KirikkaleTenisAkademi.Domain.Enums
 @using System.Net.Http.Json
 @attribute [Authorize(Roles = "Student")]
 @inject HttpClient Http
@@ -8,33 +9,65 @@
 
 <MudContainer MaxWidth="MaxWidth.Large" Class="pt-16 mt-8 mb-12">
 
-    <div class="text-center mb-12">
+    <div class="text-center mb-8">
         <MudText Typo="Typo.h3" Style="font-weight: 900; color: #2E7D32;">Ders Paketleri</MudText>
-        <MudText Typo="Typo.h6" Class="text-muted mt-2">Seviyene uygun paketi seç, hemen korta çık.</MudText>
+        <MudText Typo="Typo.h6" Class="text-muted mt-2">İster birebir özel ders, ister eğlenceli grup dersleri.</MudText>
     </div>
 
     @if (_loading)
     {
-    <div class="d-flex justify-center mt-8">
-        <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Large" />
-    </div>
-    }
-    else if (_packets == null || !_packets.Any())
-    {
-    <MudAlert Severity="Severity.Info" Variant="Variant.Filled" Class="justify-center">
-        Şu anda satışta olan bir paket bulunmamaktadır. Lütfen daha sonra tekrar kontrol ediniz.
-    </MudAlert>
+        <div class="d-flex justify-center mt-12">
+            <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Large" />
+        </div>
     }
     else
     {
-    <MudGrid Justify="Justify.Center" Spacing="4">
-        @foreach (var packet in _packets)
-        {
+        <MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-6" Centered="true" Color="Color.Primary">
+            
+            <MudTabPanel Text="Bireysel Özel Dersler" Icon="@Icons.Material.Filled.Person">
+                @if (_privatePackets == null || !_privatePackets.Any())
+                {
+                    <MudAlert Severity="Severity.Info" Class="mt-4">Şu an satışta olan bireysel paket bulunmamaktadır.</MudAlert>
+                }
+                else
+                {
+                    <MudGrid Justify="Justify.Center" Spacing="4" Class="mt-4">
+                        @foreach (var packet in _privatePackets)
+                        {
+                            @RenderPacketCard(packet)
+                        }
+                    </MudGrid>
+                }
+            </MudTabPanel>
+
+            <MudTabPanel Text="Grup Dersleri (Klinik)" Icon="@Icons.Material.Filled.Groups">
+                @if (_groupPackets == null || !_groupPackets.Any())
+                {
+                    <MudAlert Severity="Severity.Info" Class="mt-4">Şu an satışta olan grup paketi bulunmamaktadır.</MudAlert>
+                }
+                else
+                {
+                    <MudGrid Justify="Justify.Center" Spacing="4" Class="mt-4">
+                        @foreach (var packet in _groupPackets)
+                        {
+                            @RenderPacketCard(packet)
+                        }
+                    </MudGrid>
+                }
+            </MudTabPanel>
+
+        </MudTabs>
+    }
+</MudContainer>
+
+@code {
+    // RenderFragment: Kart tasarımını iki kere yazmamak için metot haline getirdik
+    RenderFragment RenderPacketCard(LessonPacket packet) => __builder =>
+    {
         var isPremium = packet.CreditAmount >= 10;
         var isPopular = packet.CreditAmount >= 5 && packet.CreditAmount < 10;
-
-        // Sadece tıklanan butonun dönmesi için kontrol
         var isThisProcessing = _processingPacketId == packet.Id;
+        var isGroup = packet.Type == LessonType.Group;
 
         <MudItem xs="12" sm="6" md="4">
             <MudPaper Elevation="@(isPopular ? 12 : 4)"
@@ -44,18 +77,23 @@
 
                 @if (isPopular)
                 {
-                <MudChip T="string" Color="Color.Secondary" Class="absolute-top-center fw-bold">EN POPÜLER</MudChip>
+                    <MudChip T="string" Color="Color.Secondary" Class="absolute-top-center fw-bold">EN POPÜLER</MudChip>
                 }
 
-                <MudIcon Icon="@GetIconForPacket(packet.CreditAmount)"
+                <MudIcon Icon="@(isGroup ? Icons.Material.Filled.Groups : GetIconForPacket(packet.CreditAmount))"
                          Size="Size.Large"
                          Color="@GetColorForPacket(packet.CreditAmount)"
                          Style="@($"font-size: {(isPopular ? "5rem" : "4rem")};")"/>
 
                 <MudText Typo="Typo.h5" Class="mt-4 fw-bold">@packet.Name</MudText>
+                
+                @if(isGroup)
+                {
+                    <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="Color.Info" Class="mt-1">Grup Dersi</MudChip>
+                }
 
-                <MudText Typo="Typo.body2" Class="text-muted mt-1" Style="min-height:40px;">
-                    @(string.IsNullOrEmpty(packet.Description) ? "Tenis tutkunları için özel paket." : packet.Description)
+                <MudText Typo="Typo.body2" Class="text-muted mt-2" Style="min-height:40px;">
+                    @(string.IsNullOrEmpty(packet.Description) ? (isGroup ? "Sosyal ortamda tenis öğrenin." : "Birebir koçluk hizmeti.") : packet.Description)
                 </MudText>
 
                 <MudText Typo="@(isPopular ? Typo.h3 : Typo.h4)"
@@ -65,15 +103,17 @@
                 </MudText>
 
                 <div class="mt-6 mb-6">
-                    <MudText Typo="Typo.h6">✅ <b>@packet.CreditAmount</b> Ders Kredisi</MudText>
+                    <MudText Typo="Typo.h6">
+                        ✅ <b>@packet.CreditAmount</b> @(isGroup ? "Grup Kredisi" : "Özel Ders")
+                    </MudText>
 
                     <MudText Typo="Typo.caption" Class="text-muted">
                         (Ders Başına: @((packet.Price / packet.CreditAmount).ToString("N0")) ₺)
                     </MudText>
 
-                    @if(isPremium)
+                    @if(isPremium && !isGroup)
                     {
-                    <MudText Class="mt-2 text-success">⭐ Turnuva Hazırlık</MudText>
+                        <MudText Class="mt-2 text-success">⭐ Turnuva Hazırlık</MudText>
                     }
                 </div>
 
@@ -87,20 +127,18 @@
                            OnClick="@(() => BuyPacket(packet.Id))">
                     @if (isThisProcessing)
                     {
-                    <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true"/>
-                    <span class="ml-2">İşleniyor...</span>
+                        <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true"/>
+                        <span class="ml-2">İşleniyor...</span>
                     }
                     else
                     {
-                    <span>SATIN AL</span>
+                        <span>SATIN AL</span>
                     }
                 </MudButton>
             </MudPaper>
         </MudItem>
-        }
-    </MudGrid>
-    }
-</MudContainer>
+    };
+}
 
 <style>
     .absolute-top-center { position: absolute; top: -15px; left: 50%; transform: translateX(-50%); }
@@ -112,90 +150,97 @@
 </style>
 
 @code {
-private List<LessonPacket>? _packets;
-private bool _loading = true;
+    private List<LessonPacket>? _privatePackets;
+    private List<LessonPacket>? _groupPackets;
+    private bool _loading = true;
+    private int _processingPacketId = 0;
 
-// DÜZELTME: Sadece tek bir butonun durumunu tutmak için ID kullanıyoruz.
-private int _processingPacketId = 0;
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadPackets();
+    }
 
-protected override async Task OnInitializedAsync()
-{
-await LoadPackets();
-}
+    private async Task LoadPackets()
+    {
+        try
+        {
+            // API'den tüm paketleri çekiyoruz
+            var allPackets = await Http.GetFromJsonAsync<List<LessonPacket>>("api/LessonPackets");
+            
+            if (allPackets != null)
+            {
+                // Frontend tarafında filtreleme yapıyoruz
+                var activePackets = allPackets.Where(p => p.IsActive).OrderBy(p => p.Price).ToList();
+                
+                // LessonType.Private (1) olanlar
+                _privatePackets = activePackets.Where(p => p.Type == LessonType.Private).ToList();
+                
+                // LessonType.Group (2) olanlar
+                _groupPackets = activePackets.Where(p => p.Type == LessonType.Group).ToList();
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add("Paketler yüklenirken hata oluştu.", Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
 
-private async Task LoadPackets()
-{
-try
-{
-var allPackets = await Http.GetFromJsonAsync<List<LessonPacket>>("api/LessonPackets");
-if (allPackets != null)
-{
-_packets = allPackets.Where(p => p.IsActive).OrderBy(p => p.Price).ToList();
-}
-}
-catch (Exception ex)
-{
-Snackbar.Add("Paketler yüklenirken hata oluştu.", Severity.Error);
-Console.WriteLine(ex.Message);
-}
-finally
-{
-_loading = false;
-}
-}
+    private async Task BuyPacket(int packetId)
+    {
+        _processingPacketId = packetId;
+        try
+        {
+            // Backend zaten paketin ID'sinden ne tür olduğunu bildiği için aynı endpoint'i kullanabiliriz
+            var response = await Http.PostAsync($"api/Payment/start/{packetId}", null);
 
-private async Task BuyPacket(int packetId)
-{
-// İşlenen paketin ID'sini set et
-_processingPacketId = packetId;
-try
-{
-var response = await Http.PostAsync($"api/Payment/start/{packetId}", null);
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<PaymentResult>();
+                if (result != null && !string.IsNullOrEmpty(result.PaymentPageUrl))
+                {
+                    Navigation.NavigateTo(result.PaymentPageUrl, forceLoad: true);
+                }
+                else
+                {
+                    Snackbar.Add("Ödeme linki alınamadı.", Severity.Error);
+                    _processingPacketId = 0;
+                }
+            }
+            else
+            {
+                var errorMsg = await response.Content.ReadAsStringAsync();
+                Snackbar.Add($"Ödeme başlatılamadı: {errorMsg}", Severity.Error);
+                _processingPacketId = 0;
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Sunucu hatası: {ex.Message}", Severity.Error);
+            _processingPacketId = 0;
+        }
+    }
 
-if (response.IsSuccessStatusCode)
-{
-var result = await response.Content.ReadFromJsonAsync<PaymentResult>();
-if (result != null && !string.IsNullOrEmpty(result.PaymentPageUrl))
-{
-Navigation.NavigateTo(result.PaymentPageUrl, forceLoad: true);
-}
-else
-{
-Snackbar.Add("Ödeme linki alınamadı.", Severity.Error);
-_processingPacketId = 0; // Hata olursa kilidi aç
-}
-}
-else
-{
-var errorMsg = await response.Content.ReadAsStringAsync();
-Snackbar.Add($"Ödeme başlatılamadı: {errorMsg}", Severity.Error);
-_processingPacketId = 0;
-}
-}
-catch (Exception ex)
-{
-Snackbar.Add($"Sunucu hatası: {ex.Message}", Severity.Error);
-_processingPacketId = 0;
-}
-}
+    public class PaymentResult
+    {
+        public string Token { get; set; }
+        public string PaymentPageUrl { get; set; }
+    }
 
-public class PaymentResult
-{
-public string Token { get; set; }
-public string PaymentPageUrl { get; set; }
-}
+    private string GetIconForPacket(int credits)
+    {
+        if (credits < 5) return Icons.Material.Filled.SportsTennis;
+        if (credits < 10) return Icons.Material.Filled.EmojiEvents;
+        return Icons.Material.Filled.WorkspacePremium;
+    }
 
-private string GetIconForPacket(int credits)
-{
-if (credits < 5) return Icons.Material.Filled.SportsTennis;
-if (credits < 10) return Icons.Material.Filled.EmojiEvents;
-return Icons.Material.Filled.WorkspacePremium;
-}
-
-private Color GetColorForPacket(int credits)
-{
-if (credits < 5) return Color.Primary;
-if (credits < 10) return Color.Secondary;
-return Color.Warning;
-}
+    private Color GetColorForPacket(int credits)
+    {
+        if (credits < 5) return Color.Primary;
+        if (credits < 10) return Color.Secondary;
+        return Color.Warning;
+    }
 }

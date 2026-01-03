@@ -57,6 +57,7 @@ namespace KirikkaleTenisAkademi.API.Controllers
                 PhoneNumber = request.PhoneNumber,
                 BirthDate = request.BirthDate,
                 LessonCredits = 0,
+                GroupCredits = 0,
                 EmailConfirmed = false,
                 SecurityStamp = Guid.NewGuid().ToString(),
                 ConcurrencyStamp = Guid.NewGuid().ToString(),
@@ -218,7 +219,8 @@ namespace KirikkaleTenisAkademi.API.Controllers
                 // Acil Durum
                 EmergencyContactName = user.EmergencyContactName,
                 EmergencyContactPhone = user.EmergencyContactPhone,
-                LessonCredits = user.LessonCredits
+                LessonCredits = user.LessonCredits,
+                GroupCredits = user.GroupCredits
             };
 
             return Ok(profile);
@@ -230,29 +232,34 @@ namespace KirikkaleTenisAkademi.API.Controllers
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             var user = await _userManager.FindByIdAsync(userId);
-            if (user == null) return NotFound();
+            if (user == null) return NotFound("Kullanıcı bulunamadı.");
 
-            // Gelen verileri veritabanı nesnesine aktarıyoruz
-            user.FirstName = model.FirstName;
-            user.LastName = model.LastName;
-            user.PhoneNumber = model.PhoneNumber;
-            user.BirthDate = model.BirthDate;
+            // Null Check (DTO'dan boş gelirse eski veriyi koru veya boş string ata)
+            // Eğer frontend her zaman dolu gönderiyorsa direkt atayabilirsin.
+            user.FirstName = model.FirstName ?? user.FirstName;
+            user.LastName = model.LastName ?? user.LastName;
+            user.PhoneNumber = model.PhoneNumber ?? user.PhoneNumber;
+    
+            // Değer tipleri (Nullable değilse direkt ata, Nullable ise kontrol et)
+            user.BirthDate = model.BirthDate; 
             user.Height = model.Height;
             user.Weight = model.Weight;
             user.EmergencyContactName = model.EmergencyContactName;
             user.EmergencyContactPhone = model.EmergencyContactPhone;
 
-            // String gelen Enum değerlerini güvenli şekilde çeviriyoruz
-            if (Enum.TryParse<Domain.Enums.TennisLevel>(model.Level, out var level)) 
+            // Enumlar
+            if (!string.IsNullOrEmpty(model.Level) && Enum.TryParse<Domain.Enums.TennisLevel>(model.Level, out var level)) 
                 user.Level = level;
-                
-            if (Enum.TryParse<Domain.Enums.DominantHand>(model.DominantHand, out var hand)) 
+        
+            if (!string.IsNullOrEmpty(model.DominantHand) && Enum.TryParse<Domain.Enums.DominantHand>(model.DominantHand, out var hand)) 
                 user.DominantHand = hand;
-                
-            if (Enum.TryParse<Domain.Enums.BackhandStyle>(model.BackhandStyle, out var back)) 
+        
+            if (!string.IsNullOrEmpty(model.BackhandStyle) && Enum.TryParse<Domain.Enums.BackhandStyle>(model.BackhandStyle, out var back)) 
                 user.BackhandStyle = back;
 
-            // Güncelleme işlemi
+            // KRİTİK: Stamp Yenileme
+            user.ConcurrencyStamp = Guid.NewGuid().ToString();
+
             var result = await _userManager.UpdateAsync(user);
 
             if (result.Succeeded)
@@ -260,6 +267,7 @@ namespace KirikkaleTenisAkademi.API.Controllers
                 return Ok(new { message = "Profil güncellendi." });
             }
 
+            // Identity'den dönen gerçek hatayı (Örn: Email already taken, Invalid Phone vs.) frontend'e yolla
             return BadRequest(result.Errors);
         }
     }

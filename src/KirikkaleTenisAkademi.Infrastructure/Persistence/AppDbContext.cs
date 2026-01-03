@@ -16,6 +16,8 @@ namespace KirikkaleTenisAkademi.Infrastructure.Persistence
         public DbSet<CoachUnavailability> CoachUnavailabilities { get; set; } // Koç İzinleri
         public DbSet<Tournament> Tournaments { get; set; }           // Turnuvalar
         public DbSet<Match> Matches { get; set; }                    // Maçlar
+        public DbSet<GroupLesson> GroupLessons { get; set; }
+        public DbSet<GroupLessonRegistration> GroupLessonRegistrations { get; set; }
 
         // ESKİ TABLO SİLİNDİ: public DbSet<LessonSlot> LessonSlots { get; set; }
 
@@ -52,6 +54,24 @@ namespace KirikkaleTenisAkademi.Infrastructure.Persistence
             builder.Entity<LessonPacket>()
                 .Property(p => p.Id)
                 .UseIdentityColumn();
+            
+            // Grup Dersi - Koç İlişkisi
+            builder.Entity<GroupLesson>()
+                .HasOne(g => g.Coach)
+                .WithMany() // Koçun listesinde tutmaya gerek yoksa boş bırakabiliriz
+                .HasForeignKey(g => g.CoachId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Kayıt Tablosu (Çoka-Çok İlişki Çözümlemesi)
+            builder.Entity<GroupLessonRegistration>()
+                .HasOne(r => r.GroupLesson)
+                .WithMany(g => g.Registrations)
+                .HasForeignKey(r => r.GroupLessonId);
+
+            builder.Entity<GroupLessonRegistration>()
+                .HasOne(r => r.Student)
+                .WithMany(s => s.GroupRegistrations)
+                .HasForeignKey(r => r.StudentId);
         }
     }
 }

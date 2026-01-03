@@ -24,8 +24,9 @@
         public string BackhandStyle { get; set; } = string.Empty;
 
         // ACİL DURUM
-        public string EmergencyContactName { get; set; } = string.Empty;
-        public string EmergencyContactPhone { get; set; } = string.Empty;
+        public string? EmergencyContactName { get; set; } 
+        public string? EmergencyContactPhone { get; set; }
         public int LessonCredits { get; set; }
+        public int GroupCredits { get; set; }
     }
 }

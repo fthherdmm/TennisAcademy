@@ -5,13 +5,23 @@
     <DialogContent>
         <MudGrid>
             <MudItem xs="12" Class="d-flex align-center justify-center flex-column">
-                 <MudAvatar Color="Color.Primary" Size="Size.Large" Class="mb-2">
-                     @Booking.CoachName.Substring(0,1)
-                 </MudAvatar>
-                 <MudText Typo="Typo.h6">@Booking.CoachName</MudText>
-                 <MudChip T="string" Color="@GetColor(Booking.Status)" Size="Size.Small" Class="mt-1">@GetStatusText(Booking.Status)</MudChip>
+                <MudAvatar Color="Color.Primary" Size="Size.Large" Class="mb-2">
+                    @(string.IsNullOrEmpty(Booking.CoachName) ? "?" : Booking.CoachName.Substring(0,1))
+                </MudAvatar>
+                <MudText Typo="Typo.h6">@Booking.CoachName</MudText>
+
+                @if(Booking.LessonType == "Group")
+                {
+                <MudChip T="string" Color="Color.Info" Size="Size.Small" Icon="@Icons.Material.Filled.Groups">Grup Dersi</MudChip>
+                }
+                else
+                {
+                <MudChip T="string" Color="Color.Primary" Size="Size.Small" Icon="@Icons.Material.Filled.Person">Özel Ders</MudChip>
+                }
+
+                <MudChip T="string" Color="@GetColor(Booking.Status)" Size="Size.Small" Class="mt-1" Variant="Variant.Outlined">@GetStatusText(Booking.Status)</MudChip>
             </MudItem>
-            
+
             <MudItem xs="12">
                 <MudList T="string" Dense="true">
                     <MudListItem Icon="@Icons.Material.Filled.CalendarToday">
@@ -28,18 +38,33 @@
         <MudButton OnClick="Close" Color="Color.Inherit">Kapat</MudButton>
         @if (Booking.Status != "Cancelled" && Booking.StartTime > DateTime.Now)
         {
-            <MudButton Color="Color.Error" Variant="Variant.Filled" OnClick="CancelLesson">Dersi İptal Et</MudButton>
+        <MudButton Color="Color.Error" Variant="Variant.Filled" OnClick="CancelLesson">Dersi İptal Et</MudButton>
         }
     </DialogActions>
 </MudDialog>
 
 @code {
-    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
-    [Parameter] public MyBookingDto Booking { get; set; } = new();
+[CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
 
-    void Close() => MudDialog.Cancel();
-    void CancelLesson() => MudDialog.Close(DialogResult.Ok(true)); // True dönerse iptal işlemi yapılacak
+[Parameter] public MyBookingDto Booking { get; set; } = new();
 
-    private Color GetColor(string status) => status switch { "Confirmed" => Color.Success, "Pending" => Color.Warning, "Cancelled" => Color.Error, _ => Color.Default };
-    private string GetStatusText(string status) => status switch { "Confirmed" => "Onaylandı", "Pending" => "Bekliyor", "Cancelled" => "İptal Edildi", _ => status };
+void Close() => MudDialog.Cancel();
+
+void CancelLesson() => MudDialog.Close(DialogResult.Ok(true));
+
+private Color GetColor(string status) => status switch
+{
+"Confirmed" => Color.Success,
+"Pending" => Color.Warning,
+"Cancelled" => Color.Error,
+_ => Color.Default
+};
+
+private string GetStatusText(string status) => status switch
+{
+"Confirmed" => "Onaylandı",
+"Pending" => "Bekliyor",
+"Cancelled" => "İptal Edildi",
+_ => status
+};
 }

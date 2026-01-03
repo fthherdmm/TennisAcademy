@@ -1,5 +1,94 @@
 ﻿@using System.Globalization
 
+<style>
+    .scheduler-container {
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+        overflow-x: auto;
+    }
+
+    .scheduler-header {
+        display: flex;
+        border-bottom: 1px solid #e0e0e0;
+    }
+
+    .scheduler-row {
+        display: flex;
+        border-bottom: 1px solid #f0f0f0;
+    }
+
+    .scheduler-time-col {
+        width: 60px;
+        min-width: 60px;
+        padding: 8px;
+        font-size: 0.75rem;
+        color: #757575;
+        border-right: 1px solid #e0e0e0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 500;
+        background-color: #fafafa;
+    }
+
+    .scheduler-header-cell {
+        flex: 1;
+        text-align: center;
+        padding: 8px;
+        border-right: 1px solid #f0f0f0;
+        min-width: 100px;
+        font-weight: 600;
+    }
+
+    .scheduler-cell {
+        flex: 1;
+        min-width: 100px;
+        height: 60px;
+        border-right: 1px solid #f0f0f0;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+        /* Kaymayı önleyen kritik ayar */
+        box-sizing: border-box; 
+    }
+
+    .scheduler-cell:hover {
+        background-color: #f5f5f5;
+    }
+
+    /* --- DURUM RENKLERİ (Kaymayı önlemek için Border yerine Box-Shadow kullanıldı) --- */
+    
+    /* 1. Özel Ders (YEŞİL) */
+    .slot-lesson {
+        background-color: #E8F5E9; 
+        color: #2E7D32; 
+        box-shadow: inset 4px 0 0 0 #2E7D32; /* İçeriye doğru 4px çizgi */
+    }
+
+    /* 2. Grup Dersi (MAVİ) */
+    .slot-group-lesson {
+        background-color: #E1F5FE; 
+        color: #0277BD; 
+        box-shadow: inset 4px 0 0 0 #0277BD;
+    }
+
+    /* 3. Kapalı / Geçmiş / Koç Engeli (GRİ) */
+    /* 3. Kapalı / Geçmiş / Koç Engeli (GRİ) */
+    .slot-blocked, .slot-my-block {
+        background-color: #F5F5F5 !important;
+        color: #616161 !important; /* Rengi koyulaştırdık (Eskisi: #9E9E9E idi) */
+        font-weight: bold !important; /* Yazıyı kalın yaptık */
+        box-shadow: inset 4px 0 0 0 #9E9E9E !important; /* Sol çizgiyi belirginleştirdik */
+        cursor: not-allowed !important;
+    }
+    
+    .text-success { color: #2E7D32 !important; }
+</style>
+
 <div class="d-flex justify-space-between align-center mb-4 px-2">
     <MudButton StartIcon="@Icons.Material.Filled.ArrowBack" Variant="Variant.Outlined" OnClick="PreviousWeek">Önceki Hafta</MudButton>
     
@@ -13,7 +102,8 @@
 
 <div class="scheduler-container">
     <div class="scheduler-header">
-        <div class="scheduler-time-col">Saat</div> @for (int i = 0; i < 7; i++)
+        <div class="scheduler-time-col">Saat</div> 
+        @for (int i = 0; i < 7; i++)
         {
             var day = CurrentWeekStart.AddDays(i);
             var isToday = day.Date == DateTime.Today;
@@ -43,7 +133,7 @@
                         {
                             <span class="d-flex align-center flex-column">
                                 <MudIcon Icon="@GetSlotIcon(statusClass)" Size="Size.Small" />
-                                <span style="font-size:0.75rem; text-align:center">@displayText</span>
+                                <span style="font-size:0.7rem; text-align:center; line-height:1.1; margin-top:2px;">@displayText</span>
                             </span>
                         }
                     </div>
@@ -54,11 +144,10 @@
 </div>
 
 @code {
-    [Parameter] public int StartHour { get; set; } = 9; // Sabah 09:00 başla
-    [Parameter] public int EndHour { get; set; } = 22; // Akşam 22:00 bitir
+    [Parameter] public int StartHour { get; set; } = 9;
+    [Parameter] public int EndHour { get; set; } = 22;
     
-    // Parent sayfadan gelen "Meşgul/Dolu" listesi
-    // Key: DateTime (Zaman), Value: Tuple(Tip, Açıklama)
+    // Key: DateTime, Value: (Type: "Lesson"|"GroupLesson"|"MyBlock"|"Blocked"|"PrivateLesson", Text: "Display Text")
     [Parameter] public Dictionary<DateTime, (string Type, string Text)> BusySlots { get; set; } = new();
 
     [Parameter] public EventCallback<DateTime> OnSlotClicked { get; set; }
@@ -67,7 +156,6 @@
 
     protected override void OnInitialized()
     {
-        // Pazartesiyi bul
         var today = DateTime.Today;
         int diff = (7 + (today.DayOfWeek - DayOfWeek.Monday)) % 7;
         CurrentWeekStart = today.AddDays(-1 * diff).Date;
@@ -78,8 +166,8 @@
 
     private async Task HandleSlotClick(DateTime time)
     {
-        // Geçmişe tıklamayı engelle (Opsiyonel, istersen kaldırabilirsin)
-        if (time < DateTime.Now) return;
+        // Geçmişe tıklamayı engelle
+        if (time < DateTime.Now.AddHours(-1)) return;
 
         await OnSlotClicked.InvokeAsync(time);
     }
@@ -89,9 +177,15 @@
         if (BusySlots.ContainsKey(time))
         {
             var type = BusySlots[time].Type;
-            if (type == "Blocked") return "slot-blocked"; // Genel Kapalı
-            if (type == "MyBlock") return "slot-my-block"; // Koçun Kendi Kapattığı
-            if (type == "Lesson") return "slot-lesson";   // Ders Var
+            
+            // Mavi (Grup)
+            if (type == "GroupLesson") return "slot-group-lesson"; 
+            
+            // Yeşil (Özel)
+            if (type == "Lesson" || type == "PrivateLesson") return "slot-lesson";            
+            
+            // Gri (Kapalı / Geçmiş / Koç Bloğu)
+            if (type == "MyBlock" || type == "Blocked" || type == "System") return "slot-blocked"; 
         }
         return "";
     }
@@ -103,8 +197,9 @@
 
     private string GetSlotIcon(string cssClass)
     {
-        if (cssClass == "slot-my-block") return Icons.Material.Filled.Block;
-        if (cssClass == "slot-lesson") return Icons.Material.Filled.SportsTennis;
+        if (cssClass == "slot-group-lesson") return Icons.Material.Filled.Groups; // Grup İkonu
+        if (cssClass == "slot-lesson") return Icons.Material.Filled.Person;       // Özel Ders İkonu
+        if (cssClass == "slot-blocked" || cssClass == "slot-my-block") return Icons.Material.Filled.Block; // Engel İkonu
         return "";
     }
 }
