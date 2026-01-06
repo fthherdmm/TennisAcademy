@@ -56,11 +56,9 @@ Proje, **Blazor WebAssembly** teknolojisi kullanılarak Single Page Application 
 |:---:|:---:|
 | <img src="screenshots/home.png" alt="Ana Sayfa" width="400"> | <img src="screenshots/calendar.png" alt="Takvim" width="400"> |
 
-| Mobil Görünüm | Admin Paneli |
-|:---:|:---:|
-| <img src="screenshots/mobile.png" alt="Mobil" width="400"> | <img src="screenshots/admin.png" alt="Admin" width="400"> |
-
-*(Not: Ekran görüntüleri geliştirme aşamasındadır.)*
+| Admin Paneli |
+|:---:|
+| <img src="screenshots/admin.png" alt="Admin" width="400"> |
 
 ---
 
