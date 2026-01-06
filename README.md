@@ -1,7 +1,6 @@
 <br />
 <div align="center">
   <a href="https://winnertenis.com">
-    <img src="https://winnertenis.com/logo.png" alt="Winner Tenis Logo" width="120" height="120">
   </a>
 
   <h1 align="center">Winner Tenis - Kort Rezervasyon Sistemi</h1>
@@ -11,12 +10,6 @@
     <br />
     <a href="https://winnertenis.com"><strong>Canlı Projeyi Görüntüle »</strong></a>
     <br />
-    <br />
-    <a href="https://winnertenis.com/api/swagger">API Dokümantasyonu</a>
-    ·
-    <a href="#hata-bildirimi">Hata Bildir</a>
-    ·
-    <a href="#iletisim">İletişim</a>
   </p>
 </div>
 
