@@ -12,7 +12,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Net;
 using KirikkaleTenisAkademi.Application.DTOs;
-using KirikkaleTenisAkademi.Application.DTOs.Auth; // URL Encode için
+using Microsoft.AspNetCore.Identity.Data;
+using LoginRequest = KirikkaleTenisAkademi.Application.DTOs.Auth.LoginRequest; // URL Encode için
 
 namespace KirikkaleTenisAkademi.API.Controllers
 {
@@ -271,6 +272,68 @@ namespace KirikkaleTenisAkademi.API.Controllers
 
             return BadRequest(result.Errors);
         }
+        
+        // ==========================================
+        // 🔥 ŞİFREMİ UNUTTUM (Link Gönder)
+        // ==========================================
+        [HttpPost("forgot-password")]
+        public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest model)
+        {
+            if (string.IsNullOrEmpty(model.Email))
+                return BadRequest("Lütfen e-posta adresinizi giriniz.");
+
+            var user = await _userManager.FindByEmailAsync(model.Email);
+            // Güvenlik gereği "Böyle bir kullanıcı yok" demek yerine "Eğer kayıtlıysa mail gönderildi" demek daha doğrudur
+            // ama geliştirme aşamasında kolaylık olsun diye şimdilik direkt hatayı dönüyoruz.
+            if (user == null) 
+                return BadRequest("Bu e-posta adresiyle kayıtlı bir kullanıcı bulunamadı.");
+
+            // Token oluştur
+            var token = await _userManager.GeneratePasswordResetTokenAsync(user);
+            var encodedToken = WebUtility.UrlEncode(token);
+
+            // Frontend'deki Şifre Sıfırlama Sayfasının Linki
+            var frontendUrl = AppConstants.WebBaseUrl; 
+            var resetLink = $"{frontendUrl}/reset-password?email={model.Email}&token={encodedToken}";
+
+            var subject = "Kırıkkale Tenis Akademi - Şifre Sıfırlama";
+            var body = $@"
+                <h3>Şifreni mi unuttun? 🔒</h3>
+                <p>Sorun değil, aşağıdaki linke tıklayarak yeni şifreni belirleyebilirsin:</p>
+                <a href='{resetLink}' style='background-color:#d32f2f; color:white; padding:10px 20px; text-decoration:none; border-radius:5px;'>Şifremi Sıfırla</a>
+                <p>Bu işlemi sen yapmadıysan, bu maili görmezden gelebilirsin.</p>";
+
+            await _emailService.SendEmailAsync(user.Email, subject, body);
+
+            return Ok(new { message = "Şifre sıfırlama bağlantısı e-posta adresinize gönderildi." });
+        }
+
+        // ==========================================
+        // 🔥 ŞİFREYİ SIFIRLA (Yeni Şifreyi Kaydet)
+        // ==========================================
+        [HttpPost("reset-password")]
+        public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequest model)
+        {
+            if (string.IsNullOrEmpty(model.Email) || string.IsNullOrEmpty(model.Token) || string.IsNullOrEmpty(model.NewPassword))
+                return BadRequest("Eksik bilgi.");
+
+            var user = await _userManager.FindByEmailAsync(model.Email);
+            if (user == null) return BadRequest("Kullanıcı bulunamadı.");
+
+            // Token ve Yeni Şifre ile sıfırlama işlemi
+            var result = await _userManager.ResetPasswordAsync(user, model.Token, model.NewPassword);
+
+            if (result.Succeeded)
+            {
+                // Güvenlik damgasını güncelle (eski oturumları düşürmek için iyi bir pratiktir)
+                await _userManager.UpdateSecurityStampAsync(user);
+                return Ok(new { message = "Şifreniz başarıyla güncellendi! Giriş yapabilirsiniz." });
+            }
+
+            // Hataları döndür (Örn: Token süresi dolmuş, şifre çok basit vs.)
+            var errors = string.Join(", ", result.Errors.Select(e => e.Description));
+            return BadRequest($"Şifre sıfırlanamadı: {errors}");
+        }
     }
 
     // Register Modeli
@@ -284,5 +347,19 @@ namespace KirikkaleTenisAkademi.API.Controllers
         public string TCKN { get; set; } = string.Empty;
         public string PhoneNumber { get; set; } = string.Empty;
         public DateTime BirthDate { get; set; }
+    }
+    
+    // Şifremi Unuttum İsteği
+    public class ForgotPasswordRequest
+    {
+        public string Email { get; set; } = string.Empty;
+    }
+
+    // Şifre Sıfırlama İsteği
+    public class ResetPasswordRequest
+    {
+        public string Email { get; set; } = string.Empty;
+        public string Token { get; set; } = string.Empty;
+        public string NewPassword { get; set; } = string.Empty;
     }
 }
