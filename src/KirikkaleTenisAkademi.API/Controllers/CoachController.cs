@@ -564,5 +564,135 @@ namespace KirikkaleTenisAkademi.API.Controllers
                 .ToListAsync();
             return Ok(coaches);
         }
+        
+        // ==========================================
+        // 8. KOÇ TARAFINDAN MANUEL DERS EKLEME
+        // ==========================================
+        [HttpPost("manual-book")]
+        public async Task<IActionResult> ManualBookStudent([FromBody] CoachManualBookingDto request)
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var coach = await _context.Coaches.FirstOrDefaultAsync(c => c.AppUserId == userId);
+            if (coach == null) return Unauthorized("Koç bulunamadı.");
+
+            // 1. Öğrenciyi Bul
+            var student = await _userManager.FindByIdAsync(request.StudentId);
+            if (student == null) return NotFound("Öğrenci bulunamadı.");
+
+            // 2. Zaman Ayarı (Türkiye Saati -> UTC)
+            DateTime startUtc, endUtc;
+            try 
+            {
+                // Windows ve Linux uyumlu TimeZone alma
+                string timeZoneId = System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows) 
+                    ? "Turkey Standard Time" : "Europe/Istanbul";
+                TimeZoneInfo trTimeZone = TimeZoneInfo.FindSystemTimeZoneById(timeZoneId);
+
+                // Frontend'den gelen tarih yerel ise UTC'ye çeviriyoruz
+                startUtc = TimeZoneInfo.ConvertTimeToUtc(request.StartTime, trTimeZone);
+                endUtc = TimeZoneInfo.ConvertTimeToUtc(request.EndTime, trTimeZone);
+            }
+            catch
+            {
+                // Fallback (Manuel -3 saat)
+                startUtc = request.StartTime.AddHours(-3);
+                endUtc = request.EndTime.AddHours(-3);
+            }
+
+            if (startUtc < DateTime.UtcNow) return BadRequest("Geçmiş zamana ders ekleyemezsiniz.");
+
+            // 3. ÇAKIŞMA KONTROLÜ (Öğrenci o saatte dolu mu?)
+            var studentBusyPrivate = await _context.LessonBookings
+                .AnyAsync(b => b.StudentId == student.Id && b.Status != BookingStatus.Cancelled && 
+                               ((b.StartTime < endUtc && b.EndTime > startUtc)));
+
+            var studentBusyGroup = await _context.GroupLessonRegistrations
+                .Include(r => r.GroupLesson)
+                .AnyAsync(r => r.StudentId == student.Id && 
+                               ((r.GroupLesson.StartTime < endUtc && r.GroupLesson.EndTime > startUtc)));
+
+            if (studentBusyPrivate || studentBusyGroup)
+            {
+                return BadRequest("Öğrencinin bu saat aralığında başka bir dersi var.");
+            }
+
+            // 4. KOÇ MÜSAİTLİK KONTROLÜ (İsteğe bağlı, koç kendi üstüne çakışan ders yazabilir mi? 
+            // Genelde yazabilmeli (manuel override), o yüzden burayı esnek bırakıyoruz ama uyarı olarak frontend'e dönebiliriz.)
+
+            // 5. İŞLEM (Transaction ile Kredi Düşme ve Ders Oluşturma)
+            using var transaction = await _context.Database.BeginTransactionAsync();
+            try
+            {
+                if (request.Type == "Private")
+                {
+                    // --- BİREYSEL DERS ---
+                    if (student.LessonCredits < 1) 
+                        return BadRequest("Öğrencinin yeterli BİREYSEL ders kredisi yok.");
+
+                    // Kredi Düş
+                    student.LessonCredits -= 1;
+                    await _userManager.UpdateAsync(student);
+
+                    // Ders Oluştur
+                    var booking = new LessonBooking
+                    {
+                        CoachId = coach.Id,
+                        StudentId = student.Id,
+                        StartTime = startUtc,
+                        EndTime = endUtc,
+                        Status = BookingStatus.Confirmed, // Direkt onaylı
+                        CreatedDate = DateTime.UtcNow
+                    };
+                    _context.LessonBookings.Add(booking);
+                }
+                else if (request.Type == "Group")
+                {
+                    // --- GRUP DERSİ ---
+                    if (student.GroupCredits < 1)
+                        return BadRequest("Öğrencinin yeterli GRUP ders kredisi yok.");
+
+                    // Kredi Düş
+                    student.GroupCredits -= 1;
+                    await _userManager.UpdateAsync(student);
+
+                    // Yeni Bir Grup Dersi Oluştur
+                    var groupLesson = new GroupLesson
+                    {
+                        CoachId = coach.Id,
+                        Title = request.Title ?? "Grup Dersi (Manuel)",
+                        StartTime = startUtc,
+                        EndTime = endUtc,
+                        Capacity = 4, // Varsayılan kapasite
+                        CreditCost = 1,
+                        IsActive = true
+                    };
+                    _context.GroupLessons.Add(groupLesson);
+                    await _context.SaveChangesAsync(); // ID oluşması için kaydet
+
+                    // Öğrenciyi Bu Gruba Kaydet
+                    var registration = new GroupLessonRegistration
+                    {
+                        GroupLessonId = groupLesson.Id,
+                        StudentId = student.Id,
+                        RegistrationDate = DateTime.UtcNow
+                    };
+                    _context.GroupLessonRegistrations.Add(registration);
+                }
+                else
+                {
+                    return BadRequest("Geçersiz ders tipi.");
+                }
+
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+
+                return Ok(new { message = "Ders başarıyla oluşturuldu ve kredi tahsil edildi." });
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                return StatusCode(500, "İşlem sırasında hata oluştu: " + ex.Message);
+            }
+        }
     }
 }

@@ -2,6 +2,7 @@
 @using KirikkaleTenisAkademi.Application.DTOs
 @using KirikkaleTenisAkademi.Web.Models
 @using System.Net.Http.Json
+@using KirikkaleTenisAkademi.Web.Shared
 @using KirikkaleTenisAkademi.Web.Shared.Components
 @attribute [Authorize(Roles = "Coach")]
 @inject HttpClient HttpClient
@@ -58,30 +59,28 @@
                 <div class="d-flex flex-column gap-3">
                     @foreach (var student in _filteredStudents)
                     {
-                    var currentStudent = student;
+                        var currentStudent = student;
+                        <MudPaper Elevation="2" Class="pa-4 rounded-xl d-flex align-center justify-space-between cursor-pointer ripple-effect"
+                                  @onclick="() => OnStudentSelected(currentStudent)">
 
-                    <MudPaper Elevation="2" Class="pa-4 rounded-xl d-flex align-center justify-space-between cursor-pointer ripple-effect"
-                              @onclick="() => OnStudentSelected(currentStudent)">
-
-                        <div class="d-flex align-center gap-3">
-                            <MudAvatar Color="Color.Primary" Size="Size.Medium">
-                                @currentStudent.FullName.Substring(0,1)
-                            </MudAvatar>
-                            <div>
-                                <MudText Typo="Typo.subtitle1" Style="font-weight:bold;">@currentStudent.FullName</MudText>
-                                <div class="d-flex gap-2 mt-1">
-                                    <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Class="ma-0">@(currentStudent.Level ?? "Başlangıç")</MudChip>
-                                    <MudChip T="string" Size="Size.Small" Color="Color.Info" Variant="Variant.Outlined" Class="ma-0">@currentStudent.CurrentCredits Kredi</MudChip>
+                            <div class="d-flex align-center gap-3">
+                                <MudAvatar Color="Color.Primary" Size="Size.Medium">
+                                    @currentStudent.FullName.Substring(0,1)
+                                </MudAvatar>
+                                <div>
+                                    <MudText Typo="Typo.subtitle1" Style="font-weight:bold;">@currentStudent.FullName</MudText>
+                                    <div class="d-flex gap-2 mt-1">
+                                        <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Class="ma-0">@(currentStudent.Level ?? "Başlangıç")</MudChip>
+                                        <MudChip T="string" Size="Size.Small" Color="Color.Info" Variant="Variant.Outlined" Class="ma-0">@currentStudent.CurrentCredits Kredi</MudChip>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                        <MudIcon Icon="@Icons.Material.Filled.ChevronRight" Color="Color.Default" />
-                    </MudPaper>
+                            <MudIcon Icon="@Icons.Material.Filled.ChevronRight" Color="Color.Default" />
+                        </MudPaper>
                     }
-
                     @if (!_filteredStudents.Any())
                     {
-                    <MudAlert Severity="Severity.Info">Aradığınız kriterde öğrenci bulunamadı.</MudAlert>
+                        <MudAlert Severity="Severity.Info">Aradığınız kriterde öğrenci bulunamadı.</MudAlert>
                     }
                 </div>
             </MudHidden>
@@ -170,6 +169,11 @@
                                 <MudButton Variant="Variant.Filled" Color="Color.Warning" FullWidth="true" StartIcon="@Icons.Material.Filled.CardGiftcard" OnClick="@(() => OpenCreditDialog(_selectedStudent))">
                                     Telafi Kredisi Yükle
                                 </MudButton>
+                                
+                                <MudButton Variant="Variant.Filled" Color="Color.Success" FullWidth="true" StartIcon="@Icons.Material.Filled.AddCircle" OnClick="@(() => OpenManualBookingDialog(_selectedStudent))">
+                                    Manuel Ders Ekle
+                                </MudButton>
+
                                 <MudButton Variant="Variant.Outlined" Color="Color.Primary" FullWidth="true" StartIcon="@Icons.Material.Filled.Edit" OnClick="@(() => OpenEditDialog(_selectedStudent))"> 
                                     Bilgileri Düzenle
                                 </MudButton>
@@ -199,7 +203,6 @@
         .page-title { font-size: 1.5rem !important; }
         .page-subtitle { font-size: 0.85rem !important; }
         
-        /* Detay sayfası açıldığında tam ekran kaplaması için */
         .sticky-top { top: 80px !important; z-index: 20; }
     }
 </style>
@@ -208,7 +211,6 @@
     private string searchString = "";
     private List<MyStudentDto> _students = new();
     
-    // Filtreleme
     private IEnumerable<MyStudentDto> _filteredStudents => 
         _students.Where(x => string.IsNullOrWhiteSpace(searchString) || 
                              x.FullName.Contains(searchString, StringComparison.OrdinalIgnoreCase));
@@ -222,15 +224,9 @@
         await LoadStudents();
     }
 
-    // CSS Sınıfını Dinamik Belirle
     private string GetListDisplayClass()
     {
-        // Masaüstünde (md) her zaman görünür (d-md-block).
-        // Mobilde eğer bir öğrenci seçiliyse gizlenir (d-none), seçili değilse görünür (d-block).
-        if (_selectedStudent != null)
-        {
-            return "d-none d-md-block"; 
-        }
+        if (_selectedStudent != null) return "d-none d-md-block"; 
         return "d-block";
     }
 
@@ -239,7 +235,6 @@
         try { var result = await HttpClient.GetFromJsonAsync<List<MyStudentDto>>("api/Coach/my-students-portfolio"); if (result != null) _students = result; } catch {}                
     }
 
-    // ✅ BU METODUN EKLİ OLDUĞUNDAN EMİN OL
     private async Task OnStudentSelected(MyStudentDto student)
     {
         _selectedStudent = student;
@@ -247,13 +242,11 @@
         StateHasChanged();
     }
 
-    // Tablo için (Masaüstü)
     private async Task OnRowClick(TableRowClickEventArgs<MyStudentDto> args)
     {
         await OnStudentSelected(args.Item);
     }
     
-    // Geri Dön Butonu (Mobilde listeye dönmek için)
     private void BackToList()
     {
         _selectedStudent = null;
@@ -300,6 +293,26 @@
         {
             var response = await HttpClient.PostAsJsonAsync("api/Coach/grant-credit", new GrantCreditRequest { StudentId = student.StudentId, Amount = 1 });
             if (response.IsSuccessStatusCode) { Snackbar.Add("Yüklendi.", Severity.Success); student.CurrentCredits += 1; }
+        }
+    }
+
+    // YENİ METOT: MANUEL DERS EKLEME
+    private async Task OpenManualBookingDialog(MyStudentDto student)
+    {
+        var parameters = new DialogParameters();
+        parameters.Add("StudentId", student.StudentId);
+        
+        // Mobilde Tam Ekran, Masaüstünde Normal
+        var options = new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true };
+        
+        var dialog = await DialogService.ShowAsync<ManualBookingDialog>("Manuel Ders", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            // Ders eklendi, listeleri güncelle
+            await LoadStudentLessons(student.StudentId);
+            await LoadStudents(); // Kredi düştüğü için bunu da yenile
         }
     }
 

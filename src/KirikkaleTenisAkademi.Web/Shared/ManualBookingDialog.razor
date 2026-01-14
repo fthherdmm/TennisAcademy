@@ -1,0 +1,190 @@
+﻿@using MudBlazor
+@using KirikkaleTenisAkademi.Web.Models
+@using System.Net.Http.Json
+@inject HttpClient HttpClient
+@inject ISnackbar Snackbar
+
+<MudDialog Class="mobile-dialog-fix">
+    <DialogContent>
+        <div class="d-flex align-center mb-4">
+            <MudIcon Icon="@Icons.Material.Filled.EventAvailable" Color="Color.Primary" Size="Size.Large" Class="mr-3"/>
+            <div>
+                <MudText Typo="Typo.h6" Style="font-weight: 700;">Manuel Ders Ekle</MudText>
+                <MudText Typo="Typo.body2" Class="text-muted">
+                    Öğrenci adına ders oluşturuyorsunuz.
+                </MudText>
+            </div>
+        </div>
+
+        <MudAlert Severity="Severity.Info" Class="mb-4 rounded-lg" Dense="true">
+            İlgili krediden 1 adet düşülecektir.
+        </MudAlert>
+
+        <MudGrid Spacing="2">
+            <MudItem xs="12">
+                <MudDatePicker Label="Tarih" 
+                               @bind-Date="SelectedDate" 
+                               MinDate="DateTime.Today" 
+                               Variant="Variant.Outlined" 
+                               Margin="Margin.Dense"
+                               Class="mb-1" />
+            </MudItem>
+
+            <MudItem xs="6">
+                <MudTimePicker Label="Başlangıç" 
+                               @bind-Time="SelectedTime" 
+                               Variant="Variant.Outlined" 
+                               Margin="Margin.Dense" 
+                               AmPm="false" />
+            </MudItem>
+            
+            <MudItem xs="6">
+                 <MudSelect T="int" 
+                            Label="Süre" 
+                            @bind-Value="DurationHours" 
+                            Variant="Variant.Outlined" 
+                            Margin="Margin.Dense" 
+                            AnchorOrigin="Origin.BottomCenter"
+                            TransformOrigin="Origin.TopCenter"
+                            OffsetY="true"
+                            LockScroll="true">
+                     <MudSelectItem Value="1">1 Saat</MudSelectItem>
+                     <MudSelectItem Value="2">2 Saat</MudSelectItem>
+                 </MudSelect>
+            </MudItem>
+
+            <MudItem xs="12">
+                <MudSelect T="string" 
+                           Label="Ders Tipi" 
+                           @bind-Value="LessonType" 
+                           Variant="Variant.Outlined" 
+                           Margin="Margin.Dense" 
+                           AnchorOrigin="Origin.BottomCenter"
+                           TransformOrigin="Origin.TopCenter"
+                           OffsetY="true"
+                           LockScroll="true">
+                    <MudSelectItem Value="@("Private")">Bireysel Özel Ders (1 Kredi)</MudSelectItem>
+                    <MudSelectItem Value="@("Group")">Grup Dersi (1 Grup Kredisi)</MudSelectItem>
+                </MudSelect>
+            </MudItem>
+            
+            @if(LessonType == "Group")
+            {
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="GroupTitle" 
+                                  Label="Grup Başlığı" 
+                                  Placeholder="Örn: Başlangıç Seviye Grubu" 
+                                  Variant="Variant.Outlined" 
+                                  Margin="Margin.Dense"/>
+                </MudItem>
+            }
+        </MudGrid>
+
+    </DialogContent>
+    
+    <DialogActions>
+        <MudButton OnClick="Cancel" Variant="Variant.Text">Vazgeç</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit" StartIcon="@Icons.Material.Filled.Add" Class="rounded-lg">Dersi Oluştur</MudButton>
+    </DialogActions>
+</MudDialog>
+
+<style>
+    .text-muted { color: #757575; }
+    
+    /* --- KAYMAYI ÖNLEYEN KRİTİK CSS --- */
+    
+    /* 1. Masaüstü için standart genişlik */
+    .mobile-dialog-fix {
+        width: 500px; 
+        max-width: 100%;
+        overflow: visible !important; /* Dropdown'lar kesilmesin */
+    }
+
+    /* 2. MOBİL İÇİN BOTTOM SHEET GÖRÜNÜMÜ */
+    @@media (max-width: 600px) {
+        .mud-dialog-container {
+            align-items: flex-end !important; /* Dialog'u en alta yasla */
+            padding-bottom: 0 !important;
+        }
+
+        .mud-dialog.mobile-dialog-fix {
+            width: 100% !important;
+            max-width: 100% !important;
+            margin: 0 !important;
+            border-bottom-left-radius: 0 !important;
+            border-bottom-right-radius: 0 !important;
+            border-top-left-radius: 16px !important;
+            border-top-right-radius: 16px !important;
+            
+            /* Klavye açılınca yukarı kaymasın diye */
+            position: relative;
+            bottom: 0;
+            padding-bottom: 20px; /* iPhone alt çizgi payı */
+        }
+    }
+</style>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter] public string StudentId { get; set; } 
+
+    private DateTime? SelectedDate { get; set; } = DateTime.Today.AddDays(1);
+    private TimeSpan? SelectedTime { get; set; } = new TimeSpan(10, 0, 0); 
+    private int DurationHours { get; set; } = 1;
+    private string LessonType { get; set; } = "Private";
+    private string GroupTitle { get; set; } = "";
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task Submit()
+    {
+        if (SelectedDate == null || SelectedTime == null)
+        {
+            Snackbar.Add("Lütfen tarih ve saat seçiniz.", Severity.Warning);
+            return;
+        }
+
+        var startDateTime = SelectedDate.Value.Date + SelectedTime.Value;
+        var endDateTime = startDateTime.AddHours(DurationHours);
+
+        var request = new CoachManualBookingDto
+        {
+            StudentId = StudentId,
+            StartTime = startDateTime,
+            EndTime = endDateTime,
+            Type = LessonType,
+            Title = LessonType == "Group" ? GroupTitle : null
+        };
+
+        try
+        {
+            var response = await HttpClient.PostAsJsonAsync("api/Coach/manual-book", request);
+            
+            if (response.IsSuccessStatusCode)
+            {
+                Snackbar.Add("Ders başarıyla oluşturuldu!", Severity.Success);
+                MudDialog.Close(DialogResult.Ok(true));
+            }
+            else
+            {
+                var msg = await response.Content.ReadAsStringAsync();
+                if (msg.Contains("{")) msg = "İşlem başarısız (Çakışma veya Yetersiz Kredi).";
+                Snackbar.Add(msg, Severity.Error);
+            }
+        }
+        catch
+        {
+            Snackbar.Add("Sunucu hatası.", Severity.Error);
+        }
+    }
+
+    public class CoachManualBookingDto
+    {
+        public string StudentId { get; set; }
+        public DateTime StartTime { get; set; }
+        public DateTime EndTime { get; set; }
+        public string Type { get; set; }
+        public string? Title { get; set; }
+    }
+}
