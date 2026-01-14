@@ -140,14 +140,22 @@ namespace KirikkaleTenisAkademi.API.Controllers
             var user = await _userManager.FindByIdAsync(model.UserId);
             if (user == null) return BadRequest("Kullanıcı bulunamadı.");
 
-            var result = await _userManager.ConfirmEmailAsync(user, model.Token);
+            // 🔥 KRİTİK DÜZELTME:
+            // URL'den gelirken '+' karakterleri bazen ' ' (boşluk) olarak gelir.
+            // Base64 tokenlarında boşluk olmaz, bu yüzden onları '+' ile değiştiriyoruz.
+            var fixedToken = model.Token.Replace(" ", "+");
+
+            var result = await _userManager.ConfirmEmailAsync(user, fixedToken);
             
             if (result.Succeeded)
             {
                 return Ok(new { message = "E-posta başarıyla doğrulandı! Artık giriş yapabilirsiniz." });
             }
             
-            return BadRequest("Doğrulama başarısız. Token süresi dolmuş olabilir.");
+            // Hata detayını loglayabilir veya görebilirsin (Geliştirme aşamasında)
+            // var errors = string.Join(", ", result.Errors.Select(e => e.Description));
+            
+            return BadRequest("Doğrulama başarısız. Token süresi dolmuş veya link bozuk olabilir.");
         }
 
         // --- LOGIN (GİRİŞ YAP) ---
