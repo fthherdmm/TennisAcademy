@@ -6,12 +6,20 @@
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
 
-<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-8 mb-8">
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mb-16 page-container">
 
-    <div class="mb-4">
-        <MudText Typo="Typo.h4" Color="Color.Primary" Style="font-weight: 800;">👥 Kullanıcı Yönetimi</MudText>
-        <MudText Typo="Typo.body2" Class="text-muted">Tüm kullanıcıların detaylı listesi.</MudText>
+    <div class="mb-4 header-section">
+        <MudText Typo="Typo.h4" Color="Color.Primary" Style="font-weight: 800;" Class="page-title">👥 Kullanıcı Yönetimi</MudText>
+        <MudText Typo="Typo.body2" Class="text-muted page-subtitle">Tüm kayıtlı kullanıcıların listesi.</MudText>
     </div>
+
+    <MudTextField @bind-Value="searchString"
+                  Placeholder="Ara (İsim, TC, Telefon, Email...)"
+                  Adornment="Adornment.Start"
+                  AdornmentIcon="@Icons.Material.Filled.Search"
+                  Variant="Variant.Outlined"
+                  Margin="Margin.Dense"
+                  Class="mb-4 bg-white rounded-lg"/>
 
     @if (users == null)
     {
@@ -19,87 +27,158 @@
     }
     else
     {
-    <MudPaper Elevation="4" Class="rounded-xl overflow-hidden">
-        <MudTable Items="@users" Hover="true" Striped="true" Filter="new Func<UserProfileDto,bool>(FilterFunc)" Dense="true">
-            <ToolBarContent>
-                <MudText Typo="Typo.h6" Color="Color.Primary">Kayıtlı Kişiler</MudText>
-                <MudSpacer />
-                <MudTextField @bind-Value="searchString" Placeholder="Ara (İsim, TC, Tel...)" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" Margin="Margin.Dense" Variant="Variant.Outlined"/>
-            </ToolBarContent>
+    <MudHidden Breakpoint="Breakpoint.SmAndDown">
+        <MudPaper Elevation="4" Class="rounded-xl overflow-hidden">
+            <MudTable Items="@FilteredUsers" Hover="true" Striped="true" Dense="true" Elevation="0">
+                <HeaderContent>
+                    <MudTh>TC Kimlik</MudTh>
+                    <MudTh>Ad Soyad</MudTh>
+                    <MudTh>İletişim</MudTh>
+                    <MudTh>Fiziksel</MudTh>
+                    <MudTh>Roller</MudTh>
+                    <MudTh Style="text-align:center">İşlemler</MudTh>
+                </HeaderContent>
 
-            <HeaderContent>
-                <MudTh>TC Kimlik</MudTh>
-                <MudTh>Ad Soyad</MudTh>
-                <MudTh>İletişim</MudTh>
-                <MudTh>Fiziksel</MudTh> <MudTh>Roller</MudTh>
-                <MudTh Style="text-align:center">İşlemler</MudTh>
-            </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="TCKN">
+                        <MudChip T="string" Variant="Variant.Text" Size="Size.Small" Color="Color.Default">@context.TCKN</MudChip>
+                    </MudTd>
 
-            <RowTemplate>
-                <MudTd DataLabel="TCKN">
-                    <MudChip T="string" Variant="Variant.Text" Size="Size.Small" Color="Color.Default">@context.TCKN</MudChip>
-                </MudTd>
-
-                <MudTd DataLabel="Ad Soyad">
-                    <div class="d-flex flex-column">
-                        <span style="font-weight:600">@context.FullName</span>
-                        <span style="font-size: 0.75rem; color: #757575;">@context.UserName</span>
-                    </div>
-                </MudTd>
-
-                <MudTd DataLabel="İletişim">
-                    <div class="d-flex flex-column">
-                        <div class="d-flex align-center gap-1">
-                            <MudIcon Icon="@Icons.Material.Filled.Phone" Size="Size.Small" style="font-size:14px; color:gray"/>
-                            <span style="font-size: 0.85rem">@context.PhoneNumber</span>
+                    <MudTd DataLabel="Ad Soyad">
+                        <div class="d-flex flex-column">
+                            <span style="font-weight:600">@context.FullName</span>
+                            <span style="font-size: 0.75rem; color: #757575;">@context.UserName</span>
                         </div>
-                        <div class="d-flex align-center gap-1">
-                            <MudIcon Icon="@Icons.Material.Filled.Email" Size="Size.Small" style="font-size:14px; color:gray"/>
-                            <span style="font-size: 0.85rem">@context.Email</span>
+                    </MudTd>
+
+                    <MudTd DataLabel="İletişim">
+                        <div class="d-flex flex-column">
+                            <div class="d-flex align-center gap-1">
+                                <MudIcon Icon="@Icons.Material.Filled.Phone" Size="Size.Small" style="font-size:14px; color:gray"/>
+                                <span style="font-size: 0.85rem">@context.PhoneNumber</span>
+                            </div>
+                            <div class="d-flex align-center gap-1">
+                                <MudIcon Icon="@Icons.Material.Filled.Email" Size="Size.Small" style="font-size:14px; color:gray"/>
+                                <span style="font-size: 0.85rem">@context.Email</span>
+                            </div>
+                        </div>
+                    </MudTd>
+
+                    <MudTd DataLabel="Fiziksel">
+                        @if(context.Height > 0 || context.Weight > 0)
+                        {
+                        <span style="font-size: 0.85rem">@context.Height cm / @context.Weight kg</span>
+                        }
+                        else
+                        {
+                        <span style="color:#ccc">-</span>
+                        }
+                    </MudTd>
+
+                    <MudTd DataLabel="Roller">
+                        @foreach (var role in context.Roles)
+                        {
+                        <MudChip T="string" Color="@GetRoleColor(role)" Size="Size.Small" Class="mr-1">@role</MudChip>
+                        }
+                    </MudTd>
+
+                    <MudTd DataLabel="İşlemler" Style="text-align:center">
+                        <MudTooltip Text="Detaylı İncele">
+                            <MudIconButton Icon="@Icons.Material.Filled.Info" Color="Color.Info" Size="Size.Small" OnClick="@(() => ShowUserDetail(context))" />
+                        </MudTooltip>
+                        <MudTooltip Text="Sil">
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => DeleteUser(context))" />
+                        </MudTooltip>
+                    </MudTd>
+                </RowTemplate>
+                <PagerContent><MudTablePager /></PagerContent>
+            </MudTable>
+        </MudPaper>
+    </MudHidden>
+
+    <MudHidden Breakpoint="Breakpoint.MdAndUp">
+        <div class="d-flex flex-column gap-3">
+            @foreach (var user in FilteredUsers)
+            {
+            <MudPaper Elevation="2" Class="pa-4 rounded-xl d-flex flex-column gap-2">
+                <div class="d-flex justify-space-between align-start">
+                    <div class="d-flex align-center gap-3">
+                        <MudAvatar Color="Color.Primary" Size="Size.Medium">
+                            @(user.FullName?.FirstOrDefault().ToString() ?? "U")
+                        </MudAvatar>
+                        <div>
+                            <MudText Typo="Typo.subtitle1" Class="fw-bold">@user.FullName</MudText>
+                            <MudText Typo="Typo.caption" Class="text-muted">@user.TCKN</MudText>
                         </div>
                     </div>
-                </MudTd>
+                </div>
 
-                <MudTd DataLabel="Fiziksel">
-                    @if(context.Height > 0 || context.Weight > 0)
-                    {
-                    <span style="font-size: 0.85rem">Boy: @context.Height cm / Kilo: @context.Weight kg</span>
-                    }
-                    else
-                    {
-                    <span style="color:#ccc">-</span>
-                    }
-                </MudTd>
+                <MudDivider Class="my-1"/>
 
-                <MudTd DataLabel="Roller">
-                    @foreach (var role in context.Roles)
-                    {
-                    <MudChip T="string" Color="@GetRoleColor(role)" Size="Size.Small" Class="mr-1">@role</MudChip>
-                    }
-                </MudTd>
+                <div class="d-flex flex-column gap-1">
+                    <div class="d-flex align-center gap-2">
+                        <MudIcon Icon="@Icons.Material.Filled.Phone" Size="Size.Small" Color="Color.Default"/>
+                        <MudText Typo="Typo.body2">@user.PhoneNumber</MudText>
+                    </div>
+                    <div class="d-flex align-center gap-2">
+                        <MudIcon Icon="@Icons.Material.Filled.Email" Size="Size.Small" Color="Color.Default"/>
+                        <MudText Typo="Typo.body2" Style="word-break: break-all;">@user.Email</MudText>
+                    </div>
+                </div>
 
-                <MudTd DataLabel="İşlemler" Style="text-align:center">
-                    <MudTooltip Text="Detaylı İncele">
-                        <MudIconButton Icon="@Icons.Material.Filled.Info" Color="Color.Info" Size="Size.Small" OnClick="@(() => ShowUserDetail(context))" />
-                    </MudTooltip>
-                    <MudTooltip Text="Sil">
-                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => DeleteUser(context))" />
-                    </MudTooltip>
-                </MudTd>
-            </RowTemplate>
+                <div class="d-flex justify-space-between align-center mt-2 pa-2 rounded-lg" style="background-color: #f9f9f9;">
+                    <div class="d-flex gap-1 flex-wrap">
+                        @foreach (var role in user.Roles)
+                        {
+                        <MudChip T="string" Color="@GetRoleColor(role)" Size="Size.Small" Variant="Variant.Text" Class="ma-0">@role</MudChip>
+                        }
+                    </div>
 
-            <PagerContent>
-                <MudTablePager />
-            </PagerContent>
-        </MudTable>
-    </MudPaper>
+                    <div class="d-flex">
+                        <MudIconButton Icon="@Icons.Material.Filled.Info" Color="Color.Info" Size="Size.Small" OnClick="@(() => ShowUserDetail(user))" />
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => DeleteUser(user))" />
+                    </div>
+                </div>
+            </MudPaper>
+            }
+
+            @if (!FilteredUsers.Any())
+            {
+            <MudAlert Severity="Severity.Info">Kullanıcı bulunamadı.</MudAlert>
+            }
+        </div>
+    </MudHidden>
     }
 </MudContainer>
 
+<style>
+    .page-container { margin-top: 120px; }
+    .bg-white { background-color: white !important; }
+    .fw-bold { font-weight: 700 !important; }
+
+    /* --- MOBİL UYUMLULUK --- */
+    @@media (max-width: 960px) {
+        .page-container { margin-top: 80px !important; }
+        .page-title { font-size: 1.5rem !important; }
+        .page-subtitle { font-size: 0.9rem !important; }
+    }
+</style>
+
 @code {
-// Listemiz artık UserProfileDto tipinde
 private List<UserProfileDto>? users;
 private string searchString = "";
+
+// Arama Mantığı (Hem Masaüstü Hem Mobil İçin Ortak)
+private IEnumerable<UserProfileDto> FilteredUsers =>
+users?.Where(element =>
+{
+if (string.IsNullOrWhiteSpace(searchString)) return true;
+if (element.FullName?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
+if (element.Email?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
+if (element.PhoneNumber?.Contains(searchString) == true) return true;
+if (element.TCKN?.Contains(searchString) == true) return true;
+return false;
+}) ?? Enumerable.Empty<UserProfileDto>();
 
 protected override async Task OnInitializedAsync()
 {
@@ -131,14 +210,14 @@ _ => Color.Default
 
 private void ShowUserDetail(UserProfileDto user)
 {
-// Elimizde zaten tüm veriler var (UserProfileDto sayesinde), direkt gösterebiliriz.
-string info = $"Doğum Tarihi: {user.BirthDate?.ToString("dd.MM.yyyy") ?? "Yok"}\n\n" +
-$"Seviye: {user.Level}\n" +
-$"El: {user.DominantHand}\n" +
-$"Backhand: {user.BackhandStyle}\n\n" +
-$"Acil Durum: {user.EmergencyContactName} ({user.EmergencyContactPhone})";
+string info =
+$"🎂 Doğum Tarihi: {user.BirthDate?.ToString("dd.MM.yyyy") ?? "Yok"}\n" +
+$"📏 Boy/Kilo: {user.Height} cm / {user.Weight} kg\n" +
+$"🎾 Seviye: {user.Level}\n" +
+$"🖐️ El: {user.DominantHand} ({user.BackhandStyle})\n\n" +
+$"🚑 Acil Durum:\n{user.EmergencyContactName} - {user.EmergencyContactPhone}";
 
-DialogService.ShowMessageBox($"{user.FullName} - Detaylar", info, yesText:"Kapat");
+DialogService.ShowMessageBox($"{user.FullName}", info, yesText:"Tamam");
 }
 
 private async Task DeleteUser(UserProfileDto user)
@@ -162,15 +241,5 @@ else
 Snackbar.Add("Silme işlemi başarısız.", Severity.Error);
 }
 }
-}
-
-private bool FilterFunc(UserProfileDto element)
-{
-if (string.IsNullOrWhiteSpace(searchString)) return true;
-if (element.FullName?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
-if (element.Email?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
-if (element.PhoneNumber?.Contains(searchString) == true) return true;
-if (element.TCKN?.Contains(searchString) == true) return true;
-return false;
 }
 }

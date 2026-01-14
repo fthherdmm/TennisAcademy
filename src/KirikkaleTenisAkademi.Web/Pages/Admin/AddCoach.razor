@@ -7,19 +7,19 @@
 @inject ISnackbar Snackbar
 @inject NavigationManager Navigation
 
-<MudContainer MaxWidth="MaxWidth.Medium" Class="mb-8" Style="margin-top: 120px;">
+<MudContainer MaxWidth="MaxWidth.Medium" Class="mb-16 page-container">
 
-    <div class="d-flex align-center gap-4 mb-6">
-        <MudAvatar Color="Color.Primary" Variant="Variant.Filled" Size="Size.Large">
+    <div class="d-flex align-center gap-4 mb-6 header-section">
+        <MudAvatar Color="Color.Primary" Variant="Variant.Filled" Size="Size.Large" Class="page-icon">
             <MudIcon Icon="@Icons.Material.Filled.PersonAdd" Size="Size.Medium" />
         </MudAvatar>
         <div>
-            <MudText Typo="Typo.h4" Style="font-weight: 800;">Yeni Eğitmen Ekle</MudText>
-            <MudText Typo="Typo.body2" Class="text-muted">Akademi kadrosuna yeni bir profesyonel dahil edin.</MudText>
+            <MudText Typo="Typo.h4" Style="font-weight: 800;" Class="page-title">Yeni Eğitmen Ekle</MudText>
+            <MudText Typo="Typo.body2" Class="text-muted page-subtitle">Akademi kadrosuna yeni bir profesyonel dahil edin.</MudText>
         </div>
     </div>
 
-    <MudCard Elevation="4" Class="rounded-xl pa-4">
+    <MudCard Elevation="4" Class="rounded-xl pa-6 form-card">
         <EditForm Model="@coachModel" OnValidSubmit="HandleCreateCoach">
             <DataAnnotationsValidator />
 
@@ -28,17 +28,17 @@
                 <MudItem xs="12" Class="d-flex justify-center mb-4">
                     <MudFileUpload T="IBrowserFile" FilesChanged="UploadFiles">
                         <ActivatorContent>
-                            <div class="d-flex flex-column align-center cursor-pointer">
+                            <div class="d-flex flex-column align-center cursor-pointer upload-area hover-scale">
                                 @if (string.IsNullOrEmpty(coachModel.ImageUrl))
                                 {
-                                <MudAvatar Style="height:120px; width:120px; font-size:2rem;" Color="Color.Default" Variant="Variant.Outlined">
+                                <MudAvatar Style="height:100px; width:100px; font-size:2rem;" Color="Color.Default" Variant="Variant.Outlined" Class="upload-avatar">
                                     <MudIcon Icon="@Icons.Material.Filled.CloudUpload" />
                                 </MudAvatar>
-                                <MudText Typo="Typo.caption" Class="mt-2 text-muted">Fotoğraf Yükle</MudText>
+                                <MudText Typo="Typo.caption" Class="mt-2 text-muted fw-bold">Fotoğraf Seç</MudText>
                                 }
                                 else
                                 {
-                                <MudAvatar Image="@coachModel.ImageUrl" Style="height:120px; width:120px;" Class="elevation-4" />
+                                <MudAvatar Image="@coachModel.ImageUrl" Style="height:100px; width:100px;" Class="elevation-4 upload-avatar" />
                                 <MudChip T="string" Color="Color.Success" Size="Size.Small" Class="mt-2" Icon="@Icons.Material.Filled.Check">Yüklendi</MudChip>
                                 }
                             </div>
@@ -69,23 +69,23 @@
 
                 <MudItem xs="12">
                     <MudTextField Label="Uzmanlık Alanı" @bind-Value="coachModel.Specialty" Variant="Variant.Outlined" Margin="Margin.Dense"
-                                  Placeholder="Örn: Performans Tenisi, Çocuk Gelişimi, Kondisyon..."
+                                  Placeholder="Örn: Performans Tenisi"
                                   Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Star"
                                   For="@(() => coachModel.Specialty)" />
                 </MudItem>
 
                 <MudItem xs="12">
                     <MudTextField Label="Biyografi / Hakkında" @bind-Value="coachModel.Bio" Variant="Variant.Outlined" Lines="4" Margin="Margin.Dense"
-                                  Placeholder="Eğitmenin geçmişi ve başarıları hakkında kısa bilgi..." />
+                                  Placeholder="Eğitmenin geçmişi..." />
                 </MudItem>
 
-                <MudItem xs="12" Class="d-flex justify-end mt-4">
+                <MudItem xs="12" Class="d-flex justify-end mt-4 action-button-container">
                     <MudButton ButtonType="ButtonType.Submit"
                                Variant="Variant.Filled"
                                Color="Color.Primary"
                                Size="Size.Large"
                                StartIcon="@Icons.Material.Filled.Save"
-                               Class="rounded-pill px-8">
+                               Class="rounded-pill px-8 w-100-mobile">
                         EĞİTMENİ KAYDET
                     </MudButton>
                 </MudItem>
@@ -93,6 +93,46 @@
         </EditForm>
     </MudCard>
 </MudContainer>
+
+<style>
+    /* Masaüstü Varsayılanları */
+    .page-container { margin-top: 120px; }
+    .text-muted { color: #6c757d; }
+    .fw-bold { font-weight: 700; }
+    .hover-scale { transition: transform 0.2s; }
+    .hover-scale:hover { transform: scale(1.05); }
+
+    /* --- 🔥 MOBİL OPERASYONU 🔥 --- */
+    @@media (max-width: 960px) {
+        .page-container { margin-top: 80px !important; }
+
+        /* Başlıklar */
+        .page-title { font-size: 1.5rem !important; }
+        .page-subtitle { font-size: 0.9rem !important; }
+        .header-section { margin-bottom: 1.5rem !important; }
+        .page-icon { width: 48px !important; height: 48px !important; }
+
+        /* Kart İçeriği */
+        .form-card {
+            padding: 1.5rem !important; /* pa-4 yerine daha rahat boşluk */
+        }
+
+        /* Fotoğraf Yükleme */
+        .upload-avatar {
+            width: 80px !important; height: 80px !important;
+        }
+
+        /* Buton Alanı */
+        .action-button-container {
+            justify-content: center !important; /* Sağa yaslama, ortala */
+        }
+
+        .w-100-mobile {
+            width: 100% !important; /* Tam genişlik */
+            padding: 12px !important;
+        }
+    }
+</style>
 
 @code {
 private CreateCoachDto coachModel = new();
@@ -127,8 +167,6 @@ var response = await Http.PostAsJsonAsync("api/Admin/create-coach", coachModel);
 if (response.IsSuccessStatusCode)
 {
 Snackbar.Add($"{coachModel.FirstName} {coachModel.LastName} başarıyla eklendi! 🎉", Severity.Success);
-
-// Formu temizle
 coachModel = new CreateCoachDto();
 }
 else
@@ -137,7 +175,7 @@ var error = await response.Content.ReadAsStringAsync();
 Snackbar.Add($"Hata oluştu: {error}", Severity.Error);
 }
 }
-catch (Exception ex)
+catch (Exception)
 {
 Snackbar.Add("Sunucuya ulaşılamadı.", Severity.Error);
 }

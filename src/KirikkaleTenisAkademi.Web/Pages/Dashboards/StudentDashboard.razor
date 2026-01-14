@@ -1,28 +1,51 @@
 ﻿@inject NavigationManager Navigation
 
-<MudContainer MaxWidth="MaxWidth.Large" Class="mt-10">
-    <div class="d-flex justify-between align-center mb-6">
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-8 page-container">
+    <div class="d-flex justify-between align-center mb-6 header-section">
         <div>
-            <MudText Typo="Typo.h3">Hazır mısın?</MudText>
-            <MudText Typo="Typo.subtitle1" Color="Color.Secondary">Raketini kap, korta çık.</MudText>
+            <MudText Typo="Typo.h3" Class="page-title">Hazır mısın?</MudText>
+            <MudText Typo="Typo.subtitle1" Color="Color.Secondary" Class="page-subtitle">Raketini kap, korta çık.</MudText>
         </div>
     </div>
 
     <MudGrid>
         <MudItem xs="12" md="6">
-            <MudPaper Class="pa-8 d-flex flex-column justify-center" Height="250px" Elevation="4" Style="background: linear-gradient(45deg, #2E7D32, #66BB6A); color: white;">
-                <MudText Typo="Typo.h4" Class="mb-4">Yeni Bir Ders Al</MudText>
-                <MudText Typo="Typo.body1" Class="mb-6">Uzman eğitmenlerimiz seni bekliyor.</MudText>
-                <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Large" OnClick="@(() => Navigation.NavigateTo("/coaches"))">Eğitmenleri İncele</MudButton>
+            <MudPaper Class="pa-6 d-flex flex-column justify-center action-card" Height="250px" Elevation="4" Style="background: linear-gradient(45deg, #2E7D32, #66BB6A); color: white;">
+                <MudText Typo="Typo.h4" Class="mb-2 card-title">Yeni Bir Ders Al</MudText>
+                <MudText Typo="Typo.body1" Class="mb-6 card-desc" Style="opacity:0.9">Uzman eğitmenlerimiz seni bekliyor.</MudText>
+                <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Large" OnClick="@(() => Navigation.NavigateTo("/coaches"))" Class="rounded-pill px-8 w-100-mobile">Eğitmenleri İncele</MudButton>
             </MudPaper>
         </MudItem>
 
         <MudItem xs="12" md="6">
-            <MudPaper Class="pa-8" Height="250px" Elevation="4">
-                <MudText Typo="Typo.h5" Color="Color.Primary" Class="mb-4">Ders Programım</MudText>
+            <MudPaper Class="pa-6 d-flex flex-column justify-center action-card" Height="250px" Elevation="4">
+                <MudText Typo="Typo.h5" Color="Color.Primary" Class="mb-4 card-title-secondary">Ders Programım</MudText>
                 <MudAlert Severity="Severity.Info" Class="mb-4">Planlanmış derslerinizi görmek için tıklayın.</MudAlert>
-                <MudButton Variant="Variant.Outlined" Color="Color.Primary" FullWidth="true" Href="/my-bookings">Derslerime Git</MudButton>
+                <MudButton Variant="Variant.Outlined" Color="Color.Primary" FullWidth="true" Href="/my-bookings" Class="rounded-pill border-2">Derslerime Git</MudButton>
             </MudPaper>
         </MudItem>
     </MudGrid>
 </MudContainer>
+
+<style>
+    /* --- 🔥 MOBİL UYUMLULUK 🔥 --- */
+    @@media (max-width: 960px) {
+        .page-container { margin-top: 80px !important; }
+
+        .page-title { font-size: 2rem !important; }
+        .page-subtitle { font-size: 1rem !important; }
+        .header-section { margin-bottom: 1.5rem !important; }
+
+        .action-card {
+            height: auto !important; /* Yükseklik serbest bırakıldı */
+            padding: 1.5rem !important;
+            margin-bottom: 1rem;
+        }
+
+        .card-title { font-size: 1.5rem !important; }
+        .card-title-secondary { font-size: 1.25rem !important; font-weight: 700; }
+        .card-desc { font-size: 0.9rem !important; }
+
+        .w-100-mobile { width: 100% !important; }
+    }
+</style>

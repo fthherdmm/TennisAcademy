@@ -4,23 +4,23 @@
 @inject HttpClient HttpClient
 @inject ISnackbar Snackbar
 
-<MudDialog>
+<MudDialog Class="mobile-dialog-fix">
     <DialogContent>
         <div class="d-flex align-center mb-4">
             <MudIcon Icon="@Icons.Material.Filled.EventBusy" Color="Color.Error" Size="Size.Large" Class="mr-3"/>
             <div>
-                <MudText Typo="Typo.h6">Zamanı Kapat</MudText>
+                <MudText Typo="Typo.h6" Style="font-weight: 700;">Zamanı Kapat</MudText>
                 <MudText Typo="Typo.body2" Class="text-muted">
                     @SelectedDate.ToString("d MMMM dddd", new System.Globalization.CultureInfo("tr-TR"))
                 </MudText>
             </div>
         </div>
 
-        <MudAlert Severity="Severity.Warning" Class="mb-4" Dense="true">
-            Seçilen saat aralığı öğrenci rezervasyonuna kapatılacaktır.
+        <MudAlert Severity="Severity.Warning" Class="mb-4 rounded-lg" Dense="true">
+            Seçilen saat öğrenci rezervasyonuna kapanacaktır.
         </MudAlert>
 
-        <MudGrid>
+        <MudGrid Spacing="2">
             <MudItem xs="6">
                  <MudTextField Value="@SelectedDate.ToString("HH:00")" Label="Başlangıç" ReadOnly="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
             </MudItem>
@@ -29,7 +29,15 @@
             </MudItem>
         </MudGrid>
 
-        <MudSelect T="int" Label="Kapatılacak Süre" @bind-Value="DurationHours" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter" Class="mt-4">
+        <MudSelect T="int" 
+                   Label="Kapatılacak Süre" 
+                   @bind-Value="DurationHours" 
+                   Variant="Variant.Outlined" 
+                   AnchorOrigin="Origin.BottomCenter" 
+                   TransformOrigin="Origin.TopCenter"
+                   Class="mt-4"
+                   OffsetY="true"
+                   Dense="true">
             <MudSelectItem Value="1">1 Saat</MudSelectItem>
             <MudSelectItem Value="2">2 Saat</MudSelectItem>
             <MudSelectItem Value="3">3 Saat</MudSelectItem>
@@ -38,21 +46,45 @@
             <MudSelectItem Value="8">Tüm Gün (8 Saat)</MudSelectItem>
         </MudSelect>
 
-        <MudTextField @bind-Value="Reason" Label="Sebep (Opsiyonel)" Placeholder="Örn: Dinlenme, Özel Ders, Bakım" Lines="2" Variant="Variant.Outlined" Class="mt-4" />
+        <MudTextField @bind-Value="Reason" 
+                      Label="Sebep (Opsiyonel)" 
+                      Placeholder="Örn: Dinlenme, Özel İş" 
+                      Variant="Variant.Outlined" 
+                      Class="mt-4"
+                      Margin="Margin.Dense" />
     </DialogContent>
     
     <DialogActions>
-        <MudButton OnClick="Cancel">Vazgeç</MudButton>
-        <MudButton Color="Color.Error" Variant="Variant.Filled" OnClick="Submit" StartIcon="@Icons.Material.Filled.Block">Onayla ve Kapat</MudButton>
+        <MudButton OnClick="Cancel" Variant="Variant.Text">Vazgeç</MudButton>
+        <MudButton Color="Color.Error" Variant="Variant.Filled" OnClick="Submit" StartIcon="@Icons.Material.Filled.Block" Class="rounded-lg">Kapat</MudButton>
     </DialogActions>
 </MudDialog>
 
 <style>
     .text-muted { color: #757575; }
+    
+    /* Dialog Kaymasını Önleyen CSS */
+    .mobile-dialog-fix {
+        overflow: visible !important; /* Dropdown taşabilsin */
+    }
+
+    /* Mobilde Klavye Açılınca Ekranın Bozulmasını Önle */
+    @@media (max-width: 600px) {
+        .mud-dialog-container {
+            align-items: flex-end !important; /* Mobilde aşağıya yasla (daha kolay kullanım) */
+            padding-bottom: 20px;
+        }
+        
+        .mud-dialog {
+            width: 95% !important;
+            max-width: 95% !important;
+            margin: 0 auto;
+            border-radius: 16px !important;
+        }
+    }
 </style>
 
 @code {
-    // MudBlazor v7 uyumlu Interface kullanımı
     [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
 
     [Parameter] public DateTime SelectedDate { get; set; }
@@ -64,10 +96,6 @@
 
     private async Task Submit()
     {
-        // ÖNEMLİ: Burada .ToUniversalTime() KULLANMIYORUZ.
-        // Backend'de yazdığımız yeni kod (TimeZoneInfo), gelen saati "Türkiye Saati" kabul edip
-        // kendisi UTC'ye çevirip kaydedecek.
-        
         var request = new BlockTimeRequest
         {
             StartTime = SelectedDate,
@@ -81,23 +109,18 @@
             
             if (response.IsSuccessStatusCode)
             {
-                // Başarılı
                 MudDialog.Close(DialogResult.Ok(true));
             }
             else
             {
-                // Backend'den gelen hatayı oku (Örn: "Geçmiş tarih" veya "Ders var")
                 var msg = await response.Content.ReadAsStringAsync();
-                
-                // Gelen mesaj bazen JSON objesi olabilir, temizleyelim
-                if (msg.Contains("{")) msg = "İşlem başarısız (Çakışma veya Hatalı Saat).";
-                
+                if (msg.Contains("{")) msg = "İşlem başarısız.";
                 Snackbar.Add(msg, Severity.Error);
             }
         }
         catch
         {
-            Snackbar.Add("Sunucuya erişilemiyor.", Severity.Error);
+            Snackbar.Add("Sunucu hatası.", Severity.Error);
         }
     }
 }

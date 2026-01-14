@@ -1,93 +1,106 @@
 ﻿@page "/admin/add-packet"
 @using KirikkaleTenisAkademi.Domain.Entities
 @using KirikkaleTenisAkademi.Domain.Enums
-@using KirikkaleTenisAkademi.Web.Models 
+@using KirikkaleTenisAkademi.Web.Models
 @using Microsoft.AspNetCore.Authorization
 @attribute [Authorize(Roles = "Admin")]
 @inject HttpClient Http
 @inject ISnackbar Snackbar
 @inject NavigationManager Navigation
 
-<MudContainer MaxWidth="MaxWidth.Medium" Class="mb-16" Style="margin-top: 120px;">
-    
-    <MudText Typo="Typo.h4" Color="Color.Primary" Class="mb-4 fw-bold">Yeni Paket Oluştur</MudText>
-    <MudText Typo="Typo.body1" Class="mb-6">Kullanıcıların satın alabileceği yeni bir ders kredisi paketi tanımlayın.</MudText>
+<MudContainer MaxWidth="MaxWidth.Medium" Class="mb-16 page-container">
 
-    <MudCard Elevation="3" Class="pa-4 rounded-lg">
+    <div class="mb-6 header-section">
+        <MudText Typo="Typo.h4" Color="Color.Primary" Class="mb-2 fw-bold page-title">Yeni Paket Oluştur</MudText>
+        <MudText Typo="Typo.body1" Class="text-muted page-subtitle">Kullanıcıların satın alabileceği yeni bir ders paketi tanımlayın.</MudText>
+    </div>
+
+    <MudCard Elevation="4" Class="pa-6 rounded-xl form-card">
         <MudForm @ref="form" @bind-IsValid="@success">
             <MudGrid>
-                
+
                 <MudItem xs="12">
-                    <MudSelect T="LessonType" 
-                               Label="Paket Türü" 
-                               @bind-Value="packet.Type" 
-                               Variant="Variant.Outlined" 
+                    <MudSelect T="LessonType"
+                               Label="Paket Türü"
+                               @bind-Value="packet.Type"
+                               Variant="Variant.Outlined"
                                AnchorOrigin="Origin.BottomCenter"
+                               TransformOrigin="Origin.TopCenter"
                                AdornmentIcon="@Icons.Material.Filled.Category"
-                               AdornmentColor="Color.Primary">
+                               AdornmentColor="Color.Primary"
+                               Margin="Margin.Dense">
                         <MudSelectItem Value="LessonType.Private">
                             <div class="d-flex align-center">
-                                <MudIcon Icon="@Icons.Material.Filled.Person" Class="mr-2"/> Bireysel Özel Ders
+                                <MudIcon Icon="@Icons.Material.Filled.Person" Class="mr-2 icon-small"/> Bireysel Özel Ders
                             </div>
                         </MudSelectItem>
                         <MudSelectItem Value="LessonType.Group">
                             <div class="d-flex align-center">
-                                <MudIcon Icon="@Icons.Material.Filled.Groups" Class="mr-2"/> Grup Dersi (Klinik)
+                                <MudIcon Icon="@Icons.Material.Filled.Groups" Class="mr-2 icon-small"/> Grup Dersi (Klinik)
                             </div>
                         </MudSelectItem>
                     </MudSelect>
                 </MudItem>
 
                 <MudItem xs="12">
-                    <MudTextField @bind-Value="packet.Name" 
-                                  Label="Paket Adı" 
-                                  Variant="Variant.Outlined" 
-                                  Required="true" 
+                    <MudTextField @bind-Value="packet.Name"
+                                  Label="Paket Adı"
+                                  Variant="Variant.Outlined"
+                                  Required="true"
                                   RequiredError="Paket adı zorunludur!"
-                                  Adornment="Adornment.Start" 
-                                  AdornmentIcon="@Icons.Material.Filled.Label" />
+                                  Adornment="Adornment.Start"
+                                  AdornmentIcon="@Icons.Material.Filled.Label"
+                                  Margin="Margin.Dense" />
                 </MudItem>
 
                 <MudItem xs="12">
-                    <MudTextField @bind-Value="packet.Description" 
-                                  Label="Açıklama" 
-                                  Variant="Variant.Outlined" 
+                    <MudTextField @bind-Value="packet.Description"
+                                  Label="Açıklama"
+                                  Variant="Variant.Outlined"
                                   Lines="3"
-                                  HelperText="Paketin içeriği hakkında kısa bilgi (Örn: 1 Ay geçerli)" />
+                                  HelperText="Paketin içeriği hakkında kısa bilgi."
+                                  Margin="Margin.Dense" />
                 </MudItem>
 
-                <MudItem xs="12" sm="6">
-                    <MudNumericField @bind-Value="packet.Price" 
-                                     Label="Fiyat (TL)" 
-                                     Variant="Variant.Outlined" 
-                                     Adornment="Adornment.Start" 
-                                     AdornmentIcon="@Icons.Material.Filled.AttachMoney" 
-                                     Min="0" />
+                <MudItem xs="6">
+                    <MudNumericField @bind-Value="packet.Price"
+                                     Label="Fiyat (TL)"
+                                     Variant="Variant.Outlined"
+                                     Adornment="Adornment.Start"
+                                     AdornmentIcon="@Icons.Material.Filled.AttachMoney"
+                                     Min="0"
+                                     Margin="Margin.Dense"/>
                 </MudItem>
 
-                <MudItem xs="12" sm="6">
-                    <MudNumericField @bind-Value="packet.CreditAmount" 
-                                     Label="Kredi Miktarı (Ders Sayısı)" 
-                                     Variant="Variant.Outlined" 
-                                     Adornment="Adornment.Start" 
-                                     AdornmentIcon="@Icons.Material.Filled.Stars" 
-                                     Min="1" />
+                <MudItem xs="6">
+                    <MudNumericField @bind-Value="packet.CreditAmount"
+                                     Label="Kredi (Adet)"
+                                     Variant="Variant.Outlined"
+                                     Adornment="Adornment.Start"
+                                     AdornmentIcon="@Icons.Material.Filled.Stars"
+                                     Min="1"
+                                     Margin="Margin.Dense"/>
                 </MudItem>
 
                 <MudItem xs="12">
-                    <MudSwitch @bind-Value="packet.IsActive" 
-                               Color="Color.Success" 
-                               Label="Paket Satışa Açık Olsun mu?" />
+                    <MudPaper Elevation="0" Class="pa-4 rounded-lg d-flex align-center justify-space-between" Style="background-color: #F5F5F5;">
+                        <div>
+                            <MudText Typo="Typo.subtitle2">Satış Durumu</MudText>
+                            <MudText Typo="Typo.caption" Class="text-muted">Aktif edilirse öğrenciler görebilir.</MudText>
+                        </div>
+                        <MudSwitch @bind-Value="packet.IsActive" Color="Color.Success" />
+                    </MudPaper>
                 </MudItem>
 
-                <MudItem xs="12" Class="d-flex justify-end mt-4">
-                    <MudButton Variant="Variant.Filled" 
-                               Color="Color.Primary" 
-                               Size="Size.Large" 
+                <MudItem xs="12" Class="d-flex justify-end mt-4 action-button-container">
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Primary"
+                               Size="Size.Large"
                                OnClick="SavePacket"
                                Disabled="@(!success)"
-                               StartIcon="@Icons.Material.Filled.Save">
-                        Paketi Kaydet
+                               StartIcon="@Icons.Material.Filled.Save"
+                               Class="rounded-pill px-8 w-100-mobile">
+                        PAKETİ KAYDET
                     </MudButton>
                 </MudItem>
             </MudGrid>
@@ -95,36 +108,68 @@
     </MudCard>
 </MudContainer>
 
-@code {
-    bool success;
-    MudForm form;
-    
-    // Web.Models içindeki LessonPacket sınıfını kullanıyoruz
-    LessonPacket packet = new LessonPacket { Type = LessonType.Private, IsActive = true };
+<style>
+    /* Masaüstü Varsayılanları */
+    .page-container { margin-top: 120px; }
+    .text-muted { color: #6c757d; }
+    .fw-bold { font-weight: 700; }
 
-    private async Task SavePacket()
-    {
-        try
-        {
-            // API'ye gönderirken Type alanı da (1 veya 2) gidecek.
-            var response = await Http.PostAsJsonAsync("api/LessonPackets", packet);
+    /* --- 🔥 MOBİL UYUMLULUK 🔥 --- */
+    @@media (max-width: 960px) {
+        .page-container { margin-top: 80px !important; }
 
-            if (response.IsSuccessStatusCode)
-            {
-                Snackbar.Add("Paket başarıyla oluşturuldu!", Severity.Success);
-                
-                // Formu temizle ve varsayılanları ayarla
-                packet = new LessonPacket { IsActive = true, Type = LessonType.Private };
-                form.ResetValidation();
-            }
-            else
-            {
-                Snackbar.Add("Hata oluştu, lütfen tekrar deneyin.", Severity.Error);
-            }
+        /* Başlıklar */
+        .page-title { font-size: 1.5rem !important; }
+        .page-subtitle { font-size: 0.9rem !important; }
+        .header-section { margin-bottom: 1.5rem !important; }
+
+        /* Kart İçeriği */
+        .form-card { padding: 1.5rem !important; }
+
+        /* İkonlar */
+        .icon-small { font-size: 1.2rem !important; }
+
+        /* Buton Alanı */
+        .action-button-container {
+            justify-content: center !important;
         }
-        catch (Exception ex)
-        {
-            Snackbar.Add($"Sistem Hatası: {ex.Message}", Severity.Error);
+
+        .w-100-mobile {
+            width: 100% !important;
+            padding: 12px !important;
         }
     }
+</style>
+
+@code {
+bool success;
+MudForm form;
+
+// Web.Models içindeki LessonPacket sınıfını kullanıyoruz
+LessonPacket packet = new LessonPacket { Type = LessonType.Private, IsActive = true };
+
+private async Task SavePacket()
+{
+try
+{
+var response = await Http.PostAsJsonAsync("api/LessonPackets", packet);
+
+if (response.IsSuccessStatusCode)
+{
+Snackbar.Add("Paket başarıyla oluşturuldu!", Severity.Success);
+
+// Formu temizle ve varsayılanları ayarla
+packet = new LessonPacket { IsActive = true, Type = LessonType.Private };
+form.ResetValidation();
+}
+else
+{
+Snackbar.Add("Hata oluştu, lütfen tekrar deneyin.", Severity.Error);
+}
+}
+catch (Exception ex)
+{
+Snackbar.Add($"Sistem Hatası: {ex.Message}", Severity.Error);
+}
+}
 }

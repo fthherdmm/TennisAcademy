@@ -1,5 +1,6 @@
 ﻿@page "/admin/packets"
 @using KirikkaleTenisAkademi.Domain.Entities
+@using KirikkaleTenisAkademi.Domain.Enums
 @using System.Net.Http.Json
 @attribute [Authorize(Roles = "Admin")]
 @inject HttpClient Http
@@ -7,155 +8,197 @@
 @inject IDialogService DialogService
 @inject NavigationManager Navigation
 
-<MudContainer MaxWidth="MaxWidth.Large" Class="mb-16" Style="margin-top: 120px;">
+<MudContainer MaxWidth="MaxWidth.Large" Class="mb-16 page-container">
 
-    <div class="d-flex justify-space-between align-center mb-6">
+    <div class="d-flex justify-space-between align-center mb-6 header-section">
         <div>
-            <MudText Typo="Typo.h4" Color="Color.Primary" Class="fw-bold">Paket Yönetimi</MudText>
-            <MudText Typo="Typo.body2" Class="text-muted">Ders paketlerini düzenleyin, silin veya satışa kapatın.</MudText>
+            <MudText Typo="Typo.h4" Color="Color.Primary" Class="fw-bold page-title">Paket Yönetimi</MudText>
+            <MudText Typo="Typo.body2" Class="text-muted page-subtitle">Ders paketlerini kategorilere göre yönetin.</MudText>
         </div>
         <MudButton Variant="Variant.Filled"
                    StartIcon="@Icons.Material.Filled.Add"
                    Color="Color.Primary"
-                   Href="/admin/add-packet">
+                   Href="/admin/add-packet"
+                   Class="add-btn">
             Yeni Paket Ekle
         </MudButton>
     </div>
 
-    <MudTable Items="@_packets" Hover="true" Striped="true" Loading="@_loading" Elevation="3" Class="rounded-lg">
-        <HeaderContent>
-            <MudTh>ID</MudTh>
-            <MudTh>Paket Adı</MudTh>
-            <MudTh>Fiyat</MudTh>
-            <MudTh>Kredi</MudTh>
-            <MudTh>Durum (Satışta mı?)</MudTh>
-            <MudTh Style="text-align:right">İşlemler</MudTh>
-        </HeaderContent>
-        <RowTemplate>
-            <MudTd DataLabel="ID">@context.Id</MudTd>
-            <MudTd DataLabel="Paket Adı">
-                <div class="d-flex flex-column">
-                    <MudText Typo="Typo.body1" Class="fw-bold">@context.Name</MudText>
-                    <MudText Typo="Typo.caption" Class="text-muted">@context.Description</MudText>
-                </div>
-            </MudTd>
-            <MudTd DataLabel="Fiyat">
-                <MudChip T="string" Color="Color.Success" Variant="Variant.Outlined">@context.Price.ToString("N0") ₺</MudChip>
-            </MudTd>
-            <MudTd DataLabel="Kredi">
-                <div class="d-flex align-center">
-                    <MudIcon Icon="@Icons.Material.Filled.Stars" Size="Size.Small" Color="Color.Warning" Class="mr-1"/>
-                    @context.CreditAmount Ders
-                </div>
-            </MudTd>
-            <MudTd DataLabel="Durum">
-                <MudSwitch T="bool"
-                           Value="@context.IsActive"
-                           Color="Color.Primary"
-                           ValueChanged="@((bool val) => ToggleStatus(context))"
-                           Label="@(context.IsActive ? "Satışta" : "Pasif")" />
-            </MudTd>
-            <MudTd DataLabel="İşlemler" Style="text-align:right">
-                <MudTooltip Text="Bu paketi kalıcı olarak sil">
-                    <MudIconButton Icon="@Icons.Material.Filled.Delete"
-                                   Color="Color.Error"
-                                   OnClick="@(() => DeletePacket(context))" />
-                </MudTooltip>
-            </MudTd>
-        </RowTemplate>
-        <PagerContent>
-            <MudTablePager RowsPerPageString="Sayfa başına:" />
-        </PagerContent>
-        <NoRecordsContent>
-            <MudText>Hiç paket bulunamadı.</MudText>
-        </NoRecordsContent>
-    </MudTable>
+    <MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-4" Color="Color.Primary" Centered="true">
+        
+        <MudTabPanel Text="Bireysel Özel Dersler" Icon="@Icons.Material.Filled.Person">
+            @RenderPacketList(LessonType.Private)
+        </MudTabPanel>
+
+        <MudTabPanel Text="Grup Dersleri" Icon="@Icons.Material.Filled.Groups">
+            @RenderPacketList(LessonType.Group)
+        </MudTabPanel>
+
+    </MudTabs>
 
 </MudContainer>
 
+@code {
+    // KOD TEKRARINI ÖNLEMEK İÇİN ORTAK TABLO/KART YAPISI
+    RenderFragment RenderPacketList(LessonType type) => __builder =>
+    {
+        // İlgili tipe göre filtrele
+        var currentPackets = _packets.Where(x => x.Type == type).ToList();
+
+        @if (_loading)
+        {
+            <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="my-4"/>
+        }
+        else if (!currentPackets.Any())
+        {
+            <MudAlert Severity="Severity.Info" Class="mt-4">Bu kategoride henüz paket oluşturulmamış.</MudAlert>
+        }
+        else
+        {
+            <MudHidden Breakpoint="Breakpoint.SmAndDown">
+                <MudTable Items="@currentPackets" Hover="true" Striped="true" Elevation="0" Class="rounded-lg mt-4">
+                    <HeaderContent>
+                        <MudTh>Paket Adı</MudTh>
+                        <MudTh>Fiyat</MudTh>
+                        <MudTh>Kredi</MudTh>
+                        <MudTh>Durum</MudTh>
+                        <MudTh Style="text-align:right">İşlemler</MudTh>
+                    </HeaderContent>
+                    <RowTemplate Context="packet">
+                        <MudTd>
+                            <div class="d-flex flex-column">
+                                <MudText Typo="Typo.body1" Class="fw-bold">@packet.Name</MudText>
+                                <MudText Typo="Typo.caption" Class="text-muted">@packet.Description</MudText>
+                            </div>
+                        </MudTd>
+                        <MudTd>
+                            <MudChip T="string" Color="Color.Success" Variant="Variant.Outlined" Size="Size.Small">@packet.Price.ToString("N0") ₺</MudChip>
+                        </MudTd>
+                        <MudTd>
+                            <div class="d-flex align-center">
+                                <MudIcon Icon="@Icons.Material.Filled.Stars" Size="Size.Small" Color="Color.Warning" Class="mr-1"/>
+                                @packet.CreditAmount Ders
+                            </div>
+                        </MudTd>
+                        <MudTd>
+                            <MudSwitch T="bool" Value="@packet.IsActive" Color="Color.Primary" ValueChanged="@((bool val) => ToggleStatus(packet))" Label="@(packet.IsActive ? "Satışta" : "Pasif")" />
+                        </MudTd>
+                        <MudTd Style="text-align:right">
+                            <MudTooltip Text="Sil">
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" OnClick="@(() => DeletePacket(packet))" />
+                            </MudTooltip>
+                        </MudTd>
+                    </RowTemplate>
+                </MudTable>
+            </MudHidden>
+
+            <MudHidden Breakpoint="Breakpoint.MdAndUp">
+                <div class="d-flex flex-column gap-3 mt-4">
+                    @foreach (var packet in currentPackets)
+                    {
+                        <MudPaper Elevation="2" Class="pa-4 rounded-xl d-flex flex-column gap-2">
+                            <div class="d-flex justify-space-between align-start">
+                                <div>
+                                    <MudText Typo="Typo.subtitle1" Class="fw-bold">@packet.Name</MudText>
+                                    <MudText Typo="Typo.caption" Class="text-muted">@packet.Description</MudText>
+                                </div>
+                                <MudChip T="string" Color="Color.Success" Size="Size.Small" Variant="Variant.Filled" Class="fw-bold">@packet.Price.ToString("N0") ₺</MudChip>
+                            </div>
+
+                            <MudDivider Class="my-2"/>
+
+                            <div class="d-flex align-center gap-4">
+                                <div class="d-flex align-center">
+                                    <MudIcon Icon="@Icons.Material.Filled.Stars" Size="Size.Small" Color="Color.Warning" Class="mr-1"/>
+                                    <MudText Typo="Typo.body2"><b>@packet.CreditAmount</b> Kredi</MudText>
+                                </div>
+                                <div class="d-flex align-center">
+                                    <MudIcon Icon="@(packet.Type == LessonType.Group ? Icons.Material.Filled.Groups : Icons.Material.Filled.Person)" Size="Size.Small" Color="Color.Info" Class="mr-1"/>
+                                    <MudText Typo="Typo.body2">@(packet.Type == LessonType.Group ? "Grup" : "Özel")</MudText>
+                                </div>
+                            </div>
+
+                            <div class="d-flex justify-space-between align-center mt-2 pa-2 rounded-lg" style="background-color: #f9f9f9;">
+                                <MudSwitch T="bool" Value="@packet.IsActive" Color="Color.Primary" ValueChanged="@((bool val) => ToggleStatus(packet))" Label="@(packet.IsActive ? "Satışta" : "Pasif")" Class="ma-0"/>
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => DeletePacket(packet))" />
+                            </div>
+                        </MudPaper>
+                    }
+                </div>
+            </MudHidden>
+        }
+    };
+}
+
 <style>
+    .page-container { margin-top: 120px; }
     .fw-bold { font-weight: 700 !important; }
+
+    @@media (max-width: 960px) {
+        .page-container { margin-top: 80px !important; }
+        .header-section { flex-direction: column; align-items: flex-start !important; gap: 1rem; }
+        .page-title { font-size: 1.5rem !important; }
+        .page-subtitle { font-size: 0.9rem !important; }
+        .add-btn { width: 100% !important; padding: 10px !important; }
+    }
 </style>
 
 @code {
-private List<LessonPacket> _packets = new();
-private bool _loading = true;
+    private List<LessonPacket> _packets = new();
+    private bool _loading = true;
 
-protected override async Task OnInitializedAsync()
-{
-await LoadPackets();
-}
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadPackets();
+    }
 
-private async Task LoadPackets()
-{
-_loading = true;
-try
-{
-var result = await Http.GetFromJsonAsync<List<LessonPacket>>("api/LessonPackets");
-if (result != null)
-{
-_packets = result.OrderBy(p => p.Id).ToList();
-}
-}
-catch (Exception ex)
-{
-Snackbar.Add("Paketler yüklenemedi.", Severity.Error);
-}
-finally
-{
-_loading = false;
-}
-}
+    private async Task LoadPackets()
+    {
+        _loading = true;
+        try
+        {
+            var result = await Http.GetFromJsonAsync<List<LessonPacket>>("api/LessonPackets");
+            if (result != null)
+            {
+                _packets = result.OrderBy(p => p.Price).ToList(); // Fiyata göre sırala
+            }
+        }
+        catch { Snackbar.Add("Paketler yüklenemedi.", Severity.Error); }
+        finally { _loading = false; }
+    }
 
-private async Task ToggleStatus(LessonPacket packet)
-{
-try
-{
-var response = await Http.PutAsync($"api/LessonPackets/{packet.Id}/toggle-status", null);
+    private async Task ToggleStatus(LessonPacket packet)
+    {
+        try
+        {
+            var response = await Http.PutAsync($"api/LessonPackets/{packet.Id}/toggle-status", null);
+            if (response.IsSuccessStatusCode)
+            {
+                packet.IsActive = !packet.IsActive;
+                StateHasChanged();
+                Snackbar.Add($"Durum: {(packet.IsActive ? "Aktif" : "Pasif")}", Severity.Info);
+            }
+            else Snackbar.Add("Hata.", Severity.Error);
+        }
+        catch { Snackbar.Add("Sunucu hatası.", Severity.Error); }
+    }
 
-if (response.IsSuccessStatusCode)
-{
-packet.IsActive = !packet.IsActive;
-Snackbar.Add($"Paket durumu güncellendi: {(packet.IsActive ? "Aktif" : "Pasif")}", Severity.Info);
-}
-else
-{
-Snackbar.Add("Durum değiştirilemedi.", Severity.Error);
-}
-}
-catch (Exception)
-{
-Snackbar.Add("Sunucu hatası.", Severity.Error);
-}
-}
-
-private async Task DeletePacket(LessonPacket packet)
-{
-bool? result = await DialogService.ShowMessageBox(
-"Paketi Sil",
-$"'{packet.Name}' paketini silmek istediğinize emin misiniz? Bu işlem geri alınamaz!",
-yesText: "Sil", cancelText: "İptal");
-
-if (result == true)
-{
-try
-{
-var response = await Http.DeleteAsync($"api/LessonPackets/{packet.Id}");
-
-if (response.IsSuccessStatusCode)
-{
-_packets.Remove(packet);
-Snackbar.Add("Paket başarıyla silindi.", Severity.Success);
-}
-else
-{
-Snackbar.Add("Silme işlemi başarısız.", Severity.Error);
-}
-}
-catch (Exception)
-{
-Snackbar.Add("Sunucu hatası.", Severity.Error);
-}
-}
-}
+    private async Task DeletePacket(LessonPacket packet)
+    {
+        bool? result = await DialogService.ShowMessageBox("Sil", $"'{packet.Name}' silinsin mi?", yesText: "Sil", cancelText: "İptal");
+        if (result == true)
+        {
+            try
+            {
+                var response = await Http.DeleteAsync($"api/LessonPackets/{packet.Id}");
+                if (response.IsSuccessStatusCode)
+                {
+                    _packets.Remove(packet);
+                    Snackbar.Add("Silindi.", Severity.Success);
+                }
+                else Snackbar.Add("Hata.", Severity.Error);
+            }
+            catch { Snackbar.Add("Sunucu hatası.", Severity.Error); }
+        }
+    }
 }

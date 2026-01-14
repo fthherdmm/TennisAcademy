@@ -1,31 +1,53 @@
 ﻿@inject HttpClient Http
 
-<MudContainer MaxWidth="MaxWidth.Medium" Class="mt-8">
-    <MudText Typo="Typo.h4" Class="mb-2">🎾 İyi Günler Hocam!</MudText>
-    <MudText Typo="Typo.body1" Class="mb-8">İşte bugünkü programınız.</MudText>
+<MudContainer MaxWidth="MaxWidth.Medium" Class="mt-8 page-container">
+    <div class="welcome-header mb-6">
+        <MudText Typo="Typo.h4" Class="mb-2 page-title">🎾 İyi Günler Hocam!</MudText>
+        <MudText Typo="Typo.body1" Class="mb-2 page-subtitle">İşte bugünkü programınız.</MudText>
+    </div>
 
     <MudGrid>
         <MudItem xs="12" md="8">
-            <MudCard Elevation="3">
+            <MudCard Elevation="3" Class="rounded-xl">
                 <MudCardHeader>
                     <CardHeaderContent>
-                        <MudText Typo="Typo.h6">📅 Yaklaşan Dersler</MudText>
+                        <MudText Typo="Typo.h6" Class="card-header-text">📅 Yaklaşan Dersler</MudText>
                     </CardHeaderContent>
                 </MudCardHeader>
                 <MudCardContent>
-                    <MudButton Variant="Variant.Text" Color="Color.Primary" EndIcon="@Icons.Material.Filled.ArrowForward" Href="/coach/students">Tüm Öğrencileri Gör</MudButton>
+                    <MudButton Variant="Variant.Text" Color="Color.Primary" EndIcon="@Icons.Material.Filled.ArrowForward" Href="/coach/students" FullWidth="true" Class="justify-start">Tüm Öğrencileri Gör</MudButton>
                 </MudCardContent>
             </MudCard>
         </MudItem>
-        
+
         <MudItem xs="12" md="4">
-            <MudCard Elevation="3" Class="mud-theme-primary">
-                <MudCardContent Class="d-flex flex-column align-center">
-                    <MudIcon Icon="@Icons.Material.Filled.AddAlarm" Size="Size.Large" Class="mb-2"/>
-                    <MudText Typo="Typo.h6" Align="Align.Center">Yeni Saat Aç</MudText>
-                    <MudButton Variant="Variant.Filled" Color="Color.Secondary" Class="mt-4" Href="/coach/schedule">Takvime Git</MudButton>
+            <MudCard Elevation="3" Class="mud-theme-primary rounded-xl action-card">
+                <MudCardContent Class="d-flex flex-column align-center py-6">
+                    <MudIcon Icon="@Icons.Material.Filled.AddAlarm" Size="Size.Large" Class="mb-2 icon-white"/>
+                    <MudText Typo="Typo.h6" Align="Align.Center" Class="text-white">Yeni Saat Aç</MudText>
+                    <MudButton Variant="Variant.Filled" Color="Color.Secondary" Class="mt-4 rounded-pill px-8 w-100-mobile" Href="/coach/schedule">Takvime Git</MudButton>
                 </MudCardContent>
             </MudCard>
         </MudItem>
     </MudGrid>
 </MudContainer>
+
+<style>
+    .icon-white { color: white !important; }
+    .text-white { color: white !important; }
+
+    /* --- 🔥 MOBİL UYUMLULUK 🔥 --- */
+    @@media (max-width: 960px) {
+        .page-container { margin-top: 80px !important; } /* Navbar altı */
+
+        .page-title { font-size: 1.5rem !important; }
+        .page-subtitle { font-size: 0.9rem !important; }
+
+        .card-header-text { font-size: 1.1rem !important; font-weight: 700; }
+
+        /* Butonları mobilde tam genişlik yap */
+        .w-100-mobile { width: 100% !important; }
+
+        .action-card { margin-top: 1rem; }
+    }
+</style>

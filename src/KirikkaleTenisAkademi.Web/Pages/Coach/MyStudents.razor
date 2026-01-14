@@ -8,227 +8,256 @@
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
 
-<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mb-16" Style="margin-top: 120px;">
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mb-16 page-container">
 
-    <div class="mb-6">
-        <MudText Typo="Typo.h4" Color="Color.Primary" Style="font-weight: 800;">🎓 Öğrenci Portföyü</MudText>
-        <MudText Typo="Typo.body2" Class="text-muted">Öğrencilerinizin gelişimini, ders programını ve fiziksel durumlarını buradan takip edin.</MudText>
+    <div class="@(_selectedStudent != null ? "d-none d-md-block" : "d-block") mb-4 header-section">
+        <MudText Typo="Typo.h4" Color="Color.Primary" Style="font-weight: 800;" Class="page-title">🎓 Öğrenci Portföyü</MudText>
+        <MudText Typo="Typo.body2" Class="text-muted page-subtitle">Öğrenci durumlarını ve kredilerini yönetin.</MudText>
     </div>
 
     <MudGrid>
-        <MudItem xs="12" md="@(_selectedStudent == null ? 12 : 5)">
-            <MudPaper Elevation="3" Class="rounded-xl overflow-hidden">
-                <MudTable Items="@_students" Hover="true" Filter="new Func<MyStudentDto,bool>(FilterStudents)" OnRowClick="OnStudentClicked" T="MyStudentDto" Dense="true">
-                    <ToolBarContent>
-                        <MudText Typo="Typo.h6" Color="Color.Primary">Öğrenci Listesi</MudText>
-                        <MudSpacer />
-                        <MudTextField @bind-Value="searchString" Placeholder="İsim Ara..." Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" Margin="Margin.Dense" />
-                    </ToolBarContent>
-                    <HeaderContent>
-                        <MudTh>Ad Soyad</MudTh>
-                        <MudTh>Seviye</MudTh>
-                        <MudTh>Kredi</MudTh>
-                    </HeaderContent>
-                    <RowTemplate>
-                        <MudTd Style="cursor:pointer;">
-                            <div class="d-flex align-center">
-                                <MudAvatar Color="@(context == _selectedStudent ? Color.Secondary : Color.Primary)" Size="Size.Small" Class="mr-3">
-                                    @context.FullName.Substring(0,1)
-                                </MudAvatar>
-                                <div>
-                                    <MudText Typo="Typo.body1" Style="font-weight:bold;">@context.FullName</MudText>
-                                    <MudText Typo="Typo.caption" Class="text-muted">@context.Phone</MudText>
+        <MudItem xs="12" md="5" Class="@GetListDisplayClass()">
+            
+            <MudTextField @bind-Value="searchString" 
+                          Placeholder="Öğrenci Ara..." 
+                          Adornment="Adornment.Start" 
+                          AdornmentIcon="@Icons.Material.Filled.Search" 
+                          Variant="Variant.Outlined" 
+                          Margin="Margin.Dense" 
+                          Class="mb-4 bg-white rounded-lg"/>
+
+            <MudHidden Breakpoint="Breakpoint.SmAndDown">
+                <MudPaper Elevation="3" Class="rounded-xl overflow-hidden">
+                    <MudTable Items="@_filteredStudents" OnRowClick="OnRowClick" T="MyStudentDto" Dense="true" Hover="true" Elevation="0">
+                        <HeaderContent>
+                            <MudTh>Öğrenci</MudTh>
+                            <MudTh>Seviye</MudTh>
+                            <MudTh>Kredi</MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd>
+                                <div class="d-flex align-center">
+                                    <MudAvatar Color="@(context == _selectedStudent ? Color.Secondary : Color.Primary)" Size="Size.Small" Class="mr-3">
+                                        @context.FullName.Substring(0,1)
+                                    </MudAvatar>
+                                    <div>
+                                        <MudText Typo="Typo.body2" Style="font-weight:bold;">@context.FullName</MudText>
+                                        <MudText Typo="Typo.caption" Class="text-muted">@context.Phone</MudText>
+                                    </div>
+                                </div>
+                            </MudTd>
+                            <MudTd><MudChip T="string" Size="Size.Small" Variant="Variant.Text">@(context.Level ?? "Başlangıç")</MudChip></MudTd>
+                            <MudTd><MudChip T="string" Size="Size.Small" Color="Color.Info" Variant="Variant.Outlined">@context.CurrentCredits</MudChip></MudTd>
+                        </RowTemplate>
+                        <PagerContent><MudTablePager /></PagerContent>
+                    </MudTable>
+                </MudPaper>
+            </MudHidden>
+
+            <MudHidden Breakpoint="Breakpoint.MdAndUp">
+                <div class="d-flex flex-column gap-3">
+                    @foreach (var student in _filteredStudents)
+                    {
+                    var currentStudent = student;
+
+                    <MudPaper Elevation="2" Class="pa-4 rounded-xl d-flex align-center justify-space-between cursor-pointer ripple-effect"
+                              @onclick="() => OnStudentSelected(currentStudent)">
+
+                        <div class="d-flex align-center gap-3">
+                            <MudAvatar Color="Color.Primary" Size="Size.Medium">
+                                @currentStudent.FullName.Substring(0,1)
+                            </MudAvatar>
+                            <div>
+                                <MudText Typo="Typo.subtitle1" Style="font-weight:bold;">@currentStudent.FullName</MudText>
+                                <div class="d-flex gap-2 mt-1">
+                                    <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Class="ma-0">@(currentStudent.Level ?? "Başlangıç")</MudChip>
+                                    <MudChip T="string" Size="Size.Small" Color="Color.Info" Variant="Variant.Outlined" Class="ma-0">@currentStudent.CurrentCredits Kredi</MudChip>
                                 </div>
                             </div>
-                        </MudTd>
-                        <MudTd>
-                            <MudChip T="string" Size="Size.Small" Variant="Variant.Text">@(context.Level ?? "Başlangıç")</MudChip>
-                        </MudTd>
-                        <MudTd>
-                            <MudChip T="string" Size="Size.Small" Color="Color.Info" Variant="Variant.Outlined">@context.CurrentCredits</MudChip>
-                        </MudTd>
-                    </RowTemplate>
-                    <PagerContent><MudTablePager /></PagerContent>
-                </MudTable>
-            </MudPaper>
+                        </div>
+                        <MudIcon Icon="@Icons.Material.Filled.ChevronRight" Color="Color.Default" />
+                    </MudPaper>
+                    }
+
+                    @if (!_filteredStudents.Any())
+                    {
+                    <MudAlert Severity="Severity.Info">Aradığınız kriterde öğrenci bulunamadı.</MudAlert>
+                    }
+                </div>
+            </MudHidden>
         </MudItem>
+
 
         @if (_selectedStudent != null)
         {
-        <MudItem xs="12" md="7" Class="animate-fade-in">
-            <MudPaper Elevation="6" Class="pa-6 rounded-xl border-t-4 border-secondary sticky-top">
+            <MudItem xs="12" md="7" Class="animate-fade-in">
+                <MudPaper Elevation="4" Class="pa-4 rounded-xl sticky-top border-t-4 border-secondary">
 
-                <div class="d-flex justify-space-between align-start mb-2">
-                    <div class="d-flex align-center gap-4">
-                        <MudAvatar Color="Color.Primary" Style="height:70px; width:70px; font-size:2rem;">
-                            @_selectedStudent.FullName.Substring(0,1)
-                        </MudAvatar>
-                        <div>
-                            <MudText Typo="Typo.h4" Style="font-weight:800;">@_selectedStudent.FullName</MudText>
-                            <MudText Typo="Typo.body1" Class="text-muted">@_selectedStudent.Email</MudText>
+                    <div class="d-flex justify-space-between align-start mb-2">
+                        <div class="d-flex align-center gap-3">
+                            <MudHidden Breakpoint="Breakpoint.MdAndUp">
+                                <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" Color="Color.Primary" OnClick="BackToList" Class="mr-1"/>
+                            </MudHidden>
+                            
+                            <MudAvatar Color="Color.Primary" Style="height:60px; width:60px; font-size:1.5rem;">
+                                @_selectedStudent.FullName.Substring(0,1)
+                            </MudAvatar>
+                            <div>
+                                <MudText Typo="Typo.h6" Style="font-weight:800; line-height:1.2;">@_selectedStudent.FullName</MudText>
+                                <MudText Typo="Typo.body2" Class="text-muted">@_selectedStudent.Email</MudText>
+                            </div>
                         </div>
+                        
+                        <MudHidden Breakpoint="Breakpoint.SmAndDown">
+                            <MudIconButton Icon="@Icons.Material.Filled.Close" OnClick="BackToList" />
+                        </MudHidden>
                     </div>
-                    <MudIconButton Icon="@Icons.Material.Filled.Close" OnClick="@(() => _selectedStudent = null)" />
-                </div>
 
-                <MudDivider Class="my-4"/>
+                    <MudDivider Class="my-2"/>
 
-                <MudTabs Elevation="0" Rounded="true" ApplyEffectsToContainer="true" PanelClass="mt-4" Color="Color.Transparent">
+                    <MudTabs Elevation="0" Rounded="true" ApplyEffectsToContainer="true" PanelClass="mt-2" Color="Color.Transparent">
 
-                    <MudTabPanel Text="Ders Programı" Icon="@Icons.Material.Filled.CalendarMonth">
-                        @if (_loadingLessons)
-                        {
-                            <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="my-4"/>
-                        }
-                        else if (_studentLessons.Any())
-                        {
-                            <MudTable Items="_studentLessons" Hover="true" Dense="true" Elevation="0" Class="mt-2">
-                                <HeaderContent>
-                                    <MudTh>Tür</MudTh>
-                                    <MudTh>Tarih</MudTh>
-                                    <MudTh>Saat</MudTh>
-                                    <MudTh>İşlem</MudTh>
-                                </HeaderContent>
-                                <RowTemplate Context="lesson">
-                                    <MudTd>
-                                        @if(lesson.Type == "Group")
-                                        {
-                                            <MudChip T="string" Size="Size.Small" Color="Color.Info" Icon="@Icons.Material.Filled.Groups">Grup</MudChip>
-                                        }
-                                        else
-                                        {
-                                            <MudChip T="string" Size="Size.Small" Color="Color.Success" Icon="@Icons.Material.Filled.Person">Özel</MudChip>
-                                        }
-                                    </MudTd>
-                                    <MudTd>@lesson.StartTime.ToString("dd.MM.yyyy")</MudTd>
-                                    <MudTd>@lesson.StartTime.ToString("HH:mm") - @lesson.EndTime.ToString("HH:mm")</MudTd>
-                                    <MudTd>
-                                        <MudButton Variant="Variant.Outlined"
-                                                   Color="Color.Error"
-                                                   Size="Size.Small"
-                                                   StartIcon="@Icons.Material.Filled.Cancel"
-                                                   OnClick="@(() => CancelLesson(lesson))">
-                                            İptal Et
-                                        </MudButton>
-                                    </MudTd>
-                                </RowTemplate>
-                            </MudTable>
-                        }
-                        else
-                        {
-                            <MudAlert Severity="Severity.Info" Class="mt-2">Bu öğrenci ile planlanmış yaklaşan dersiniz bulunmamaktadır.</MudAlert>
-                        }
-                    </MudTabPanel>
+                        <MudTabPanel Text="Dersler" Icon="@Icons.Material.Filled.CalendarMonth">
+                            @if (_loadingLessons)
+                            {
+                                <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="my-4"/>
+                            }
+                            else if (_studentLessons.Any())
+                            {
+                                <div class="d-flex flex-column gap-2 mt-2" style="max-height: 500px; overflow-y: auto;">
+                                     @foreach(var lesson in _studentLessons)
+                                     {
+                                         <MudPaper Class="pa-3 d-flex justify-space-between align-center" Elevation="0" Style="background-color:#F5F5F5; border-radius:12px;">
+                                             <div>
+                                                 <div class="d-flex align-center gap-2 mb-1">
+                                                     @if(lesson.Type == "Group") { <MudChip T="string" Size="Size.Small" Color="Color.Info" Class="ma-0">Grup</MudChip> }
+                                                     else { <MudChip T="string" Size="Size.Small" Color="Color.Success" Class="ma-0">Özel</MudChip> }
+                                                     <MudText Typo="Typo.subtitle2" Style="font-weight:bold;">@lesson.StartTime.ToString("dd.MM")</MudText>
+                                                 </div>
+                                                 <MudText Typo="Typo.caption">@lesson.StartTime.ToString("HH:mm") - @lesson.EndTime.ToString("HH:mm")</MudText>
+                                             </div>
+                                             <MudIconButton Icon="@Icons.Material.Filled.Cancel" Color="Color.Error" Size="Size.Small" OnClick="@(() => CancelLesson(lesson))" />
+                                         </MudPaper>
+                                     }
+                                </div>
+                            }
+                            else
+                            {
+                                <MudAlert Severity="Severity.Info" Class="mt-2">Planlanmış ders yok.</MudAlert>
+                            }
+                        </MudTabPanel>
 
-                    <MudTabPanel Text="Kimlik & İletişim" Icon="@Icons.Material.Filled.Badge">
-                        <MudGrid>
-                            <MudItem xs="12" sm="6">
-                                <MudTextField Label="TC Kimlik No" Value="@_selectedStudent.TCKN" ReadOnly="true" Variant="Variant.Outlined" Margin="Margin.Dense" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Fingerprint"/>
-                            </MudItem>
-                            <MudItem xs="12" sm="6">
-                                <MudTextField Label="Telefon" Value="@_selectedStudent.Phone" ReadOnly="true" Variant="Variant.Outlined" Margin="Margin.Dense" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Phone"/>
-                            </MudItem>
-                            <MudItem xs="12" sm="6">
-                                <MudTextField Label="Doğum Tarihi" Value="@(_selectedStudent.BirthDate?.ToString("dd.MM.yyyy") ?? "-")" ReadOnly="true" Variant="Variant.Outlined" Margin="Margin.Dense" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Cake"/>
-                            </MudItem>
-                            <MudItem xs="12" sm="6">
-                                <MudTextField Label="Acil Durum Kişisi" Value="@(_selectedStudent.EmergencyContact ?? "-")" ReadOnly="true" Variant="Variant.Outlined" Margin="Margin.Dense" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Emergency"/>
-                            </MudItem>
-                        </MudGrid>
-                    </MudTabPanel>
+                        <MudTabPanel Text="Profil" Icon="@Icons.Material.Filled.FitnessCenter">
+                            <MudGrid Spacing="1" Class="mt-1">
+                                <MudItem xs="4"><MudPaper Class="pa-2 text-center" Elevation="0" Style="background:#f5f5f5;"><MudText Typo="Typo.caption">YAŞ</MudText><MudText Typo="Typo.subtitle1"><b>@_selectedStudent.Age</b></MudText></MudPaper></MudItem>
+                                <MudItem xs="4"><MudPaper Class="pa-2 text-center" Elevation="0" Style="background:#f5f5f5;"><MudText Typo="Typo.caption">BOY</MudText><MudText Typo="Typo.subtitle1"><b>@(_selectedStudent.Height?.ToString() ?? "-")</b></MudText></MudPaper></MudItem>
+                                <MudItem xs="4"><MudPaper Class="pa-2 text-center" Elevation="0" Style="background:#f5f5f5;"><MudText Typo="Typo.caption">KİLO</MudText><MudText Typo="Typo.subtitle1"><b>@(_selectedStudent.Weight?.ToString() ?? "-")</b></MudText></MudPaper></MudItem>
 
-                    <MudTabPanel Text="Fiziksel & Teknik" Icon="@Icons.Material.Filled.FitnessCenter">
-                        <MudGrid>
-                            <MudItem xs="4">
-                                <MudPaper Class="pa-3 d-flex flex-column align-center" Elevation="0" Style="background:#f5f5f5;">
-                                    <MudText Typo="Typo.caption">YAŞ</MudText>
-                                    <MudText Typo="Typo.h5" Color="Color.Primary"><b>@_selectedStudent.Age</b></MudText>
-                                </MudPaper>
-                            </MudItem>
-                            <MudItem xs="4">
-                                <MudPaper Class="pa-3 d-flex flex-column align-center" Elevation="0" Style="background:#f5f5f5;">
-                                    <MudText Typo="Typo.caption">BOY (cm)</MudText>
-                                    <MudText Typo="Typo.h5" Color="Color.Primary"><b>@(_selectedStudent.Height?.ToString() ?? "-")</b></MudText>
-                                </MudPaper>
-                            </MudItem>
-                            <MudItem xs="4">
-                                <MudPaper Class="pa-3 d-flex flex-column align-center" Elevation="0" Style="background:#f5f5f5;">
-                                    <MudText Typo="Typo.caption">KİLO (kg)</MudText>
-                                    <MudText Typo="Typo.h5" Color="Color.Primary"><b>@(_selectedStudent.Weight?.ToString() ?? "-")</b></MudText>
-                                </MudPaper>
-                            </MudItem>
+                                <MudItem xs="12" Class="mt-2">
+                                     <MudTextField Label="Telefon" Value="@_selectedStudent.Phone" ReadOnly="true" Variant="Variant.Outlined" Margin="Margin.Dense" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Phone"/>
+                                </MudItem>
+                                <MudItem xs="6">
+                                     <MudTextField Label="Seviye" Value="@(_selectedStudent.Level ?? "-")" ReadOnly="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
+                                </MudItem>
+                                <MudItem xs="6">
+                                     <MudTextField Label="El" Value="@(_selectedStudent.Hand ?? "-")" ReadOnly="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
+                                </MudItem>
+                            </MudGrid>
+                        </MudTabPanel>
 
-                            <MudItem xs="12" sm="6" Class="mt-4">
-                                <MudTextField Label="Oyun Seviyesi" Value="@(_selectedStudent.Level ?? "Belirlenmedi")" ReadOnly="true" Variant="Variant.Outlined" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.TrendingUp"/>
-                            </MudItem>
-                            <MudItem xs="12" sm="6" Class="mt-4">
-                                <MudTextField Label="Baskın El" Value="@(_selectedStudent.Hand ?? "Sağ")" ReadOnly="true" Variant="Variant.Outlined" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.PanTool"/>
-                            </MudItem>
-                        </MudGrid>
-                    </MudTabPanel>
+                        <MudTabPanel Text="İşlemler" Icon="@Icons.Material.Filled.Settings">
+                            <div class="d-flex flex-column gap-3 mt-4">
+                                <MudButton Variant="Variant.Filled" Color="Color.Warning" FullWidth="true" StartIcon="@Icons.Material.Filled.CardGiftcard" OnClick="@(() => OpenCreditDialog(_selectedStudent))">
+                                    Telafi Kredisi Yükle
+                                </MudButton>
+                                <MudButton Variant="Variant.Outlined" Color="Color.Primary" FullWidth="true" StartIcon="@Icons.Material.Filled.Edit" OnClick="@(() => OpenEditDialog(_selectedStudent))"> 
+                                    Bilgileri Düzenle
+                                </MudButton>
+                            </div>
+                        </MudTabPanel>
 
-                    <MudTabPanel Text="İşlemler" Icon="@Icons.Material.Filled.Settings">
-                        <div class="d-flex flex-column gap-3 mt-2">
-                            <MudButton Variant="Variant.Filled" Color="Color.Warning" StartIcon="@Icons.Material.Filled.CardGiftcard" OnClick="@(() => OpenCreditDialog(_selectedStudent))">
-                                Telafi Kredisi Yükle
-                            </MudButton>
-                            <MudButton Variant="Variant.Outlined"
-                                       Color="Color.Primary"
-                                       StartIcon="@Icons.Material.Filled.Edit"
-                                       OnClick="@(() => OpenEditDialog(_selectedStudent))"> Öğrenci Bilgilerini Düzenle
-                            </MudButton>
-                        </div>
-                    </MudTabPanel>
-
-                </MudTabs>
-            </MudPaper>
-        </MudItem>
+                    </MudTabs>
+                </MudPaper>
+            </MudItem>
         }
     </MudGrid>
+
 </MudContainer>
 
 <style>
+    .page-container { margin-top: 120px; }
     .text-muted { color: #616161; }
     .border-t-4 { border-top-width: 4px !important; }
     .border-secondary { border-color: #76FF03 !important; }
+    .sticky-top { position: sticky; top: 130px; z-index: 10; }
+    .bg-white { background-color: white !important; }
+    .ripple-effect:active { transform: scale(0.98); background-color: #f0f0f0; }
 
-    .sticky-top {
-        position: sticky;
-        top: 130px;
-        z-index: 10;
+    /* --- MOBİL UYUMLULUK --- */
+    @@media (max-width: 960px) {
+        .page-container { margin-top: 80px !important; }
+        .page-title { font-size: 1.5rem !important; }
+        .page-subtitle { font-size: 0.85rem !important; }
+        
+        /* Detay sayfası açıldığında tam ekran kaplaması için */
+        .sticky-top { top: 80px !important; z-index: 20; }
     }
-
-    .animate-fade-in { animation: fadeIn 0.4s ease-out; }
-    @@keyframes fadeIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
 </style>
 
 @code {
     private string searchString = "";
     private List<MyStudentDto> _students = new();
-    private MyStudentDto? _selectedStudent;
+    
+    // Filtreleme
+    private IEnumerable<MyStudentDto> _filteredStudents => 
+        _students.Where(x => string.IsNullOrWhiteSpace(searchString) || 
+                             x.FullName.Contains(searchString, StringComparison.OrdinalIgnoreCase));
 
+    private MyStudentDto? _selectedStudent;
     private List<StudentLessonDto> _studentLessons = new();
     private bool _loadingLessons = false;
-
+    
     protected override async Task OnInitializedAsync()
     {
         await LoadStudents();
     }
 
-    private async Task LoadStudents()
+    // CSS Sınıfını Dinamik Belirle
+    private string GetListDisplayClass()
     {
-        try
+        // Masaüstünde (md) her zaman görünür (d-md-block).
+        // Mobilde eğer bir öğrenci seçiliyse gizlenir (d-none), seçili değilse görünür (d-block).
+        if (_selectedStudent != null)
         {
-        var result = await HttpClient.GetFromJsonAsync<List<MyStudentDto>>("api/Coach/my-students-portfolio");
-        if (result != null) _students = result;
+            return "d-none d-md-block"; 
         }
-        catch (Exception) {}                
+        return "d-block";
     }
 
-    private async Task OnStudentClicked(TableRowClickEventArgs<MyStudentDto> args)
+    private async Task LoadStudents()
     {
-        _selectedStudent = args.Item;
+        try { var result = await HttpClient.GetFromJsonAsync<List<MyStudentDto>>("api/Coach/my-students-portfolio"); if (result != null) _students = result; } catch {}                
+    }
+
+    // ✅ BU METODUN EKLİ OLDUĞUNDAN EMİN OL
+    private async Task OnStudentSelected(MyStudentDto student)
+    {
+        _selectedStudent = student;
         await LoadStudentLessons(_selectedStudent.StudentId);
+        StateHasChanged();
+    }
+
+    // Tablo için (Masaüstü)
+    private async Task OnRowClick(TableRowClickEventArgs<MyStudentDto> args)
+    {
+        await OnStudentSelected(args.Item);
+    }
+    
+    // Geri Dön Butonu (Mobilde listeye dönmek için)
+    private void BackToList()
+    {
+        _selectedStudent = null;
+        StateHasChanged();
     }
 
     private async Task LoadStudentLessons(string studentId)
@@ -238,114 +267,48 @@
         try
         {
             var result = await HttpClient.GetFromJsonAsync<List<StudentLessonDto>>($"api/Coach/student-lessons/{studentId}");
-
-            if (result != null)
-            {
-                _studentLessons = result.Select(x => {
-                    x.StartTime = x.StartTime.ToLocalTime();
-                    x.EndTime = x.EndTime.ToLocalTime();
-                    return x;
-                }).ToList();
-            }
+            if (result != null) _studentLessons = result.Select(x => { x.StartTime = x.StartTime.ToLocalTime(); x.EndTime = x.EndTime.ToLocalTime(); return x; }).ToList();
         }
-        catch (Exception) { }
-        finally { _loadingLessons = false; }
+        catch {} finally { _loadingLessons = false; }
     }
 
     private async Task CancelLesson(StudentLessonDto lesson)
     {
-        string lessonTypeText = lesson.Type == "Group" ? "Grup Dersi" : "Özel Ders";
-        string refundText = lesson.Type == "Group" 
-            ? "(Grup dersi tamamen iptal edilecek ve kredi öğrenciye iade edilecektir.)" 
-            : "(Özel ders iptal edilecek ve kredi öğrenciye iade edilecektir.)";
-
-        bool? result = await DialogService.ShowMessageBox(
-            "Ders İptali",
-            $"{lesson.StartTime:dd.MM.yyyy HH:mm} tarihindeki {lessonTypeText}ni iptal etmek istediğinize emin misiniz?\n\n{refundText}",
-            yesText: "Evet, İptal Et", cancelText: "Vazgeç");
-
+        bool? result = await DialogService.ShowMessageBox("İptal", "Ders iptal edilsin mi?", yesText: "Evet", cancelText: "Hayır");
         if (result == true)
         {
             try
             {
-                HttpResponseMessage response;
-
-                // --- DEĞİŞİKLİK BURADA ---
-                if (lesson.Type == "Group")
-                {
-                    // Grup Dersini KOMPLE İptal Eden Endpoint
-                    response = await HttpClient.PostAsync($"api/Coach/cancel-group-lesson/{lesson.Id}", null);
-                }
-                else
-                {
-                    // Özel Dersi İptal Eden Endpoint
-                    response = await HttpClient.PostAsync($"api/Coach/cancel-lesson/{lesson.Id}", null);
-                }
-                // -------------------------
-
+                var url = lesson.Type == "Group" ? $"api/Coach/cancel-group-lesson/{lesson.Id}" : $"api/Coach/cancel-lesson/{lesson.Id}";
+                var response = await HttpClient.PostAsync(url, null);
                 if (response.IsSuccessStatusCode)
                 {
-                    Snackbar.Add($"{lessonTypeText} iptal edildi.", Severity.Success);
-                    
-                    // Listeyi yenile
+                    Snackbar.Add("İptal edildi.", Severity.Success);
                     await LoadStudentLessons(_selectedStudent!.StudentId);
-                    
-                    // Öğrenci listesini de yenile (Kredi güncellensin diye)
                     await LoadStudents();
                 }
-                else
-                {
-                    var err = await response.Content.ReadAsStringAsync();
-                    Snackbar.Add("İptal başarısız: " + err, Severity.Error);
-                }
+                else Snackbar.Add("Hata oluştu.", Severity.Error);
             }
-            catch(Exception)
-            {
-                Snackbar.Add("Sunucu hatası.", Severity.Error);
-            }
+            catch { Snackbar.Add("Hata.", Severity.Error); }
         }
-    }
-
-    private bool FilterStudents(MyStudentDto element)
-    {
-        if (string.IsNullOrWhiteSpace(searchString)) return true;
-        if (element.FullName.Contains(searchString, StringComparison.OrdinalIgnoreCase)) return true;
-        return false;
     }
 
     private async Task OpenCreditDialog(MyStudentDto student)
     {
-        bool? result = await DialogService.ShowMessageBox("Kredi Hediye Et", $"{student.FullName} için 1 kredi yüklensin mi?", yesText: "Evet", cancelText: "Hayır");
+        bool? result = await DialogService.ShowMessageBox("Kredi Yükle", $"{student.FullName} +1 kredi?", yesText: "Evet");
         if (result == true)
         {
-            var request = new GrantCreditRequest { StudentId = student.StudentId, Amount = 1 };
-            var response = await HttpClient.PostAsJsonAsync("api/Coach/grant-credit", request);
-            if (response.IsSuccessStatusCode)
-            {
-                Snackbar.Add("Kredi yüklendi.", Severity.Success);
-                student.CurrentCredits += 1;
-            }
+            var response = await HttpClient.PostAsJsonAsync("api/Coach/grant-credit", new GrantCreditRequest { StudentId = student.StudentId, Amount = 1 });
+            if (response.IsSuccessStatusCode) { Snackbar.Add("Yüklendi.", Severity.Success); student.CurrentCredits += 1; }
         }
     }
 
     private async Task OpenEditDialog(MyStudentDto student)
     {
         var parameters = new DialogParameters<StudentEditDialog> { { x => x.Student, student } };
-        var dialog = await DialogService.ShowAsync<KirikkaleTenisAkademi.Web.Shared.Components.StudentEditDialog>("Öğrenci Düzenle", parameters);
-        var result = await dialog.Result;
-
-        if (!result.Canceled)
-        {
-            await LoadStudents();
-        }
+        var dialog = await DialogService.ShowAsync<StudentEditDialog>("Düzenle", parameters);
+        if (!(await dialog.Result).Canceled) await LoadStudents();
     }
 
-    public class StudentLessonDto
-    {
-        public int Id { get; set; }
-        public DateTime StartTime { get; set; }
-        public DateTime EndTime { get; set; }
-        public string Type { get; set; } = "Private"; 
-        public string Title { get; set; }
-    }
+    public class StudentLessonDto { public int Id { get; set; } public DateTime StartTime { get; set; } public DateTime EndTime { get; set; } public string Type { get; set; } = "Private"; public string Title { get; set; } }
 }

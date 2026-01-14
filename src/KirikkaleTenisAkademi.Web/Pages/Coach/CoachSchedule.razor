@@ -7,18 +7,18 @@
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
 
-<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mb-16" Style="margin-top: 120px;">
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mb-16 page-container">
 
-    <div class="d-flex flex-wrap align-center justify-space-between mb-6 gap-4">
+    <div class="d-flex flex-wrap align-center justify-space-between mb-4 gap-4 header-section">
         <div>
-            <MudText Typo="Typo.h4" Color="Color.Primary" Style="font-weight: 800;">📅 Ajanda Yönetimi</MudText>
-            <MudText Typo="Typo.body2" Class="text-muted">Derslerinizi takip edin veya müsait olmadığınız saatleri kapatın.</MudText>
+            <MudText Typo="Typo.h4" Color="Color.Primary" Style="font-weight: 800;" Class="page-title">📅 Ajanda Yönetimi</MudText>
+            <MudText Typo="Typo.body2" Class="text-muted page-subtitle">Müsaitlik durumunuzu yönetin.</MudText>
         </div>
 
-        <div class="d-flex gap-2">
-            <MudChip T="string" Icon="@Icons.Material.Filled.Person" style="background-color:#E8F5E9; color:#2E7D32;">Özel Ders</MudChip>
-            <MudChip T="string" Icon="@Icons.Material.Filled.Groups" style="background-color:#E1F5FE; color:#0277BD;">Grup Dersi</MudChip>
-            <MudChip T="string" Icon="@Icons.Material.Filled.Block" Color="Color.Default" Variant="Variant.Filled">Zaman Kapalı</MudChip>
+        <div class="d-flex gap-2 flex-wrap legend-chips">
+            <MudChip T="string" Icon="@Icons.Material.Filled.Person" Size="Size.Small" style="background-color:#E8F5E9; color:#2E7D32;" Class="ma-0">Özel</MudChip>
+            <MudChip T="string" Icon="@Icons.Material.Filled.Groups" Size="Size.Small" style="background-color:#E1F5FE; color:#0277BD;" Class="ma-0">Grup</MudChip>
+            <MudChip T="string" Icon="@Icons.Material.Filled.Block" Size="Size.Small" Color="Color.Default" Variant="Variant.Filled" Class="ma-0">Kapalı</MudChip>
         </div>
     </div>
 
@@ -31,7 +31,7 @@
     }
     else
     {
-        <MudPaper Elevation="3" Class="pa-6 rounded-xl">
+        <MudPaper Elevation="3" Class="pa-6 rounded-xl scheduler-paper">
             <WeeklyScheduler 
                 StartHour="9" 
                 EndHour="22" 
@@ -41,10 +41,43 @@
     }
 </MudContainer>
 
+<style>
+    /* --- MASAÜSTÜ VARSAYILANLARI --- */
+    .page-container { margin-top: 120px; }
+    .text-muted { color: #616161; }
+    
+    /* --- 🔥 MOBİL UYUMLULUK 🔥 --- */
+    @@media (max-width: 960px) {
+        .page-container { margin-top: 80px !important; }
+        
+        /* Başlık Alanı */
+        .header-section { 
+            flex-direction: column; 
+            align-items: flex-start !important; 
+            gap: 0.5rem !important; 
+        }
+        
+        .page-title { font-size: 1.5rem !important; }
+        .page-subtitle { font-size: 0.85rem !important; }
+
+        /* Etiketler (Chips) */
+        .legend-chips {
+            width: 100%;
+            justify-content: flex-start;
+            margin-bottom: 0.5rem;
+        }
+
+        /* Takvim Kağıdı */
+        .scheduler-paper {
+            padding: 8px !important; /* pa-6 çok fazlaydı, 8px yaptık */
+            overflow: hidden; /* Taşmayı engelle */
+        }
+    }
+</style>
+
 @code {
     private bool _loading = true;
     private List<CoachScheduleItemDto> _scheduleItems = new();
-    // Dictionary: Key = DateTime, Value = (CssType, DisplayText)
     private Dictionary<DateTime, (string Type, string Text)> _calendarData = new();
 
     protected override async Task OnInitializedAsync()
@@ -61,7 +94,6 @@
 
             if (result != null)
             {
-                // UTC -> Local Time Dönüşümü
                 _scheduleItems = result.Select(x => {
                     x.StartTime = x.StartTime.ToLocalTime();
                     x.EndTime = x.EndTime.ToLocalTime();
@@ -95,26 +127,22 @@
                 
                 if (!_calendarData.ContainsKey(key))
                 {
-                    // === DÜZELTME BURADA YAPILDI ===
-                    // Backend'den gelen "Type" alanına göre CSS sınıfını belirliyoruz.
-                    // Backend şu değerleri gönderiyor: "Lesson", "GroupLesson", "Block"
-
-                    string cssType = "MyBlock"; // Varsayılan (Gri/Kapalı)
+                    string cssType = "MyBlock"; 
                     string displayText = item.Title ?? "Kapalı";
 
                     if (item.Type == "GroupLesson")
                     {
-                        cssType = "GroupLesson"; // WeeklyScheduler'da Mavi (CSS class: .slot-group-lesson)
-                        displayText = item.Title; // Örn: "Ahmet (Grup)"
+                        cssType = "GroupLesson"; 
+                        displayText = item.Title; 
                     }
                     else if (item.Type == "Lesson" || item.Type == "PrivateLesson")
                     {
-                        cssType = "Lesson"; // WeeklyScheduler'da Yeşil (CSS class: .slot-lesson)
-                        displayText = item.Title; // Örn: "Ayşe Yılmaz"
+                        cssType = "Lesson"; 
+                        displayText = item.Title; 
                     }
                     else if (item.Type == "Block")
                     {
-                        cssType = "MyBlock"; // WeeklyScheduler'da Gri (CSS class: .slot-my-block)
+                        cssType = "MyBlock"; 
                         displayText = "Kapalı";
                     }
 
@@ -133,37 +161,32 @@
              return;
         }
 
-        // Tıklanan saatte bir kayıt var mı?
         if (_calendarData.ContainsKey(clickedTime))
         {
             var record = _scheduleItems.FirstOrDefault(x => clickedTime >= x.StartTime && clickedTime < x.EndTime);
 
             if (record != null)
             {
-                // 1. BLOK KALDIRMA
                 if (record.Type == "Block")
                 {
                     bool? result = await DialogService.ShowMessageBox(
                         "Zamanı Aç", 
-                        $"{clickedTime:dd.MM.yyyy HH:00} saatindeki engeli kaldırmak istiyor musunuz?", 
-                        yesText: "Evet, Aç", cancelText: "Vazgeç");
+                        $"{clickedTime:dd.MM HH:00} engeli kaldırılsın mı?", 
+                        yesText: "Evet", cancelText: "Vazgeç");
 
                     if (result == true) await DeleteBlock(record.Id);
                 }
-                // 2. DERS DETAYI (Özel veya Grup)
                 else if (record.Type == "Lesson" || record.Type == "GroupLesson")
                 {
                     string label = record.Type == "GroupLesson" ? "Grup Dersi" : "Özel Ders";
-                    
                     await DialogService.ShowMessageBox("Ders Bilgisi", 
-                        $"🎾 Tür: {label}\n👤 Başlık: {record.Title}\n📅 Tarih: {record.StartTime:dd.MM.yyyy}\n⏰ Saat: {record.StartTime:HH:mm} - {record.EndTime:HH:mm}\n\n*Not: Dersi iptal etmek isterseniz 'Öğrencilerim' veya 'Grup Derslerim' menüsünü kullanınız.*", 
+                        $"🎾 Tür: {label}\n👤 Başlık: {record.Title}\n⏰ Saat: {record.StartTime:HH:mm} - {record.EndTime:HH:mm}", 
                         yesText: "Tamam");
                 }
             }
             return;
         }
 
-        // Boş ise kapatma dialogunu aç
         await OpenBlockDialog(clickedTime);
     }
 
@@ -178,7 +201,7 @@
 
         if (!result.Canceled)
         {
-            Snackbar.Add("Saat başarıyla kapatıldı.", Severity.Success);
+            Snackbar.Add("Saat kapatıldı.", Severity.Success);
             await LoadData();
         }
     }
@@ -190,27 +213,26 @@
             var response = await HttpClient.DeleteAsync($"api/Coach/unblock-time/{id}");
             if (response.IsSuccessStatusCode)
             {
-                Snackbar.Add("Zaman tekrar erişime açıldı.", Severity.Success);
+                Snackbar.Add("Zaman açıldı.", Severity.Success);
                 await LoadData();
             }
             else
             {
-                Snackbar.Add("İşlem başarısız oldu.", Severity.Error);
+                Snackbar.Add("İşlem başarısız.", Severity.Error);
             }
         }
         catch
         {
-            Snackbar.Add("Sunucu hatası.", Severity.Error);
+            Snackbar.Add("Hata.", Severity.Error);
         }
     }
     
-    // DTO Sınıfı (Eğer Models klasöründe yoksa buraya ekleyebilirsin veya Models'e taşıyabilirsin)
     public class CoachScheduleItemDto
     {
-        public int Id { get; set; } // BookingId, GroupId veya UnavailabilityId
+        public int Id { get; set; } 
         public DateTime StartTime { get; set; }
         public DateTime EndTime { get; set; }
-        public string Type { get; set; } // "Lesson", "GroupLesson", "Block"
+        public string Type { get; set; } 
         public string Title { get; set; }
     }
 }
