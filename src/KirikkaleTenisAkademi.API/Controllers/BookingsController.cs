@@ -28,7 +28,6 @@ namespace KirikkaleTenisAkademi.API.Controllers
 
         [HttpPost("book")]
         [Authorize(Roles = "Student")]
-        [HttpPost("book")]
 [Authorize(Roles = "Student")]
 public async Task<IActionResult> BookLesson([FromBody] BookingRequest request)
 {

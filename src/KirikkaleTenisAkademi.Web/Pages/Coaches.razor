@@ -5,82 +5,92 @@
 @inject HttpClient Http
 @inject IDialogService DialogService
 
-<MudContainer MaxWidth="MaxWidth.Large" Class="mb-16" Style="margin-top: 120px;">
+<MudContainer MaxWidth="MaxWidth.Large" Class="mb-16 page-container">
     
-    <div class="text-center mb-12">
-        <MudText Typo="Typo.h3" Color="Color.Primary" Style="font-weight:900; letter-spacing:-1px;">EĞİTMEN KADROMUZ</MudText>
-        <MudText Typo="Typo.body1" Class="text-muted mt-2">
+    <div class="text-center mb-12 header-section">
+        <MudText Typo="Typo.h3" Color="Color.Primary" Class="page-title">EĞİTMEN KADROMUZ</MudText>
+        <MudText Typo="Typo.body1" Class="text-muted mt-2 page-subtitle">
             Alanında uzman, sertifikalı ve deneyimli antrenörlerimizle tanışın.
         </MudText>
     </div>
 
     @if (_loading)
     {
-    <div class="d-flex justify-center mt-12">
-        <MudProgressCircular Color="Color.Primary" Size="Size.Large" Indeterminate="true" />
-    </div>
+        <div class="d-flex justify-center mt-12">
+            <MudProgressCircular Color="Color.Primary" Size="Size.Large" Indeterminate="true" />
+        </div>
     }
     else if (coaches == null || coaches.Count == 0)
     {
-    <MudAlert Severity="Severity.Info" Class="mt-4">Henüz kayıtlı eğitmen bulunmamaktadır.</MudAlert>
+        <MudAlert Severity="Severity.Info" Class="mt-4">Henüz kayıtlı eğitmen bulunmamaktadır.</MudAlert>
     }
     else
     {
-    <MudGrid Spacing="4">
-        @foreach (var coach in coaches)
-        {
-        <MudItem xs="12" sm="6" md="4" lg="3">
-            <MudCard Elevation="2" Class="coach-card rounded-xl d-flex flex-column h-100">
+        <MudGrid Spacing="4" Class="coach-grid">
+            @foreach (var coach in coaches)
+            {
+                <MudItem xs="12" sm="6" md="4" lg="3">
+                    <MudCard Elevation="2" Class="coach-card rounded-xl d-flex flex-column h-100">
 
-                <div class="card-image-wrapper" @onclick="@(() => OpenDetails(coach))">
-                    <MudImage Src="@coach.ImageUrl" ObjectFit="ObjectFit.Cover" Class="coach-img" />
-                    <div class="card-overlay">
-                        <MudIcon Icon="@Icons.Material.Filled.Search" Style="color:white;" Size="Size.Large" />
-                    </div>
-                </div>
+                        <div class="card-image-wrapper" @onclick="@(() => OpenDetails(coach))">
+                            <MudImage Src="@coach.ImageUrl" ObjectFit="ObjectFit.Cover" Class="coach-img" />
+                            <div class="card-overlay">
+                                <MudIcon Icon="@Icons.Material.Filled.Search" Style="color:white;" Size="Size.Large" />
+                            </div>
+                        </div>
 
-                <MudCardContent Class="d-flex flex-column align-center pt-6 flex-grow-1">
-                    <MudText Typo="Typo.h6" Style="font-weight:800;">@coach.FirstName @coach.LastName</MudText>
-                    <MudChip T="string" Color="Color.Secondary" Size="Size.Small" Variant="Variant.Text" Class="mt-1 mb-3 fw-bold">
-                        @coach.Specialty
-                    </MudChip>
+                        <MudCardContent Class="d-flex flex-column align-center pt-6 flex-grow-1 card-content">
+                            <MudText Typo="Typo.h6" Class="coach-name">@coach.FirstName @coach.LastName</MudText>
+                            <MudChip T="string" Color="Color.Secondary" Size="Size.Small" Variant="Variant.Text" Class="mt-1 mb-3 fw-bold">
+                                @coach.Specialty
+                            </MudChip>
 
-                    <MudText Typo="Typo.body2" Align="Align.Center" Class="text-muted line-clamp-3 px-2">
-                        @coach.Bio
-                    </MudText>
-                </MudCardContent>
+                            <MudText Typo="Typo.body2" Align="Align.Center" Class="text-muted line-clamp-3 px-2 coach-bio">
+                                @coach.Bio
+                            </MudText>
+                        </MudCardContent>
 
-                <MudCardActions Class="justify-center pb-6 px-4 gap-2">
-                    <MudButton Variant="Variant.Outlined"
-                               Color="Color.Primary"
-                               Size="Size.Small"
-                               Class="rounded-pill flex-grow-1"
-                               OnClick="@(() => OpenDetails(coach))">
-                        Detaylar
-                    </MudButton>
-
-                    <AuthorizeView Roles="Student">
-                        <Authorized>
-                            <MudButton Variant="Variant.Filled"
+                        <MudCardActions Class="justify-center pb-6 px-4 gap-2">
+                            <MudButton Variant="Variant.Outlined"
                                        Color="Color.Primary"
                                        Size="Size.Small"
-                                       StartIcon="@Icons.Material.Filled.Event"
-                                       Href="@($"/booking/{coach.Id}")"
-                                       Class="rounded-pill flex-grow-1">
-                                Ders Al
+                                       Class="rounded-pill flex-grow-1 card-btn"
+                                       OnClick="@(() => OpenDetails(coach))">
+                                Detaylar
                             </MudButton>
-                        </Authorized>
-                    </AuthorizeView>
-                </MudCardActions>
-            </MudCard>
-        </MudItem>
-        }
-    </MudGrid>
+
+                            <AuthorizeView Roles="Student">
+                                <Authorized>
+                                    <MudButton Variant="Variant.Filled"
+                                               Color="Color.Primary"
+                                               Size="Size.Small"
+                                               StartIcon="@Icons.Material.Filled.Event"
+                                               Href="@($"/booking/{coach.Id}")"
+                                               Class="rounded-pill flex-grow-1 card-btn">
+                                        Ders Al
+                                    </MudButton>
+                                </Authorized>
+                            </AuthorizeView>
+                        </MudCardActions>
+                    </MudCard>
+                </MudItem>
+            }
+        </MudGrid>
     }
 </MudContainer>
 
 <style>
-    /* KART HOVER EFEKTLERİ */
+    /* --- MASAÜSTÜ VARSAYILANLARI --- */
+    .page-container {
+        margin-top: 120px; /* Masaüstünde bol boşluk */
+    }
+
+    .page-title {
+        font-weight: 900 !important;
+        letter-spacing: -1px;
+    }
+
+    /* KART STİLLERİ */
     .coach-card {
         transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
         border: 1px solid transparent;
@@ -97,7 +107,7 @@
     /* RESİM ALANI */
     .card-image-wrapper {
         position: relative;
-        height: 260px;
+        height: 260px; /* Masaüstü yüksekliği */
         width: 100%;
         overflow: hidden;
         background-color: #f5f5f5;
@@ -109,11 +119,8 @@
         transition: transform 0.5s ease;
     }
 
-    .coach-card:hover .coach-img {
-        transform: scale(1.05);
-    }
+    .coach-card:hover .coach-img { transform: scale(1.05); }
 
-    /* Resim üzerindeki overlay ikon */
     .card-overlay {
         position: absolute;
         top: 0; left: 0; right: 0; bottom: 0;
@@ -123,9 +130,7 @@
         transition: opacity 0.3s ease;
     }
 
-    .coach-card:hover .card-overlay {
-        opacity: 1;
-    }
+    .coach-card:hover .card-overlay { opacity: 1; }
 
     /* METİN KISITLAMA */
     .line-clamp-3 {
@@ -138,35 +143,81 @@
 
     .text-muted { color: #616161; }
     .fw-bold { font-weight: 700; }
+    .coach-name { font-weight: 800; }
+
+
+    /* --- 🔥 MOBİL OPERASYONU (DÜZELTİLMİŞ) 🔥 --- */
+    @@media (max-width: 960px) {
+        
+        /* 1. ÜST BOŞLUK AYARI */
+        .page-container {
+            margin-top: 80px !important; /* 120px -> 80px'e indi */
+        }
+
+        /* 2. BAŞLIKLAR KÜÇÜLDÜ */
+        .page-title {
+            font-size: 1.75rem !important; /* H3 devasa durmasın */
+        }
+        
+        .page-subtitle {
+            font-size: 0.9rem !important;
+        }
+
+        .header-section {
+            margin-bottom: 2rem !important; /* mb-12 -> daha az boşluk */
+        }
+
+        /* 3. RESİM YÜKSEKLİĞİ KISILDI */
+        .card-image-wrapper {
+            height: 200px !important; /* 260px -> 200px (%25 küçüldü) */
+        }
+
+        /* 4. KART İÇERİĞİ SIKIŞTIRILDI */
+        .card-content {
+            padding-top: 1rem !important; /* pt-6 çok fazlaydı */
+        }
+
+        .coach-name {
+            font-size: 1.1rem !important; /* İsim boyutu küçüldü */
+        }
+
+        .coach-bio {
+            font-size: 0.85rem !important; /* Açıklama yazısı küçüldü */
+            min-height: auto !important; /* Zorunlu yükseklik kalktı */
+        }
+
+        /* 5. BUTONLAR */
+        .card-btn {
+            padding: 4px 12px !important; /* Daha ince butonlar */
+            font-size: 0.8rem !important;
+        }
+    }
 </style>
 
 @code {
-private List<CoachDto>? coaches;
-private bool _loading = true;
+    private List<CoachDto>? coaches;
+    private bool _loading = true;
 
-protected override async Task OnInitializedAsync()
-{
-try
-{
-coaches = await Http.GetFromJsonAsync<List<CoachDto>>("api/Coaches");
-}
-catch (Exception ex)
-{
-Console.WriteLine("Hata: " + ex.Message);
-}
-finally
-{
-_loading = false;
-}
-}
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            coaches = await Http.GetFromJsonAsync<List<CoachDto>>("api/Coaches");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Hata: " + ex.Message);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
 
-// Popup Açma Fonksiyonu
-private void OpenDetails(CoachDto coach)
-{
-var parameters = new DialogParameters<CoachDetailsDialog> { { x => x.Coach, coach } };
-
-var options = new DialogOptions() { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true };
-
-DialogService.Show<CoachDetailsDialog>(coach.FirstName + " " + coach.LastName, parameters, options);
-}
+    private void OpenDetails(CoachDto coach)
+    {
+        var parameters = new DialogParameters<CoachDetailsDialog> { { x => x.Coach, coach } };
+        var options = new DialogOptions() { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+        DialogService.Show<CoachDetailsDialog>(coach.FirstName + " " + coach.LastName, parameters, options);
+    }
 }

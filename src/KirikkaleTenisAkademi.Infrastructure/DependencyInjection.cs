@@ -15,12 +15,23 @@ public static class DependencyInjection
     {
         // 1. PostgreSQL Bağlantısı
         services.AddDbContext<AppDbContext>(options =>
-            options.UseNpgsql(configuration.GetConnectionString("DefaultConnection")));
+            options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
 
         // 2. Identity (Kullanıcı Yönetimi) Bağlantısı
-        services.AddIdentity<AppUser, IdentityRole>()
-            .AddEntityFrameworkStores<AppDbContext>()
-            .AddDefaultTokenProviders();
+        services.AddIdentity<AppUser, IdentityRole>(options => 
+        {
+            // Şifre kuralları (Zaten vardır)
+            options.Password.RequireDigit = false;
+            options.Password.RequiredLength = 6;
+            options.Password.RequireNonAlphanumeric = false;
+            options.Password.RequireUppercase = false;
+            options.Password.RequireLowercase = false;
+                // 🔥 YENİ EKLENEN KISIMLAR:
+            options.User.RequireUniqueEmail = true;       // Aynı maille tekrar kayıt olunamasın
+            options.SignIn.RequireConfirmedEmail = true;  // 🛑 MAİL ONAYI OLMADAN GİRİŞ YAPILAMAZ!
+        })
+        .AddEntityFrameworkStores<AppDbContext>()
+        .AddDefaultTokenProviders(); // 👈 BU ÇOK ÖNEMLİ! Token üretmek için bunu mutlaka ekle.
         
         // 3. Auth Servisini Kaydet
         services.AddScoped<IAuthService, AuthService>();
@@ -28,6 +39,7 @@ public static class DependencyInjection
         // 4. Ödeme Servisini Kaydet (BURAYA EKLİYORUZ) ✅
         services.AddScoped<IPaymentService, PaymentService>();
 
+        services.AddScoped<IEmailService, SmtpEmailService>();
         return services;
     }
 }

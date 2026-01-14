@@ -34,7 +34,7 @@ namespace KirikkaleTenisAkademi.Infrastructure.Services
             request.PaymentGroup = PaymentGroup.PRODUCT.ToString();
             
             // Callback URL
-            request.CallbackUrl = $"https://localhost:7111/api/Payment/callback?backupId={conversationId}";
+            request.CallbackUrl = $"https://api.winnertenis.com/api/Payment/callback?backupId={conversationId}";
 
             request.EnabledInstallments = new List<int>() { 2, 3, 6, 9 };
 

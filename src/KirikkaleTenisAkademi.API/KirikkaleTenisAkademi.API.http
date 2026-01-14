@@ -1,4 +1,4 @@
-@KirikkaleTenisAkademi.API_HostAddress = https://localhost:7111
+@KirikkaleTenisAkademi.API_HostAddress = https://localhost:7111/
 
 GET {{KirikkaleTenisAkademi.API_HostAddress}}/weatherforecast/
 Accept: application/json

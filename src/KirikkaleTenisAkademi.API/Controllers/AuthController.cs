@@ -1,15 +1,18 @@
 ﻿using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
+using KirikkaleTenisAkademi.Application.Interfaces; // E-posta servisi için
 using KirikkaleTenisAkademi.Domain.Entities;
 using KirikkaleTenisAkademi.Infrastructure.Persistence;
+using KirikkaleTenisAkademi.Web.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using System.Security.Claims;
-using System.Text;
-using KirikkaleTenisAkademi.Application.DTOs.Auth;
-using KirikkaleTenisAkademi.Web.Models;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.IdentityModel.Tokens;
+using System.Net;
+using KirikkaleTenisAkademi.Application.DTOs;
+using KirikkaleTenisAkademi.Application.DTOs.Auth; // URL Encode için
 
 namespace KirikkaleTenisAkademi.API.Controllers
 {
@@ -19,31 +22,34 @@ namespace KirikkaleTenisAkademi.API.Controllers
     {
         private readonly UserManager<AppUser> _userManager;
         private readonly IConfiguration _configuration;
-        private readonly AppDbContext _context; // Veritabanına direkt erişim için
+        private readonly AppDbContext _context; // Veritabanına direkt erişim
+        private readonly IEmailService _emailService; // 📧 Mail Servisi
 
-        public AuthController(UserManager<AppUser> userManager, IConfiguration configuration, AppDbContext context)
+        public AuthController(UserManager<AppUser> userManager, 
+                              IConfiguration configuration, 
+                              AppDbContext context,
+                              IEmailService emailService)
         {
             _userManager = userManager;
             _configuration = configuration;
             _context = context;
+            _emailService = emailService;
         }
 
-        // --- REGISTER (KAYIT OL) ---
+        // --- REGISTER (KAYIT OL VE MAİL AT) ---
         [HttpPost("register")]
         public async Task<IActionResult> Register(RegisterRequest request)
         {
             // 1. Validasyonlar
-            // Not: _context.Users, veritabanındaki "AppUser" tablosudur.
             if (await _context.Users.AnyAsync(u => u.UserName == request.UserName))
                 return BadRequest("Bu kullanıcı adı zaten alınmış.");
 
             if (await _context.Users.AnyAsync(u => u.Email == request.Email))
                 return BadRequest("Bu e-posta adresi zaten kullanılıyor.");
 
-            // 2. Kullanıcı Nesnesini Hazırla (ID'yi biz veriyoruz)
+            // 2. Kullanıcı Nesnesini Hazırla
             var newUserId = Guid.NewGuid().ToString();
             
-            // DÜZELTME: ApplicationUser yerine AppUser kullanıyoruz.
             var user = new AppUser
             {
                 Id = newUserId, 
@@ -58,26 +64,24 @@ namespace KirikkaleTenisAkademi.API.Controllers
                 BirthDate = request.BirthDate,
                 LessonCredits = 0,
                 GroupCredits = 0,
-                EmailConfirmed = false,
+                EmailConfirmed = false, // Mail onayı bekleniyor
                 SecurityStamp = Guid.NewGuid().ToString(),
                 ConcurrencyStamp = Guid.NewGuid().ToString(),
                 Level = Domain.Enums.TennisLevel.Beginner,
                 RegistrationDate = DateTime.UtcNow
             };
 
-            // 3. Şifreyi Manuel Hash'le
-            // DÜZELTME: Burası da AppUser olmalı
+            // 3. Şifreyi Hash'le
             var passwordHasher = new PasswordHasher<AppUser>();
             user.PasswordHash = passwordHasher.HashPassword(user, request.Password);
 
-            // 4. VERİTABANI İŞLEMİ (Tek Seferde)
             using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
                 // A. Kullanıcıyı ekle
-                _context.Users.Add(user); // Artık user nesnesi "AppUser" tipinde olduğu için hata vermez.
+                _context.Users.Add(user);
                 
-                // B. Rolü bul ve kullanıcıya bağla
+                // B. Rolü bağla
                 var studentRole = await _context.Roles.FirstOrDefaultAsync(r => r.Name == "Student");
                 if (studentRole != null)
                 {
@@ -88,13 +92,35 @@ namespace KirikkaleTenisAkademi.API.Controllers
                     });
                 }
 
-                // C. Hepsini TEK SEFERDE kaydet
                 await _context.SaveChangesAsync();
-                
-                // D. İşlemi Onayla
                 await transaction.CommitAsync();
 
-                return Ok(new { message = "Kullanıcı başarıyla oluşturuldu." });
+                // ============================================================
+                // 📧 4. TOKEN ÜRET VE MAİL GÖNDER
+                // ============================================================
+                // Not: user objesi Tracking modunda olmadığı için UserManager ile tekrar çekiyoruz (Token üretimi için şart)
+                var createdUser = await _userManager.FindByIdAsync(newUserId);
+                if (createdUser != null)
+                {
+                    var token = await _userManager.GenerateEmailConfirmationTokenAsync(createdUser);
+                    var encodedToken = WebUtility.UrlEncode(token);
+
+                    // Frontend URL'ini buraya yaz (Kendi portuna göre ayarla)
+                    var frontendUrl = AppConstants.WebBaseUrl;
+                    var confirmationLink = $"{frontendUrl}/confirm-email-page?userId={createdUser.Id}&token={encodedToken}";
+                    
+                    var subject = "Kırıkkale Tenis Akademi - Hesap Onayı";
+                    var body = $@"
+                        <h3>Aramıza Hoşgeldin {createdUser.FirstName}! 🎾</h3>
+                        <p>Hesabını aktifleştirmek için lütfen aşağıdaki butona tıkla:</p>
+                        <a href='{confirmationLink}' style='background-color:#2E7D32; color:white; padding:10px 20px; text-decoration:none; border-radius:5px;'>Hesabımı Doğrula</a>
+                        <p>Link çalışmıyorsa: {confirmationLink}</p>";
+
+                    await _emailService.SendEmailAsync(createdUser.Email, subject, body);
+                }
+                // ============================================================
+
+                return Ok(new { message = "Kayıt başarılı! Lütfen e-posta adresinize gelen linke tıklayarak hesabınızı doğrulayın." });
             }
             catch (Exception ex)
             {
@@ -103,49 +129,46 @@ namespace KirikkaleTenisAkademi.API.Controllers
             }
         }
 
-        // --- LOGIN (GİRİŞ YAP) ---
-        // (Login kodun buradaydı, aynen kalabilir veya aşağıya ekleyebilirsin)
-        // Eğer Login kodun silindiyse söyle, onu da atayım.
-        // Gerekli kütüphaneleri eklediğinden emin ol:
-        // using System.IdentityModel.Tokens.Jwt;
-        // using System.Security.Claims;
-        // using Microsoft.IdentityModel.Tokens;
-        // using System.Text;
+        // --- EMAIL CONFIRM (MAİL ONAYLA) ---
+        [HttpPost("confirm-email")]
+        public async Task<IActionResult> ConfirmEmail([FromBody] ConfirmEmailDto model)
+        {
+            if (string.IsNullOrEmpty(model.UserId) || string.IsNullOrEmpty(model.Token))
+                return BadRequest("Geçersiz istek.");
 
+            var user = await _userManager.FindByIdAsync(model.UserId);
+            if (user == null) return BadRequest("Kullanıcı bulunamadı.");
+
+            var result = await _userManager.ConfirmEmailAsync(user, model.Token);
+            
+            if (result.Succeeded)
+            {
+                return Ok(new { message = "E-posta başarıyla doğrulandı! Artık giriş yapabilirsiniz." });
+            }
+            
+            return BadRequest("Doğrulama başarısız. Token süresi dolmuş olabilir.");
+        }
+
+        // --- LOGIN (GİRİŞ YAP) ---
         [HttpPost("login")]
         public async Task<IActionResult> Login(LoginRequest request)
         {
-            // 1. Kullanıcıyı Email ile Bul (Büyük/Küçük harf duyarlılığını kaldırmak için ToLower yapabiliriz ama şimdilik direkt arayalım)
-            // AsNoTracking performans içindir.
-            var user = await _context.Users
-                .AsNoTracking()
-                .FirstOrDefaultAsync(u => u.Email == request.Email);
+            // Kullanıcıyı bul
+            var user = await _userManager.FindByEmailAsync(request.Email);
+            if (user == null) return Unauthorized(new { message = "Hatalı email veya şifre." });
 
-            if (user == null)
-            {
+            // 🛑 MAİL ONAYI KONTROLÜ
+            if (!await _userManager.IsEmailConfirmedAsync(user))
+                return Unauthorized(new { message = "Giriş yapmadan önce e-posta adresinizi doğrulamanız gerekmektedir." });
+
+            // Şifre kontrolü
+            if (!await _userManager.CheckPasswordAsync(user, request.Password))
                 return Unauthorized(new { message = "Hatalı email veya şifre." });
-            }
 
-            // 2. Şifreyi Doğrula (Manuel Hash Kontrolü)
-            var passwordHasher = new PasswordHasher<AppUser>();
-            var verificationResult = passwordHasher.VerifyHashedPassword(user, user.PasswordHash, request.Password);
+            // Rolleri al
+            var userRoles = await _userManager.GetRolesAsync(user);
 
-            if (verificationResult == PasswordVerificationResult.Failed)
-            {
-                return Unauthorized(new { message = "Hatalı email veya şifre." });
-            }
-
-            // 3. Kullanıcının Rollerini Çek
-            // IdentityUserRole tablosundan bu UserID'ye ait rolleri bul, sonra Roles tablosundan isimlerini al.
-            var userRoles = await _context.UserRoles
-                .Where(ur => ur.UserId == user.Id)
-                .Join(_context.Roles, 
-                      ur => ur.RoleId, 
-                      r => r.Id, 
-                      (ur, r) => r.Name)
-                .ToListAsync();
-
-            // 4. Token Oluştur (JWT)
+            // Token oluştur
             var authClaims = new List<Claim>
             {
                 new Claim(ClaimTypes.Name, user.UserName ?? ""),
@@ -153,20 +176,18 @@ namespace KirikkaleTenisAkademi.API.Controllers
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
             };
 
-            // Rolleri Token'a ekle
             foreach (var role in userRoles)
             {
                 authClaims.Add(new Claim(ClaimTypes.Role, role));
             }
 
-            // appsettings.json'dan okuyoruz
             var jwtSettings = _configuration.GetSection("JwtSettings");
             var secretKey = Encoding.UTF8.GetBytes(jwtSettings["Secret"]!);
 
             var token = new JwtSecurityToken(
                 issuer: jwtSettings["Issuer"],
                 audience: jwtSettings["Audience"],
-                expires: DateTime.Now.AddHours(3), // Token 3 saat geçerli
+                expires: DateTime.Now.AddHours(3),
                 claims: authClaims,
                 signingCredentials: new SigningCredentials(new SymmetricSecurityKey(secretKey), SecurityAlgorithms.HmacSha256)
             );
@@ -175,28 +196,21 @@ namespace KirikkaleTenisAkademi.API.Controllers
             {
                 token = new JwtSecurityTokenHandler().WriteToken(token),
                 expiration = token.ValidTo,
-                role = userRoles.FirstOrDefault() // Frontend genelde ilk rolü merak eder
+                role = userRoles.FirstOrDefault()
             });
         }
         
-        
         // --- PROFILE (PROFİL BİLGİSİ) ---
-        // Frontend'in kredi bilgisini çekmesi için gerekli endpoint
-        // AuthController.cs içine ekle:
-
-        // AuthController.cs içine eklenecek metotlar:
         [HttpGet("profile")]
-        [Authorize] // Sadece giriş yapanlar
+        [Authorize]
         public async Task<IActionResult> GetProfile()
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (string.IsNullOrEmpty(userId)) return Unauthorized();
 
-            // Veritabanından kullanıcıyı tüm detaylarıyla çekiyoruz
             var user = await _userManager.FindByIdAsync(userId);
             if (user == null) return NotFound("Kullanıcı bulunamadı.");
 
-            // Entity -> DTO Dönüşümü
             var profile = new UserProfileDto
             {
                 FirstName = user.FirstName,
@@ -206,17 +220,11 @@ namespace KirikkaleTenisAkademi.API.Controllers
                 PhoneNumber = user.PhoneNumber,
                 TCKN = user.TCKN,
                 BirthDate = user.BirthDate,
-                
-                // Fiziksel
                 Height = user.Height,
                 Weight = user.Weight,
-                
-                // Enum'ları string olarak frontend'e gönderiyoruz
                 Level = user.Level.ToString(),
                 DominantHand = user.DominantHand.ToString(),
                 BackhandStyle = user.BackhandStyle.ToString(),
-                
-                // Acil Durum
                 EmergencyContactName = user.EmergencyContactName,
                 EmergencyContactPhone = user.EmergencyContactPhone,
                 LessonCredits = user.LessonCredits,
@@ -234,20 +242,15 @@ namespace KirikkaleTenisAkademi.API.Controllers
             var user = await _userManager.FindByIdAsync(userId);
             if (user == null) return NotFound("Kullanıcı bulunamadı.");
 
-            // Null Check (DTO'dan boş gelirse eski veriyi koru veya boş string ata)
-            // Eğer frontend her zaman dolu gönderiyorsa direkt atayabilirsin.
             user.FirstName = model.FirstName ?? user.FirstName;
             user.LastName = model.LastName ?? user.LastName;
             user.PhoneNumber = model.PhoneNumber ?? user.PhoneNumber;
-    
-            // Değer tipleri (Nullable değilse direkt ata, Nullable ise kontrol et)
             user.BirthDate = model.BirthDate; 
             user.Height = model.Height;
             user.Weight = model.Weight;
             user.EmergencyContactName = model.EmergencyContactName;
             user.EmergencyContactPhone = model.EmergencyContactPhone;
 
-            // Enumlar
             if (!string.IsNullOrEmpty(model.Level) && Enum.TryParse<Domain.Enums.TennisLevel>(model.Level, out var level)) 
                 user.Level = level;
         
@@ -257,7 +260,6 @@ namespace KirikkaleTenisAkademi.API.Controllers
             if (!string.IsNullOrEmpty(model.BackhandStyle) && Enum.TryParse<Domain.Enums.BackhandStyle>(model.BackhandStyle, out var back)) 
                 user.BackhandStyle = back;
 
-            // KRİTİK: Stamp Yenileme
             user.ConcurrencyStamp = Guid.NewGuid().ToString();
 
             var result = await _userManager.UpdateAsync(user);
@@ -267,12 +269,11 @@ namespace KirikkaleTenisAkademi.API.Controllers
                 return Ok(new { message = "Profil güncellendi." });
             }
 
-            // Identity'den dönen gerçek hatayı (Örn: Email already taken, Invalid Phone vs.) frontend'e yolla
             return BadRequest(result.Errors);
         }
     }
 
-    // Register için Gelen Veri Modeli
+    // Register Modeli
     public class RegisterRequest
     {
         public string FirstName { get; set; } = string.Empty;
@@ -280,12 +281,8 @@ namespace KirikkaleTenisAkademi.API.Controllers
         public string UserName { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
         public string Password { get; set; } = string.Empty;
-
-        // Yeni Eklenen Alanlar
         public string TCKN { get; set; } = string.Empty;
         public string PhoneNumber { get; set; } = string.Empty;
         public DateTime BirthDate { get; set; }
-
-        public DateTime RegistrationDate = DateTime.UtcNow;
     }
 }

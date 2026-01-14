@@ -5,45 +5,68 @@
         display: flex;
         flex-direction: column;
         width: 100%;
-        overflow-x: auto;
+        overflow-x: auto; /* Yatay kaydırmaya izin ver */
+        position: relative;
+        /* Mobilde kaydırmayı yumuşat */
+        -webkit-overflow-scrolling: touch; 
     }
 
     .scheduler-header {
         display: flex;
         border-bottom: 1px solid #e0e0e0;
+        /* Başlık da içeriyle beraber kaymalı ama genişliği min-width ile korumalıyız */
+        min-width: min-content;
     }
 
     .scheduler-row {
         display: flex;
         border-bottom: 1px solid #f0f0f0;
+        min-width: min-content;
     }
 
+    /* --- SAAT SÜTUNU (STICKY / YAPIŞKAN) --- */
     .scheduler-time-col {
+        position: sticky; /* Sihirli kod */
+        left: 0;
+        z-index: 10;
+        
         width: 60px;
         min-width: 60px;
         padding: 8px;
         font-size: 0.75rem;
         color: #757575;
-        border-right: 1px solid #e0e0e0;
+        border-right: 2px solid #e0e0e0; /* Ayrımı netleştirmek için kalın çizgi */
+        background-color: #fafafa; /* Arkası şeffaf olmasın, yoksa yazılar üst üste biner */
+        
         display: flex;
         align-items: center;
         justify-content: center;
         font-weight: 500;
-        background-color: #fafafa;
+    }
+    
+    /* Sticky sütunda gölge efekti (isteğe bağlı ama şık durur) */
+    .scheduler-time-col::after {
+        content: "";
+        position: absolute;
+        top: 0; right: -5px; bottom: 0; width: 5px;
+        background: linear-gradient(to right, rgba(0,0,0,0.05), transparent);
+        pointer-events: none;
     }
 
+    /* Gün Başlıkları */
     .scheduler-header-cell {
         flex: 1;
         text-align: center;
         padding: 8px;
         border-right: 1px solid #f0f0f0;
-        min-width: 100px;
+        min-width: 100px; /* Mobilde her gün en az 100px olsun */
         font-weight: 600;
     }
 
+    /* Ders Hücreleri */
     .scheduler-cell {
         flex: 1;
-        min-width: 100px;
+        min-width: 100px; /* Header ile aynı olmalı */
         height: 60px;
         border-right: 1px solid #f0f0f0;
         cursor: pointer;
@@ -51,65 +74,75 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        position: relative;
-        /* Kaymayı önleyen kritik ayar */
         box-sizing: border-box; 
     }
 
-    .scheduler-cell:hover {
-        background-color: #f5f5f5;
-    }
+    .scheduler-cell:hover { background-color: #f5f5f5; }
 
-    /* --- DURUM RENKLERİ (Kaymayı önlemek için Border yerine Box-Shadow kullanıldı) --- */
-    
-    /* 1. Özel Ders (YEŞİL) */
-    .slot-lesson {
-        background-color: #E8F5E9; 
-        color: #2E7D32; 
-        box-shadow: inset 4px 0 0 0 #2E7D32; /* İçeriye doğru 4px çizgi */
-    }
-
-    /* 2. Grup Dersi (MAVİ) */
-    .slot-group-lesson {
-        background-color: #E1F5FE; 
-        color: #0277BD; 
-        box-shadow: inset 4px 0 0 0 #0277BD;
-    }
-
-    /* 3. Kapalı / Geçmiş / Koç Engeli (GRİ) */
-    /* 3. Kapalı / Geçmiş / Koç Engeli (GRİ) */
-    .slot-blocked, .slot-my-block {
-        background-color: #F5F5F5 !important;
-        color: #616161 !important; /* Rengi koyulaştırdık (Eskisi: #9E9E9E idi) */
-        font-weight: bold !important; /* Yazıyı kalın yaptık */
-        box-shadow: inset 4px 0 0 0 #9E9E9E !important; /* Sol çizgiyi belirginleştirdik */
-        cursor: not-allowed !important;
-    }
+    /* DURUM RENKLERİ */
+    .slot-lesson { background-color: #E8F5E9; color: #2E7D32; box-shadow: inset 4px 0 0 0 #2E7D32; }
+    .slot-group-lesson { background-color: #E1F5FE; color: #0277BD; box-shadow: inset 4px 0 0 0 #0277BD; }
+    .slot-blocked { background-color: #F5F5F5 !important; color: #9E9E9E !important; box-shadow: inset 4px 0 0 0 #BDBDBD !important; cursor: not-allowed !important; }
     
     .text-success { color: #2E7D32 !important; }
+
+    /* --- 🔥 MOBİL UYUMLULUK 🔥 --- */
+    @@media (max-width: 960px) {
+        /* Saati biraz daha daralt */
+        .scheduler-time-col {
+            width: 50px;
+            min-width: 50px;
+            font-size: 0.7rem;
+            padding: 4px;
+        }
+
+        /* Hücreleri biraz kısalt */
+        .scheduler-cell {
+            height: 50px; /* 60px -> 50px */
+            min-width: 85px; /* Biraz daha daraltabiliriz */
+        }
+        .scheduler-header-cell {
+            min-width: 85px;
+            font-size: 0.9rem;
+            padding: 4px;
+        }
+        
+        /* Butonları küçült */
+        .nav-btn {
+            font-size: 0.75rem;
+            padding: 4px 8px;
+        }
+    }
 </style>
 
 <div class="d-flex justify-space-between align-center mb-4 px-2">
-    <MudButton StartIcon="@Icons.Material.Filled.ArrowBack" Variant="Variant.Outlined" OnClick="PreviousWeek">Önceki Hafta</MudButton>
+    <MudButton StartIcon="@Icons.Material.Filled.ArrowBack" Variant="Variant.Outlined" Size="Size.Small" OnClick="PreviousWeek" Class="nav-btn">Önceki</MudButton>
     
-    <MudText Typo="Typo.h6">
-        @CurrentWeekStart.ToString("MMMM yyyy", new CultureInfo("tr-TR")) 
-        <small class="text-muted ms-2">(Hafta: @CurrentWeekStart.ToString("dd MMM") - @CurrentWeekStart.AddDays(6).ToString("dd MMM"))</small>
-    </MudText>
+    <div class="d-flex flex-column align-center">
+        <MudText Typo="Typo.subtitle1" Style="font-weight:bold;">
+            @CurrentWeekStart.ToString("MMMM", new CultureInfo("tr-TR"))
+        </MudText>
+        <MudText Typo="Typo.caption" Class="text-muted">
+            @CurrentWeekStart.ToString("dd") - @CurrentWeekStart.AddDays(6).ToString("dd MMM")
+        </MudText>
+    </div>
 
-    <MudButton EndIcon="@Icons.Material.Filled.ArrowForward" Variant="Variant.Outlined" OnClick="NextWeek">Sonraki Hafta</MudButton>
+    <MudButton EndIcon="@Icons.Material.Filled.ArrowForward" Variant="Variant.Outlined" Size="Size.Small" OnClick="NextWeek" Class="nav-btn">Sonraki</MudButton>
 </div>
 
 <div class="scheduler-container">
     <div class="scheduler-header">
-        <div class="scheduler-time-col">Saat</div> 
+        <div class="scheduler-time-col">
+            <MudIcon Icon="@Icons.Material.Filled.AccessTime" Size="Size.Small" />
+        </div> 
+        
         @for (int i = 0; i < 7; i++)
         {
             var day = CurrentWeekStart.AddDays(i);
             var isToday = day.Date == DateTime.Today;
             <div class="scheduler-header-cell @(isToday ? "text-success" : "")">
-                <div>@day.ToString("dddd", new CultureInfo("tr-TR"))</div>
-                <div style="font-size:1.2em">@day.Day</div>
+                <div style="font-size: 0.8em; text-transform:uppercase;">@day.ToString("ddd", new CultureInfo("tr-TR"))</div>
+                <div style="font-size:1.4em; line-height:1;">@day.Day</div>
             </div>
         }
     </div>
@@ -132,8 +165,10 @@
                         @if (!string.IsNullOrEmpty(displayText))
                         {
                             <span class="d-flex align-center flex-column">
-                                <MudIcon Icon="@GetSlotIcon(statusClass)" Size="Size.Small" />
-                                <span style="font-size:0.7rem; text-align:center; line-height:1.1; margin-top:2px;">@displayText</span>
+                                <MudIcon Icon="@GetSlotIcon(statusClass)" Size="Size.Small" Style="font-size: 1rem;" />
+                                <MudHidden Breakpoint="Breakpoint.Xs">
+                                    <span style="font-size:0.6rem; text-align:center; line-height:1; margin-top:2px;">@displayText</span>
+                                </MudHidden>
                             </span>
                         }
                     </div>
@@ -146,10 +181,7 @@
 @code {
     [Parameter] public int StartHour { get; set; } = 9;
     [Parameter] public int EndHour { get; set; } = 22;
-    
-    // Key: DateTime, Value: (Type: "Lesson"|"GroupLesson"|"MyBlock"|"Blocked"|"PrivateLesson", Text: "Display Text")
     [Parameter] public Dictionary<DateTime, (string Type, string Text)> BusySlots { get; set; } = new();
-
     [Parameter] public EventCallback<DateTime> OnSlotClicked { get; set; }
 
     private DateTime CurrentWeekStart;
@@ -157,6 +189,7 @@
     protected override void OnInitialized()
     {
         var today = DateTime.Today;
+        // Pazartesi'den başlat
         int diff = (7 + (today.DayOfWeek - DayOfWeek.Monday)) % 7;
         CurrentWeekStart = today.AddDays(-1 * diff).Date;
     }
@@ -166,9 +199,7 @@
 
     private async Task HandleSlotClick(DateTime time)
     {
-        // Geçmişe tıklamayı engelle
         if (time < DateTime.Now.AddHours(-1)) return;
-
         await OnSlotClicked.InvokeAsync(time);
     }
 
@@ -177,29 +208,20 @@
         if (BusySlots.ContainsKey(time))
         {
             var type = BusySlots[time].Type;
-            
-            // Mavi (Grup)
             if (type == "GroupLesson") return "slot-group-lesson"; 
-            
-            // Yeşil (Özel)
             if (type == "Lesson" || type == "PrivateLesson") return "slot-lesson";            
-            
-            // Gri (Kapalı / Geçmiş / Koç Bloğu)
             if (type == "MyBlock" || type == "Blocked" || type == "System") return "slot-blocked"; 
         }
         return "";
     }
 
-    private string GetSlotText(DateTime time)
-    {
-        return BusySlots.ContainsKey(time) ? BusySlots[time].Text : "";
-    }
+    private string GetSlotText(DateTime time) => BusySlots.ContainsKey(time) ? BusySlots[time].Text : "";
 
     private string GetSlotIcon(string cssClass)
     {
-        if (cssClass == "slot-group-lesson") return Icons.Material.Filled.Groups; // Grup İkonu
-        if (cssClass == "slot-lesson") return Icons.Material.Filled.Person;       // Özel Ders İkonu
-        if (cssClass == "slot-blocked" || cssClass == "slot-my-block") return Icons.Material.Filled.Block; // Engel İkonu
+        if (cssClass == "slot-group-lesson") return Icons.Material.Filled.Groups;
+        if (cssClass == "slot-lesson") return Icons.Material.Filled.Person;
+        if (cssClass == "slot-blocked") return Icons.Material.Filled.Block;
         return "";
     }
 }

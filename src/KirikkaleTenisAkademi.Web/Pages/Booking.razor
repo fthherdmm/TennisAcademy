@@ -7,82 +7,124 @@
 @inject NavigationManager Navigation
 @inject IDialogService DialogService
 
-<MudContainer MaxWidth="MaxWidth.Large" Class="mb-16" Style="margin-top: 120px;">
+<MudContainer MaxWidth="MaxWidth.Large" Class="mb-16 page-container">
 
-    <div class="d-flex align-center mb-6">
+    <div class="d-flex align-center mb-6 header-wrapper">
         <MudButton Variant="Variant.Text"
                    StartIcon="@Icons.Material.Filled.ArrowBack"
                    Color="Color.Primary"
                    OnClick="@(() => Navigation.NavigateTo("/my-bookings"))"
-                   Class="mr-4">
-            Takvime Dön
+                   Class="mr-4 back-btn">
+            Geri
         </MudButton>
         <div>
-            <MudText Typo="Typo.h4" Color="Color.Primary" Style="font-weight: 800;">Ders Rezervasyonu</MudText>
-            <MudText Typo="Typo.body2" Class="text-muted">Size uygun saat aralığını seçerek rezervasyon yapabilirsiniz.</MudText>
+            <MudText Typo="Typo.h4" Color="Color.Primary" Style="font-weight: 800;" Class="page-title">Ders Rezervasyonu</MudText>
+            <MudText Typo="Typo.body2" Class="text-muted page-subtitle">Size uygun saat aralığını seçiniz.</MudText>
         </div>
     </div>
 
     @if (_loading)
     {
-    <div class="d-flex flex-column align-center justify-center py-12">
-        <MudProgressCircular Color="Color.Primary" Size="Size.Large" Indeterminate="true" />
-        <MudText Class="mt-4">Eğitmen takvimi yükleniyor...</MudText>
-    </div>
+        <div class="d-flex flex-column align-center justify-center py-12">
+            <MudProgressCircular Color="Color.Primary" Size="Size.Large" Indeterminate="true" />
+            <MudText Class="mt-4">Eğitmen takvimi yükleniyor...</MudText>
+        </div>
     }
     else
     {
-    <MudGrid>
-        <MudItem xs="12" md="3">
-            <MudPaper Elevation="0" Class="pa-4 rounded-xl" Style="background-color: #F1F8E9; border: 1px solid #C8E6C9;">
-                <div class="d-flex align-center mb-2">
-                    <MudIcon Icon="@Icons.Material.Filled.Info" Color="Color.Primary" Class="mr-2"/>
-                    <MudText Typo="Typo.subtitle1" Style="font-weight:bold; color:#2E7D32;">Nasıl Çalışır?</MudText>
-                </div>
-                <MudText Typo="Typo.body2" Style="color:#1B5E20; line-height: 1.6;">
-                    Takvimdeki <b>beyaz (boş)</b> alanlar rezervasyona açıktır.
-                    <br/><br/>
-                    Tıkladığınızda <b>Bireysel</b> veya <b>Grup</b> dersi tercihinizi yapabilirsiniz.
-                </MudText>
-                <MudDivider Class="my-3"/>
+        <MudGrid>
+            <MudItem xs="12" md="3">
+                <MudPaper Elevation="0" Class="pa-4 rounded-xl legend-card" Style="background-color: #F1F8E9; border: 1px solid #C8E6C9;">
+                    <div class="d-flex align-center mb-2">
+                        <MudIcon Icon="@Icons.Material.Filled.Info" Color="Color.Primary" Class="mr-2"/>
+                        <MudText Typo="Typo.subtitle1" Style="font-weight:bold; color:#2E7D32;">Bilgilendirme</MudText>
+                    </div>
+                    
+                    <MudHidden Breakpoint="Breakpoint.SmAndDown">
+                        <MudText Typo="Typo.body2" Style="color:#1B5E20; line-height: 1.6;">
+                            Takvimdeki <b>beyaz (boş)</b> alanlar rezervasyona açıktır.
+                            Tıkladığınızda <b>Bireysel</b> veya <b>Grup</b> dersi tercihinizi yapabilirsiniz.
+                        </MudText>
+                        <MudDivider Class="my-3"/>
+                    </MudHidden>
 
-                <div class="d-flex align-center gap-2">
-                    <div style="width:16px; height:16px; background-color:#F5F5F5; border:1px solid #BDBDBD; border-radius:4px;"></div>
-                    <MudText Typo="Typo.caption">Kapalı / Geçmiş</MudText>
-                </div>
-                <div class="d-flex align-center gap-2 mt-1">
-                    <div style="width:16px; height:16px; background-color:#E8F5E9; border: 1px solid #2E7D32; border-radius:4px;"></div>
-                    <MudText Typo="Typo.caption">Özel Ders (Dolu)</MudText>
-                </div>
-                <div class="d-flex align-center gap-2 mt-1">
-                    <div style="width:16px; height:16px; background-color:#E1F5FE; border: 1px solid #0277BD; border-radius:4px;"></div>
-                    <MudText Typo="Typo.caption">Grup Dersi (Dolu)</MudText>
-                </div>
-                <div class="d-flex align-center gap-2 mt-1">
-                    <div style="width:16px; height:16px; background-color:#ffffff; border:1px solid #ccc; border-radius:4px;"></div>
-                    <MudText Typo="Typo.caption">Müsait (Boş)</MudText>
-                </div>
-            </MudPaper>
-        </MudItem>
+                    <div class="legend-items">
+                        <div class="d-flex align-center gap-2 mt-1">
+                            <div class="legend-box" style="background-color:#ffffff; border:1px solid #ccc;"></div>
+                            <MudText Typo="Typo.caption">Boş</MudText>
+                        </div>
+                        <div class="d-flex align-center gap-2 mt-1">
+                            <div class="legend-box" style="background-color:#E8F5E9; border: 1px solid #2E7D32;"></div>
+                            <MudText Typo="Typo.caption">Özel Dolu</MudText>
+                        </div>
+                        <div class="d-flex align-center gap-2 mt-1">
+                            <div class="legend-box" style="background-color:#E1F5FE; border: 1px solid #0277BD;"></div>
+                            <MudText Typo="Typo.caption">Grup Dolu</MudText>
+                        </div>
+                        <div class="d-flex align-center gap-2">
+                            <div class="legend-box" style="background-color:#F5F5F5; border:1px solid #BDBDBD;"></div>
+                            <MudText Typo="Typo.caption">Kapalı</MudText>
+                        </div>
+                    </div>
+                </MudPaper>
+            </MudItem>
 
-        <MudItem xs="12" md="9">
-            <MudPaper Elevation="3" Class="pa-6 rounded-xl">
-                <WeeklyScheduler
-                    StartHour="9"
-                    EndHour="22"
-                    BusySlots="@_calendarData"
-                    OnSlotClicked="HandleSlotClick" />
-            </MudPaper>
-        </MudItem>
-    </MudGrid>
+            <MudItem xs="12" md="9">
+                <MudPaper Elevation="3" Class="pa-6 rounded-xl scheduler-paper">
+                    <WeeklyScheduler
+                        StartHour="9"
+                        EndHour="22"
+                        BusySlots="@_calendarData"
+                        OnSlotClicked="HandleSlotClick" />
+                </MudPaper>
+            </MudItem>
+        </MudGrid>
     }
 </MudContainer>
+
+<style>
+    .page-container { margin-top: 120px; }
+    .legend-box { width:16px; height:16px; border-radius:4px; }
+    
+    /* --- 🔥 MOBİL UYUMLULUK 🔥 --- */
+    @@media (max-width: 960px) {
+        .page-container { margin-top: 80px !important; }
+        
+        .page-title { font-size: 1.5rem !important; }
+        .page-subtitle { font-size: 0.85rem !important; }
+        .back-btn { min-width: auto; padding-left: 0; }
+
+        /* Başlık Alanı */
+        .header-wrapper {
+            margin-bottom: 1rem !important;
+        }
+
+        /* Bilgilendirme Kutusu (Legend) */
+        .legend-card {
+            padding: 12px !important;
+            margin-bottom: 8px;
+        }
+        
+        /* Renk kodlarını yan yana diz */
+        .legend-items {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            justify-content: space-between;
+        }
+        
+        /* Takvim Kağıdı */
+        .scheduler-paper {
+            padding: 8px !important; /* Kenar boşluklarını azalttık */
+            overflow: hidden; /* Taşmayı engelle */
+        }
+    }
+</style>
 
 @code {
     [Parameter] public int CoachId { get; set; }
 
     private bool _loading = true;
-    // Takvim verisini tutan sözlük: Key=Zaman, Value=(Tip, Ekranda Yazacak Metin)
     private Dictionary<DateTime, (string Type, string Text)> _calendarData = new();
 
     protected override async Task OnInitializedAsync()
@@ -100,15 +142,12 @@
             if (scheduleItems != null)
             {
                 _calendarData.Clear();
-
-                // 1. API'den gelen UTC saatleri Yerel Saate (TR) çevir
                 var localItems = scheduleItems.Select(x => {
                     x.StartTime = x.StartTime.ToLocalTime();
                     x.EndTime = x.EndTime.ToLocalTime();
                     return x;
                 }).ToList();
 
-                // 2. Dolu saatleri takvime işle
                 foreach (var item in localItems)
                 {
                     var current = item.StartTime;
@@ -121,126 +160,69 @@
                             string type = "Blocked";
                             string text = "Kapalı";
 
-                            // RENK VE METİN AYARLARI
-                            if (item.Type == "PrivateLesson" || item.Type == "Lesson")
-                            {
-                                type = "Lesson"; // Yeşil
-                                text = "Dolu (Özel)";
-                            }
-                            else if (item.Type == "GroupLesson")
-                            {
-                                type = "GroupLesson"; // Mavi
-                                text = "Dolu (Grup)";
-                            }
-                            else if (item.Type == "Blocked")
-                            {
-                                type = "Blocked"; // Gri
-                                text = "Kapalı";
-                            }
+                            if (item.Type == "PrivateLesson" || item.Type == "Lesson") { type = "Lesson"; text = "Dolu"; } // Mobilde text'i kısalttık
+                            else if (item.Type == "GroupLesson") { type = "GroupLesson"; text = "Grup"; }
+                            else if (item.Type == "Blocked") { type = "Blocked"; text = "Kapalı"; }
 
                             _calendarData.Add(key, (type, text));
                         }
                         current = current.AddHours(1);
                     }
                 }
-
-                // ⚠️ 3. YENİ EKLENEN: Ders Bütünlüğü (2 Saat Kuralı) ile boşlukları kapat
                 MarkGapsAsBlocked(localItems);
-
-                // 4. Geçmiş saatleri de "Blocked" (Geçmiş) olarak işaretle
                 MarkPastSlotsAsBlocked();
             }
         }
-        catch (Exception ex)
-        {
-            Snackbar.Add("Takvim yüklenirken hata oluştu.", Severity.Error);
-        }
-        finally
-        {
-            _loading = false;
-        }
+        catch (Exception) { Snackbar.Add("Takvim yüklenirken hata oluştu.", Severity.Error); }
+        finally { _loading = false; }
     }
 
-    // --- YENİ EKLENEN METOD: 2 SAAT KURALI GÖRSEL ENGELLEME ---
     private void MarkGapsAsBlocked(List<PublicCoachScheduleDto> items)
     {
-        // Sadece 'Ders' niteliği taşıyan kayıtların Bitiş Saatlerini alıyoruz.
-        // (Blocked/Mola saatleri bu kurala dahil edilmez, onlar ders değildir)
-        var lessonEndTimes = items
-            .Where(x => x.Type == "Lesson" || x.Type == "PrivateLesson" || x.Type == "GroupLesson")
-            .Select(x => x.EndTime)
-            .ToList();
-
-        // Bugün ve önümüzdeki günleri kontrol etmek için haftanın başını bul
+        var lessonEndTimes = items.Where(x => x.Type.Contains("Lesson")).Select(x => x.EndTime).ToList();
         var now = DateTime.Now;
-        var today = now.Date;
-        var dayOfWeek = (int)today.DayOfWeek;
-        if (dayOfWeek == 0) dayOfWeek = 7; 
-        var startOfWeek = today.AddDays(1 - dayOfWeek);
+        
+        // --- DÜZELTME BURADA ---
+        // Pazar gününü (0) -> 7 yapıyoruz, diğerlerini int'e çeviriyoruz.
+        int currentDayValue = now.DayOfWeek == DayOfWeek.Sunday ? 7 : (int)now.DayOfWeek;
+        var startOfWeek = now.Date.AddDays(1 - currentDayValue);
+        // -----------------------
 
-        // Haftanın 7 gününü dön
         for (int i = 0; i < 7; i++)
         {
             var currentDay = startOfWeek.AddDays(i);
-            
-            // O güne ait derslerin bitiş saatlerini filtrele
-            var dailyEndTimes = lessonEndTimes
-                .Where(t => t.Date == currentDay.Date)
-                .OrderBy(t => t)
-                .ToList();
+            var dailyEndTimes = lessonEndTimes.Where(t => t.Date == currentDay.Date).OrderBy(t => t).ToList();
+            if (!dailyEndTimes.Any()) continue;
 
-            // Eğer o gün hiç ders yoksa, kural uygulanmaz.
-            if (!dailyEndTimes.Any()) continue; 
-
-            // 09:00 - 22:00 arası her saati kontrol et
             for (int hour = 9; hour < 22; hour++)
             {
                 var slotTime = new DateTime(currentDay.Year, currentDay.Month, currentDay.Day, hour, 0, 0);
-
-                // Eğer slot zaten doluysa (Ders veya Kapalı) atla
                 if (_calendarData.ContainsKey(slotTime)) continue;
 
-                // Bu saatten (slotTime) ÖNCE bitmiş en yakın dersi bul
-                var prevLessonEnd = dailyEndTimes
-                    .Where(t => t <= slotTime)
-                    .OrderByDescending(t => t)
-                    .FirstOrDefault();
-
-                // Eğer öncesinde biten bir ders varsa
-                if (prevLessonEnd != default(DateTime))
+                var prevLessonEnd = dailyEndTimes.Where(t => t <= slotTime).OrderByDescending(t => t).FirstOrDefault();
+                if (prevLessonEnd != default && (slotTime - prevLessonEnd).TotalHours > 2)
                 {
-                    // Aradaki farkı hesapla
-                    var gap = slotTime - prevLessonEnd;
-                    
-                    // Eğer fark 2 saatten büyükse -> KAPAT
-                    if (gap.TotalHours > 2)
-                    {
-                         // 'Blocked' tipi gri görünmesini sağlar
-                         _calendarData.Add(slotTime, ("Blocked", "Mola Limiti"));
-                    }
+                    _calendarData.Add(slotTime, ("Blocked", "Mola"));
                 }
             }
         }
     }
-    // -------------------------------------------------------------
 
     private void MarkPastSlotsAsBlocked()
     {
         var now = DateTime.Now;
-        var today = now.Date;
-
-        var dayOfWeek = (int)today.DayOfWeek;
-        if (dayOfWeek == 0) dayOfWeek = 7;
-        var startOfWeek = today.AddDays(1 - dayOfWeek);
+        
+        // --- DÜZELTME BURADA ---
+        int currentDayValue = now.DayOfWeek == DayOfWeek.Sunday ? 7 : (int)now.DayOfWeek;
+        var startOfWeek = now.Date.AddDays(1 - currentDayValue);
+        // -----------------------
 
         for (int i = 0; i < 7; i++)
         {
             var currentDay = startOfWeek.AddDays(i);
-
             for (int hour = 9; hour < 22; hour++)
             {
                 var slotTime = new DateTime(currentDay.Year, currentDay.Month, currentDay.Day, hour, 0, 0);
-
                 if (slotTime < now && !_calendarData.ContainsKey(slotTime))
                 {
                     _calendarData.Add(slotTime, ("Blocked", "Geçmiş"));
@@ -249,81 +231,46 @@
         }
     }
 
-    // TIKLAMA YÖNETİMİ
-    // TIKLAMA YÖNETİMİ
     private async Task HandleSlotClick(DateTime clickedTime)
     {
-        // 1. Geçmiş ve 12 Saat Kuralı Kontrolü
-        // DateTime.Now.AddHours(12) -> Şu anın 12 saat sonrası
-        // Eğer tıklanan zaman (clickedTime) bu sınırdan küçükse engel oluyoruz.
         if (clickedTime < DateTime.Now.AddHours(12))
         {
             Snackbar.Add("Ders başlangıcına en az 12 saat kala rezervasyon yapılabilir.", Severity.Warning);
             return;
         }
 
-        // 2. Doluluk Kontrolü (Aynı kalacak)
         if (_calendarData.ContainsKey(clickedTime))
         {
-            var status = _calendarData[clickedTime];
-
-            if (status.Type == "GroupLesson") Snackbar.Add("Bu saatte bir Grup Dersi mevcut.", Severity.Info);
-            else if (status.Type == "Lesson") Snackbar.Add("Bu saat zaten Özel Ders ile dolu.", Severity.Warning);
-            else if (status.Text == "Mola Limiti") Snackbar.Add("Ders bütünlüğü kuralı gereği, önceki dersten en fazla 2 saat sonrasına randevu alabilirsiniz.", Severity.Error);
-            else Snackbar.Add("Eğitmen bu saati kapatmış.", Severity.Error);
-
+            Snackbar.Add("Bu saat rezervasyona kapalı.", Severity.Info);
             return;
         }
 
-        // 3. SEÇENEK SUNMA (Aynı kalacak)
         var result = await DialogService.ShowMessageBox(
-            "Ders Türü Seçimi",
-            $"Seçilen Tarih: {clickedTime:dd.MM.yyyy HH:00}\n\nLütfen almak istediğiniz ders türünü seçiniz:",
-            yesText: "Bireysel Ders (1 Kredi)",
-            noText: "Grup Dersi (1 Grup Kredisi)",
-            cancelText: "Vazgeç");
+            "Ders Türü",
+            $"{clickedTime:dd.MM HH:00} için ders türünü seçiniz:",
+            yesText: "Bireysel (1 Kredi)", noText: "Grup (1 Grup Kredisi)", cancelText: "Vazgeç");
 
-        if (result == true)
-        {
-            await CreateBooking(clickedTime, "Private");
-        }
-        else if (result == false)
-        {
-            await CreateBooking(clickedTime, "Group");
-        }
+        if (result == true) await CreateBooking(clickedTime, "Private");
+        else if (result == false) await CreateBooking(clickedTime, "Group");
     }
 
-    // DERS OLUŞTURMA İSTEĞİ
     private async Task CreateBooking(DateTime time, string lessonType)
     {
-        var bookingRequest = new
-        {
-            CoachId = CoachId,
-            StartTime = time.ToUniversalTime(),
-            EndTime = time.AddHours(1).ToUniversalTime(),
-            LessonType = lessonType // "Private" veya "Group"
-        };
-
+        var bookingRequest = new { CoachId = CoachId, StartTime = time.ToUniversalTime(), EndTime = time.AddHours(1).ToUniversalTime(), LessonType = lessonType };
         try
         {
             var response = await HttpClient.PostAsJsonAsync("api/Lesson/book", bookingRequest);
-
             if (response.IsSuccessStatusCode)
             {
-                string msg = lessonType == "Group" ? "Grup Dersi" : "Bireysel Ders";
-                Snackbar.Add($"{msg} Rezervasyonunuz ONAYLANDI! 🎾", Severity.Success);
+                Snackbar.Add("Rezervasyon ONAYLANDI! 🎾", Severity.Success);
                 Navigation.NavigateTo("/my-bookings");
             }
             else
             {
                 var errorMsg = await response.Content.ReadAsStringAsync();
-                if (errorMsg.Contains("{")) errorMsg = "İşlem başarısız veya krediniz yetersiz. (Müsaitlik kuralına takılmış olabilirsiniz)";
-                Snackbar.Add($"Hata: {errorMsg}", Severity.Error);
+                Snackbar.Add($"Hata: {(errorMsg.Contains("{") ? "İşlem başarısız." : errorMsg)}", Severity.Error);
             }
         }
-        catch (Exception)
-        {
-            Snackbar.Add("Sunucu ile iletişim hatası.", Severity.Error);
-        }
+        catch (Exception) { Snackbar.Add("Sunucu hatası.", Severity.Error); }
     }
 }

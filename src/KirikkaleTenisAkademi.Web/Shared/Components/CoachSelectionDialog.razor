@@ -1,28 +1,45 @@
-﻿@using KirikkaleTenisAkademi.Web.Models
+﻿@using KirikkaleTenisAkademi.Web.Models 
 @using KirikkaleTenisAkademi.Web.Pages
 @using MudBlazor
 
 <MudDialog>
     <DialogContent>
-        <MudText Typo="Typo.body1" Class="mb-4">Hangi eğitmenden ders almak istersiniz?</MudText>
-        <MudSelect T="int" Label="Eğitmen Seçiniz" @bind-Value="_selectedCoachId" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter">
-            <MudSelectItem Value="0" Disabled="true">Seçiniz...</MudSelectItem>
-            @foreach (var coach in Coaches)
-            {
-                <MudSelectItem Value="@coach.Id">@coach.FullName</MudSelectItem>
-            }
-        </MudSelect>
+        <div class="d-flex flex-column gap-4 py-4">
+            <MudText Typo="Typo.body1">Hangi eğitmenden ders almak istersiniz?</MudText>
+
+            <MudSelect T="int" 
+                       Label="Eğitmen Seçiniz" 
+                       Variant="Variant.Outlined" 
+                       AnchorOrigin="Origin.BottomCenter" 
+                       TransformOrigin="Origin.TopCenter"
+                       @bind-Value="_selectedCoachId"
+                       OffsetY="true"
+                       Strict="true"
+                       Dense="true">
+                
+                <MudSelectItem Value="0" Disabled="true">Seçiniz...</MudSelectItem>
+                
+                @if (Coaches != null)
+                {
+                    foreach (var coach in Coaches)
+                    {
+                        <MudSelectItem Value="@coach.Id">@coach.FullName</MudSelectItem>
+                    }
+                }
+            </MudSelect>
+        </div>
     </DialogContent>
     <DialogActions>
         <MudButton OnClick="Cancel">Vazgeç</MudButton>
-        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit" Disabled="@(_selectedCoachId == 0)">Devam Et</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit" Disabled="@(_selectedCoachId == 0)">Seç</MudButton>
     </DialogActions>
 </MudDialog>
 
 @code {
-    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
-    
-    [Parameter] public List<MyBookings.CoachSelectDto> Coaches { get; set; } = new();
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; }
+
+    // Bu parametre MyBookings sayfasından geliyor
+    [Parameter] public List<MyBookings.CoachSelectDto> Coaches { get; set; }
 
     private int _selectedCoachId = 0;
 

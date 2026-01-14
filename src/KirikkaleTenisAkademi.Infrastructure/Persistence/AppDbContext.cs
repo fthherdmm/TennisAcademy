@@ -9,25 +9,19 @@ namespace KirikkaleTenisAkademi.Infrastructure.Persistence
         public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
         public DbSet<Coach> Coaches { get; set; }
-        
-        // YENİ TABLOLAR
-        public DbSet<LessonPacket> LessonPackets { get; set; }       // Paketler
-        public DbSet<LessonBooking> LessonBookings { get; set; }     // Rezervasyonlar
-        public DbSet<CoachUnavailability> CoachUnavailabilities { get; set; } // Koç İzinleri
-        public DbSet<Tournament> Tournaments { get; set; }           // Turnuvalar
-        public DbSet<Match> Matches { get; set; }                    // Maçlar
+        public DbSet<LessonPacket> LessonPackets { get; set; }
+        public DbSet<LessonBooking> LessonBookings { get; set; }
+        public DbSet<CoachUnavailability> CoachUnavailabilities { get; set; }
+        public DbSet<Tournament> Tournaments { get; set; }
+        public DbSet<Match> Matches { get; set; }
         public DbSet<GroupLesson> GroupLessons { get; set; }
         public DbSet<GroupLessonRegistration> GroupLessonRegistrations { get; set; }
-
-        // ESKİ TABLO SİLİNDİ: public DbSet<LessonSlot> LessonSlots { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
 
-            // İlişkileri tanımlayalım (Fluent API)
-            
-            // Maç - Oyuncu İlişkisi (İki taraf da AppUser olduğu için karışmasın)
+            // 1. MAÇ İLİŞKİLERİ (Zaten doğruydu, koruyoruz)
             builder.Entity<Match>()
                 .HasOne(m => m.Player1)
                 .WithMany()
@@ -40,38 +34,47 @@ namespace KirikkaleTenisAkademi.Infrastructure.Persistence
                 .HasForeignKey(m => m.Player2Id)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // Booking İlişkileri
+            // =========================================================
+            // 🔥 2. HATA VEREN KISIM (LESSON BOOKING) DÜZELTİLDİ 🔥
+            // =========================================================
+            // MSSQL'de "Cascade" döngüsü olmaması için bunları "Restrict" yapıyoruz.
+            
             builder.Entity<LessonBooking>()
                 .HasOne(b => b.Student)
                 .WithMany(u => u.Bookings)
-                .HasForeignKey(b => b.StudentId);
+                .HasForeignKey(b => b.StudentId)
+                .OnDelete(DeleteBehavior.Restrict); // Öğrenci silinirse hata ver (önce rezervasyonu silmelisin)
 
             builder.Entity<LessonBooking>()
                 .HasOne(b => b.Coach)
-                .WithMany()
-                .HasForeignKey(b => b.CoachId);
-            
-            builder.Entity<LessonPacket>()
-                .Property(p => p.Id)
-                .UseIdentityColumn();
-            
-            // Grup Dersi - Koç İlişkisi
+                .WithMany() // Coach tarafında ICollection<LessonBooking> yoksa boş kalabilir
+                .HasForeignKey(b => b.CoachId)
+                .OnDelete(DeleteBehavior.Restrict); // Antrenör silinirse hata ver
+
+            // 3. GRUP DERSİ İLİŞKİLERİ
             builder.Entity<GroupLesson>()
                 .HasOne(g => g.Coach)
-                .WithMany() // Koçun listesinde tutmaya gerek yoksa boş bırakabiliriz
+                .WithMany()
                 .HasForeignKey(g => g.CoachId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .OnDelete(DeleteBehavior.Restrict); // Güvenlik için bunu da Restrict yaptık
 
-            // Kayıt Tablosu (Çoka-Çok İlişki Çözümlemesi)
+            // 4. GRUP KAYIT İLİŞKİLERİ (Çoka-Çok Tablosu)
             builder.Entity<GroupLessonRegistration>()
                 .HasOne(r => r.GroupLesson)
                 .WithMany(g => g.Registrations)
-                .HasForeignKey(r => r.GroupLessonId);
+                .HasForeignKey(r => r.GroupLessonId)
+                .OnDelete(DeleteBehavior.Cascade); // Ders silinirse kayıtlar silinebilir (Sorun yok)
 
             builder.Entity<GroupLessonRegistration>()
                 .HasOne(r => r.Student)
                 .WithMany(s => s.GroupRegistrations)
-                .HasForeignKey(r => r.StudentId);
+                .HasForeignKey(r => r.StudentId)
+                .OnDelete(DeleteBehavior.Restrict); // Öğrenci silinirse kayıtlar kalsın (Güvenlik)
+
+            // 5. Diğer Ayarlar
+            builder.Entity<LessonPacket>()
+                .Property(p => p.Id)
+                .UseIdentityColumn();
         }
     }
 }

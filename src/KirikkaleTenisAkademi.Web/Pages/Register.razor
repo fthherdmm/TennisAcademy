@@ -124,21 +124,18 @@
     /* Navbar olduğu için yüksekliği min-height yapıyoruz */
     .auth-container { min-height: 90vh; }
 
-    /* Sol Taraf Görseli - Login ile uyumlu */
+    /* Sol Taraf Görseli */
     .auth-image-side {
-        /* Login sayfasındaki görselin aynısı veya farklı bir kort görseli */
         background-image: url('https://images.unsplash.com/photo-1622163642998-1ea36746b555?q=80&w=2669&auto=format&fit=crop');
         background-size: cover;
         background-position: center;
         position: relative;
-        /* Navbar yüksekliğini hesaba katarak tam ekran hissi verelim */
         min-height: calc(100vh - 80px);
     }
 
     .auth-overlay {
         position: absolute;
         top: 0; left: 0; right: 0; bottom: 0;
-        /* Yeşil Gradient */
         background: linear-gradient(135deg, rgba(46, 125, 50, 0.9), rgba(0, 0, 0, 0.6));
     }
 
@@ -201,15 +198,27 @@ var response = await Http.PostAsJsonAsync("api/Auth/register", registerModel);
 
 if (response.IsSuccessStatusCode)
 {
-Snackbar.Add("Kayıt başarılı! Lütfen giriş yapınız. 🎾", Severity.Success);
-await Task.Delay(1500);
+// BAŞARILI DURUM:
+// Kullanıcıya mail atıldığını belirten mesaj gösteriyoruz.
+Snackbar.Add("Kayıt başarılı! Lütfen e-posta adresinize gelen linke tıklayarak hesabınızı doğrulayın. 📧", Severity.Success, config => {
+config.HideTransitionDuration = 500;
+config.ShowTransitionDuration = 500;
+config.VisibleStateDuration = 5000; // 5 saniye görünsün
+});
+
+// Mesajın okunması için biraz bekleyip login'e atıyoruz.
+await Task.Delay(2000);
 Navigation.NavigateTo("/login");
 }
 else
 {
+// HATA DURUMU:
 var error = await response.Content.ReadAsStringAsync();
-// Basit hata mesajı temizleme (JSON gelirse temizle)
-if(error.Contains("{")) error = "Bilgileri kontrol ediniz (Kullanıcı adı veya TC alınmış olabilir).";
+
+// Mesajı biraz temizle
+if(error.Contains("UserName")) error = "Bu kullanıcı adı zaten alınmış.";
+else if(error.Contains("Email")) error = "Bu e-posta adresi zaten kullanılıyor.";
+else if(error.Contains("{")) error = "Kayıt işlemi başarısız. Lütfen bilgilerinizi kontrol ediniz.";
 
 Snackbar.Add($"Kayıt Başarısız: {error}", Severity.Error);
 }

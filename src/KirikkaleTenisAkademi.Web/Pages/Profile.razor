@@ -6,15 +6,15 @@
 @inject ISnackbar Snackbar
 @inject AuthenticationStateProvider AuthStateProvider
 
-<MudContainer MaxWidth="MaxWidth.Medium" Class="mb-16" Style="margin-top: 120px;">
+<MudContainer MaxWidth="MaxWidth.Medium" Class="mb-16 page-container">
 
-    <div class="d-flex align-center gap-4 mb-8">
-        <MudAvatar Color="Color.Primary" Style="height:80px; width:80px; font-size:2rem;">
+    <div class="d-flex align-center gap-4 mb-8 profile-header">
+        <MudAvatar Color="Color.Primary" Class="profile-avatar">
             @(model.FirstName?.FirstOrDefault().ToString() ?? "U")
         </MudAvatar>
         <div>
-            <MudText Typo="Typo.h4" Style="font-weight: 800;">Profilim</MudText>
-            <MudText Typo="Typo.body1" Class="text-muted">Kişisel bilgilerinizi ve sporcu verilerinizi güncelleyin.</MudText>
+            <MudText Typo="Typo.h4" Style="font-weight: 800;" Class="page-title">Profilim</MudText>
+            <MudText Typo="Typo.body1" Class="text-muted page-subtitle">Kişisel bilgilerinizi güncelleyin.</MudText>
         </div>
     </div>
 
@@ -24,8 +24,8 @@
     }
     else
     {
-    <MudCard Elevation="4" Class="rounded-xl">
-        <MudTabs Elevation="0" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-6" Color="Color.Primary">
+    <MudCard Elevation="4" Class="rounded-xl profile-card">
+        <MudTabs Elevation="0" Rounded="true" ApplyEffectsToContainer="true" PanelClass="tab-panel-content" Color="Color.Primary">
 
             <MudTabPanel Text="Kişisel Bilgiler" Icon="@Icons.Material.Filled.Person">
                 <MudGrid>
@@ -44,7 +44,7 @@
                     </MudItem>
 
                     <MudItem xs="12" sm="6">
-                        <MudTextField Value="model.Email" Label="E-Posta" ReadOnly="true" Variant="Variant.Filled" HelperText="E-posta değiştirilemez" Margin="Margin.Dense" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Email" />
+                        <MudTextField Value="model.Email" Label="E-Posta" ReadOnly="true" Variant="Variant.Filled" HelperText="Değiştirilemez" Margin="Margin.Dense" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Email" />
                     </MudItem>
                     <MudItem xs="12" sm="6">
                         <MudTextField @bind-Value="model.PhoneNumber" Label="Telefon" Variant="Variant.Outlined" Margin="Margin.Dense" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Phone" />
@@ -62,7 +62,7 @@
                     </MudItem>
 
                     <MudItem xs="12" sm="4">
-                        <MudSelect T="string" Label="Tenis Seviyesi" @bind-Value="model.Level" Variant="Variant.Outlined" Margin="Margin.Dense" AnchorOrigin="Origin.BottomCenter">
+                        <MudSelect T="string" Label="Tenis Seviyesi" @bind-Value="model.Level" Variant="Variant.Outlined" Margin="Margin.Dense" AnchorOrigin="Origin.BottomCenter" TransformOrigin="Origin.TopCenter">
                             <MudSelectItem Value="@("Beginner")">Başlangıç</MudSelectItem>
                             <MudSelectItem Value="@("Intermediate")">Orta Seviye</MudSelectItem>
                             <MudSelectItem Value="@("Advanced")">İleri Seviye</MudSelectItem>
@@ -71,14 +71,14 @@
                     </MudItem>
 
                     <MudItem xs="12" sm="4">
-                        <MudSelect T="string" Label="Baskın El" @bind-Value="model.DominantHand" Variant="Variant.Outlined" Margin="Margin.Dense" AnchorOrigin="Origin.BottomCenter">
+                        <MudSelect T="string" Label="Baskın El" @bind-Value="model.DominantHand" Variant="Variant.Outlined" Margin="Margin.Dense" AnchorOrigin="Origin.BottomCenter" TransformOrigin="Origin.TopCenter">
                             <MudSelectItem Value="@("Right")">Sağ</MudSelectItem>
                             <MudSelectItem Value="@("Left")">Sol</MudSelectItem>
                         </MudSelect>
                     </MudItem>
 
                     <MudItem xs="12" sm="4">
-                        <MudSelect T="string" Label="Backhand Stili" @bind-Value="model.BackhandStyle" Variant="Variant.Outlined" Margin="Margin.Dense" AnchorOrigin="Origin.BottomCenter">
+                        <MudSelect T="string" Label="Backhand Stili" @bind-Value="model.BackhandStyle" Variant="Variant.Outlined" Margin="Margin.Dense" AnchorOrigin="Origin.BottomCenter" TransformOrigin="Origin.TopCenter">
                             <MudSelectItem Value="@("OneHanded")">Tek El</MudSelectItem>
                             <MudSelectItem Value="@("TwoHanded")">Çift El</MudSelectItem>
                         </MudSelect>
@@ -88,7 +88,7 @@
 
             <MudTabPanel Text="Acil Durum" Icon="@Icons.Material.Filled.Emergency">
                 <MudAlert Severity="Severity.Warning" Dense="true" Class="mb-4">
-                    Acil durumlarda ulaşılacak kişi bilgileri hayati önem taşır.
+                    Acil durumlarda ulaşılacak kişi.
                 </MudAlert>
                 <MudGrid>
                     <MudItem xs="12" sm="6">
@@ -103,19 +103,71 @@
 
         <MudDivider />
 
-        <div class="pa-4 d-flex justify-end">
+        <div class="pa-4 d-flex justify-end action-area">
             <MudButton OnClick="SaveProfile"
                        Variant="Variant.Filled"
                        Color="Color.Primary"
                        Size="Size.Large"
                        StartIcon="@Icons.Material.Filled.Save"
-                       Class="rounded-pill px-8">
+                       Class="rounded-pill px-8 save-btn">
                 DEĞİŞİKLİKLERİ KAYDET
             </MudButton>
         </div>
     </MudCard>
     }
 </MudContainer>
+
+<style>
+    /* --- MASAÜSTÜ VARSAYILANLARI --- */
+    .page-container { margin-top: 120px; }
+
+    .profile-avatar {
+        height: 80px; width: 80px; font-size: 2rem;
+    }
+
+    .tab-panel-content {
+        padding: 24px; /* pa-6'nın karşılığı */
+    }
+
+    /* --- 🔥 MOBİL OPERASYONU 🔥 --- */
+    @@media (max-width: 960px) {
+        /* Üst Boşluk */
+        .page-container { margin-top: 80px !important; }
+
+        /* Başlıklar */
+        .page-title { font-size: 1.5rem !important; }
+        .page-subtitle { font-size: 0.85rem !important; }
+
+        /* Avatar Küçültme */
+        .profile-avatar {
+            height: 60px !important;
+            width: 60px !important;
+            font-size: 1.5rem !important;
+        }
+
+        /* Tab (Sekme) İçeriği Sıkılaştırma */
+        .tab-panel-content {
+            padding: 16px !important; /* pa-6 -> pa-4'e indi */
+        }
+
+        /* Tab Başlıkları */
+        .mud-tab {
+            min-width: auto !important;
+            padding: 6px 12px !important;
+            font-size: 0.8rem !important;
+        }
+
+        /* Kaydet Butonu: Tam Genişlik */
+        .action-area {
+            justify-content: center !important; /* Ortala */
+        }
+
+        .save-btn {
+            width: 100% !important; /* Ekranı kapla */
+            padding: 12px !important;
+        }
+    }
+</style>
 
 @code {
 private UserProfileDto model = new();
@@ -131,7 +183,6 @@ private async Task LoadProfile()
 try
 {
 _loading = true;
-// API'den mevcut verileri çek
 var response = await Http.GetFromJsonAsync<UserProfileDto>("api/Auth/profile");
 if (response != null)
 {

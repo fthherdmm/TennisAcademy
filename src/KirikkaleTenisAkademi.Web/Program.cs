@@ -10,9 +10,8 @@ var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");
 builder.RootComponents.Add<HeadOutlet>("head::after");
 
-// "https://localhost:7123" yerine SENİN API PORTUNU yaz.
 // API terminalindeki adresi kopyala. Sonunda "/" olmasın.
-builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri("https://localhost:7111/") });
+builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(AppConstants.ApiBaseUrl) });
 
 // 1. LocalStorage Servisi
 builder.Services.AddBlazoredLocalStorage();

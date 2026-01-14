@@ -115,44 +115,32 @@
 <div class="mb-16"></div>
 
 <style>
-    /* HERO BÖLÜMÜ STİLLERİ */
+    /* --- MASAÜSTÜ (DEFAULT) AYARLAR - DOKUNMADIK --- */
     .hero-wrapper {
         position: relative;
-        height: 90vh; /* Ekranın %90'ı */
+        height: 90vh;
         width: 100%;
         overflow: hidden;
-        margin-top: -64px; /* Navbar arkasına geçmesi için */
+        margin-top: -64px;
     }
 
-    .hero-carousel {
-        height: 100% !important;
-        width: 100%;
-    }
-
-    .hero-image {
-        height: 100%;
-        width: 100%;
-        background-size: cover;
-        background-position: center;
-        /* Hafif zoom efekti için animasyon eklenebilir */
-    }
+    .hero-carousel { height: 100% !important; width: 100%; }
+    .hero-image { height: 100%; width: 100%; background-size: cover; background-position: center; }
 
     .hero-overlay {
-        position: absolute;
-        top: 0; left: 0; right: 0; bottom: 0;
+        position: absolute; top: 0; left: 0; right: 0; bottom: 0;
         background: linear-gradient(180deg, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.5) 50%, rgba(46, 125, 50, 0.9) 100%);
-        z-index: 2;
-        pointer-events: none;
+        z-index: 2; pointer-events: none;
     }
 
     .hero-content {
         position: absolute;
-        top: 50%;
-        left: 50%;
+        top: 50%; left: 50%;
         transform: translate(-50%, -50%);
         z-index: 3;
         width: 100%;
         color: white;
+        padding: 0 1rem;
     }
 
     .hero-title {
@@ -163,53 +151,25 @@
         line-height: 1.1;
     }
 
-    .hero-subtitle {
-        font-weight: 300;
-        opacity: 0.9;
-        letter-spacing: 1px;
-    }
-
+    .hero-subtitle { font-weight: 300; opacity: 0.9; letter-spacing: 1px; }
     .text-neon { color: #76FF03; }
 
     .hero-btn { font-weight: 800; letter-spacing: 1px; transition: transform 0.2s; box-shadow: 0 4px 15px rgba(118, 255, 3, 0.4); }
     .hero-btn:hover { transform: translateY(-3px); background-color: #64DD17 !important; }
-
     .hero-btn-outline { border-width: 2px !important; font-weight: 700; }
     .hero-btn-outline:hover { background-color: rgba(255,255,255,0.1); }
 
-    /* İSTATİSTİK KARTLARI */
-    .floating-stats-container {
-        margin-top: -80px;
-        position: relative;
-        z-index: 10;
-    }
-
+    .floating-stats-container { margin-top: -80px; position: relative; z-index: 10; }
     .glass-card {
         background: rgba(255, 255, 255, 0.95);
         backdrop-filter: blur(10px);
         border: 1px solid rgba(255,255,255,0.5);
     }
+    .border-x { border-left: 1px solid #e0e0e0; border-right: 1px solid #e0e0e0; }
 
-    .border-x {
-        border-left: 1px solid #e0e0e0;
-        border-right: 1px solid #e0e0e0;
-    }
-
-    /* ÖZELLİK KARTLARI */
     .section-spacing { margin-top: 6rem; margin-bottom: 6rem; }
-
-    .feature-card {
-        border-radius: 20px;
-        transition: all 0.3s ease;
-        border: 1px solid transparent;
-        height: 100%;
-    }
-
-    .feature-card:hover {
-        transform: translateY(-10px);
-        box-shadow: 0 20px 40px rgba(46, 125, 50, 0.15);
-        border-color: #76FF03;
-    }
+    .feature-card { border-radius: 20px; transition: all 0.3s ease; border: 1px solid transparent; height: 100%; }
+    .feature-card:hover { transform: translateY(-10px); box-shadow: 0 20px 40px rgba(46, 125, 50, 0.15); border-color: #76FF03; }
 
     .icon-circle {
         width: 80px; height: 80px;
@@ -218,23 +178,108 @@
         display: flex; align-items: center; justify-content: center;
         box-shadow: 0 10px 20px rgba(46, 125, 50, 0.3);
     }
-
     .fw-bold { font-weight: 700; }
     .text-muted { color: #616161; line-height: 1.6; }
 
-    /* Animasyonlar */
     .animate-in-up { animation: fadeInUp 0.8s ease-out forwards; opacity: 0; transform: translateY(30px); }
     .animate-in-up-delay { animation: fadeInUp 0.8s ease-out 0.2s forwards; opacity: 0; transform: translateY(30px); }
     .animate-in-up-delay-2 { animation: fadeInUp 0.8s ease-out 0.4s forwards; opacity: 0; transform: translateY(30px); }
+    @@keyframes fadeInUp { to { opacity: 1; transform: translateY(0); } }
 
-    @@keyframes fadeInUp {
-         to { opacity: 1; transform: translateY(0); }
-     }
 
-    @@media (max-width: 600px) {
-        .hero-title { font-size: 2.5rem; }
-        .hero-subtitle { font-size: 1rem; }
-        .border-x { border: none; padding-top: 1rem; padding-bottom: 1rem; border-top: 1px solid #eee; border-bottom: 1px solid #eee; }
-        .hero-wrapper { height: 80vh; }
+    /* --- 🔥 MOBİL OPERASYONU (%35 KÜÇÜLTME) 🔥 --- */
+    @@media (max-width: 960px) {
+
+        /* 1. HERO AYARLARI (Senin beğendiğin hali koruduk) */
+        .hero-wrapper {
+            height: 65vh;
+            margin-top: -56px;
+        }
+        .hero-content { padding-top: 100px; }
+        .hero-title { font-size: 1.75rem; margin-bottom: 0.5rem; }
+        .hero-subtitle { font-size: 0.9rem; margin-bottom: 1.5rem !important; }
+        .hero-content .d-flex { flex-direction: column; gap: 0.75rem !important; padding: 0 2rem; }
+        .hero-btn, .hero-btn-outline { width: 100%; padding: 10px 20px !important; font-size: 0.9rem; }
+
+        /* 2. İSTATİSTİK KARTLARI (KÜÇÜLTÜLDÜ) */
+        .floating-stats-container {
+            margin-top: -30px;
+            padding: 0 16px; /* Kenar boşluğu daraldı */
+        }
+
+        .glass-card {
+            flex-direction: column;
+            padding: 1rem !important;
+            gap: 0 !important;
+        }
+
+        .stat-item {
+            width: 100%;
+            padding: 0.5rem 0; /* Dikey boşluk azaldı */
+            border-bottom: 1px solid #eee;
+        }
+
+        /* "5+, 12+" Sayılarını ciddi oranda küçülttük */
+        .stat-item h2 {
+            font-size: 1.8rem !important; /* Eskiden devasaydı, şimdi kibar */
+            margin-bottom: 0 !important;
+        }
+        /* Altındaki "Uzman Eğitmen" yazısı */
+        .stat-item p {
+            font-size: 0.85rem !important;
+        }
+
+        .stat-item:last-child { border-bottom: none; }
+        .border-x { border: none; border-bottom: 1px solid #eee; }
+
+        /* 3. GENEL BAŞLIKLAR VE METİNLER (KÜÇÜLTÜLDÜ) */
+        /* "NEDEN BİZİ SEÇMELİSİNİZ" Başlığı */
+        .mud-typography-h3 {
+            font-size: 1.5rem !important; /* %50 küçüldü */
+            line-height: 1.2;
+        }
+
+        /* "AVANTAJLARIMIZ" Üst Başlığı */
+        .mud-typography-overline {
+            font-size: 0.75rem !important;
+            letter-spacing: 1px !important;
+        }
+
+        /* Kart Başlıkları (Profesyonel Ekipman vb.) */
+        .mud-typography-h5 {
+            font-size: 1.1rem !important;
+        }
+
+        /* Açıklama Metinleri */
+        .mud-typography-body1, .text-muted {
+            font-size: 0.85rem !important; /* Okunaklı ama küçük */
+            line-height: 1.4;
+        }
+
+        /* 4. ÖZELLİK KARTLARI VE İKONLAR (KÜÇÜLTÜLDÜ) */
+        .section-spacing {
+            margin-top: 2.5rem; /* Boşluklar daraldı */
+            margin-bottom: 3rem;
+        }
+
+        .feature-card {
+            padding: 1.5rem !important; /* İç boşluk azaldı */
+        }
+
+        /* İkonların arkasındaki yeşil daire */
+        .icon-circle {
+            width: 50px; height: 50px; /* 80px -> 50px'e indi (%37 küçülme) */
+            margin-bottom: 1rem !important;
+        }
+
+        /* İkonun kendisi */
+        .mud-icon-size-large {
+            font-size: 1.75rem !important; /* İkon boyutu küçüldü */
+        }
+
+        /* Başlık altındaki boşluk (mb-12) */
+        .mb-12 {
+            margin-bottom: 1.5rem !important;
+        }
     }
 </style>

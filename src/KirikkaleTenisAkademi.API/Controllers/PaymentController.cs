@@ -68,7 +68,7 @@ namespace KirikkaleTenisAkademi.API.Controllers
         public async Task<IActionResult> Callback(IFormCollection form, [FromQuery] string? backupId)
         {
             string debugMessage = "";
-            string webBaseUrl = "https://localhost:7207"; // Frontend URL'in
+            string webBaseUrl = AppConstants.WebBaseUrl; // Frontend URL'in
 
             try
             {

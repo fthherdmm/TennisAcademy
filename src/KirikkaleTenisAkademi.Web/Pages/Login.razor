@@ -27,36 +27,42 @@
                     <MudText Typo="Typo.body1" Class="text-muted">Hesabınıza giriş yaparak derslerinizi yönetin.</MudText>
                 </div>
 
-                <MudTextField @bind-Value="loginModel.Email"
-                              Label="E-Posta Adresi"
-                              Variant="Variant.Outlined"
-                              Class="mb-4"
-                              Adornment="Adornment.Start"
-                              AdornmentIcon="@Icons.Material.Filled.AlternateEmail"
-                              AdornmentColor="Color.Primary" />
+                <EditForm Model="@loginModel" OnValidSubmit="HandleLogin">
+                    <DataAnnotationsValidator />
 
-                <MudTextField @bind-Value="loginModel.Password"
-                              Label="Şifre"
-                              Variant="Variant.Outlined"
-                              Class="mb-2"
-                              InputType="@PasswordInput"
-                              Adornment="Adornment.End"
-                              AdornmentIcon="@PasswordInputIcon"
-                              OnAdornmentClick="TogglePasswordVisibility"
-                              AdornmentColor="Color.Primary" />
+                    <MudTextField @bind-Value="loginModel.Email"
+                                  Label="E-Posta Adresi"
+                                  Variant="Variant.Outlined"
+                                  Class="mb-4"
+                                  Adornment="Adornment.Start"
+                                  AdornmentIcon="@Icons.Material.Filled.AlternateEmail"
+                                  AdornmentColor="Color.Primary"
+                                  For="@(() => loginModel.Email)" />
 
-                <div class="d-flex justify-end mb-6">
-                    <MudLink Href="#" Color="Color.Primary" Typo="Typo.body2">Şifremi Unuttum?</MudLink>
-                </div>
+                    <MudTextField @bind-Value="loginModel.Password"
+                                  Label="Şifre"
+                                  Variant="Variant.Outlined"
+                                  Class="mb-2"
+                                  InputType="@PasswordInput"
+                                  Adornment="Adornment.End"
+                                  AdornmentIcon="@PasswordInputIcon"
+                                  OnAdornmentClick="TogglePasswordVisibility"
+                                  AdornmentColor="Color.Primary"
+                                  For="@(() => loginModel.Password)" />
 
-                <MudButton Variant="Variant.Filled"
-                           Color="Color.Primary"
-                           Size="Size.Large"
-                           FullWidth="true"
-                           Class="py-3 rounded-lg fw-bold hover-scale"
-                           OnClick="HandleLogin">
-                    GİRİŞ YAP
-                </MudButton>
+                    <div class="d-flex justify-end mb-6">
+                        <MudLink Href="#" Color="Color.Primary" Typo="Typo.body2">Şifremi Unuttum?</MudLink>
+                    </div>
+
+                    <MudButton ButtonType="ButtonType.Submit"
+                               Variant="Variant.Filled"
+                               Color="Color.Primary"
+                               Size="Size.Large"
+                               FullWidth="true"
+                               Class="py-3 rounded-lg fw-bold hover-scale">
+                        GİRİŞ YAP
+                    </MudButton>
+                </EditForm>
 
                 <div class="d-flex justify-center mt-8">
                     <MudText Typo="Typo.body2" Class="mr-2">Hesabınız yok mu?</MudText>
@@ -104,7 +110,7 @@
          to { opacity: 1; }
      }
 
-    /* Mobilde görseli gizle veya küçült */
+    /* Mobilde görseli gizle */
     @@media (max-width: 960px) {
         .auth-image-side { display: none; }
     }
@@ -149,7 +155,24 @@ Navigation.NavigateTo("/");
 }
 else
 {
+// API'den gelen hatayı oku
+var errorMsg = await response.Content.ReadAsStringAsync();
+
+// Eğer JSON formatındaysa temizle (örn: {"message":"..."})
+if (errorMsg.Contains("message"))
+{
+errorMsg = errorMsg.Replace("{\"message\":\"", "").Replace("\"}", "");
+}
+
+// Mail onayı hatası mı?
+if (errorMsg.Contains("doğrulamanız") || errorMsg.Contains("doğrulama"))
+{
+Snackbar.Add(errorMsg, Severity.Warning); // Sarı renkli uyarı
+}
+else
+{
 Snackbar.Add("Hatalı E-posta veya Şifre!", Severity.Error);
+}
 }
 }
 catch(Exception)

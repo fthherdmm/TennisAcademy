@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Text;
+using KirikkaleTenisAkademi.API;
 using KirikkaleTenisAkademi.Domain.Entities;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -21,14 +22,17 @@ var builder = WebApplication.CreateBuilder(args);
 // Bu sayede "Preflight Redirect" hatalarını engelleriz.
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowWeb",
-        policy =>
+    options.AddPolicy("MySecurePolicy",
+        builder =>
         {
-            // BURAYA DİKKAT: Web projenin HTTPS adresi (7207 senin hatanda görünen port)
-            policy.WithOrigins("https://localhost:7207", "https://localhost:7045") 
+            builder
+                .WithOrigins(
+                    // "https://www.winnertenis.com", 
+                    // "https://winnertenis.com"
+                    AppConstants.WebBaseUrl
+                )
                 .AllowAnyMethod()
-                .AllowAnyHeader()
-                .AllowCredentials(); // Cookie veya Token taşıyabilmek için şart
+                .AllowAnyHeader();
         });
 });
 
@@ -121,11 +125,11 @@ using (var scope = app.Services.CreateScope())
 // 2. MIDDLEWARE KATMANI (SIRALAMA ÇOK ÖNEMLİ)
 // ==========================================
 
-if (app.Environment.IsDevelopment())
-{
+// if (app.Environment.IsDevelopment())
+// {
     app.UseSwagger();
     app.UseSwaggerUI();
-}
+// }
 
 // 🔴 Loglama Middleware (En başta dursun ki her şeyi görelim)
 app.Use(async (context, next) =>
@@ -134,12 +138,14 @@ app.Use(async (context, next) =>
     await next();
 });
 
+app.UseStaticFiles();
+
 // HTTPS Yönlendirmesi
 app.UseHttpsRedirection();
 
 // 🔴 DÜZELTME 2: CORS Middleware'i (Authentication'dan ÖNCE olmalı)
 // Yukarıda tanımladığımız "AllowWeb" politikasını kullan.
-app.UseCors("AllowWeb"); 
+app.UseCors("MySecurePolicy");
 
 app.UseAuthentication();
 app.UseAuthorization();

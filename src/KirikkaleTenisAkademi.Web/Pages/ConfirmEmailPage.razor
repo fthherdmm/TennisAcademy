@@ -1,0 +1,108 @@
+﻿@page "/confirm-email-page"
+@using KirikkaleTenisAkademi.Web.Models
+@using System.Net.Http.Json
+@inject HttpClient HttpClient
+@inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
+
+<MudContainer MaxWidth="MaxWidth.Small" Class="d-flex flex-column align-center justify-center mt-16 text-center" Style="height: 60vh;">
+    
+    @if (_isLoading)
+    {
+        <MudProgressCircular Color="Color.Primary" Size="Size.Large" Indeterminate="true" Class="mb-4" />
+        <MudText Typo="Typo.h5" Color="Color.Primary">Hesabınız doğrulanıyor...</MudText>
+        <MudText Typo="Typo.body1" Class="text-muted mt-2">Lütfen bekleyin, işlem tamamlanmak üzere.</MudText>
+    }
+    else if (_isSuccess)
+    {
+        <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Large" Style="width: 120px; height: 120px;" Class="mb-4 animate-bounce" />
+        <MudText Typo="Typo.h4" Color="Color.Success" Style="font-weight: 800;">Tebrikler! 🎉</MudText>
+        <MudText Typo="Typo.body1" Class="mt-2 mb-6">Hesabınız başarıyla doğrulandı. Artık akademiye giriş yapabilirsiniz.</MudText>
+        
+        <MudButton Variant="Variant.Filled" 
+                   Color="Color.Primary" 
+                   Size="Size.Large" 
+                   Href="/login" 
+                   Class="rounded-pill px-8">
+            GİRİŞ YAP
+        </MudButton>
+    }
+    else
+    {
+        <MudIcon Icon="@Icons.Material.Filled.ErrorOutline" Color="Color.Error" Size="Size.Large" Style="width: 120px; height: 120px;" Class="mb-4" />
+        <MudText Typo="Typo.h4" Color="Color.Error" Style="font-weight: 800;">Doğrulama Başarısız</MudText>
+        <MudText Typo="Typo.body1" Class="mt-2 mb-6">
+            @_errorMessage
+        </MudText>
+        
+        <MudButton Variant="Variant.Outlined" 
+                   Color="Color.Secondary" 
+                   Href="/" 
+                   Class="rounded-pill px-8">
+            ANASAYFAYA DÖN
+        </MudButton>
+    }
+
+</MudContainer>
+
+<style>
+    .animate-bounce {
+        animation: bounce 1s infinite;
+    }
+    @@keyframes bounce {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-10px); }
+    }
+</style>
+
+@code {
+    // URL'den gelen parametreleri yakalıyoruz (örn: ?userId=...&token=...)
+    [SupplyParameterFromQuery] public string? UserId { get; set; }
+    [SupplyParameterFromQuery] public string? Token { get; set; }
+
+    private bool _isLoading = true;
+    private bool _isSuccess = false;
+    private string _errorMessage = "Geçersiz veya süresi dolmuş bir bağlantı.";
+
+    protected override async Task OnInitializedAsync()
+    {
+        // 1. Parametre Kontrolü
+        if (string.IsNullOrEmpty(UserId) || string.IsNullOrEmpty(Token))
+        {
+            _isLoading = false;
+            _errorMessage = "Doğrulama bağlantısı hatalı veya eksik.";
+            return;
+        }
+
+        try
+        {
+            // 2. API'ye İstek Gönder
+            // Backend'de oluşturduğumuz 'ConfirmEmailDto' yapısına uygun nesne gönderiyoruz
+            var confirmRequest = new { UserId = UserId, Token = Token };
+            
+            var response = await HttpClient.PostAsJsonAsync("api/Auth/confirm-email", confirmRequest);
+
+            if (response.IsSuccessStatusCode)
+            {
+                _isSuccess = true;
+                Snackbar.Add("Hesabınız başarıyla doğrulandı.", Severity.Success);
+            }
+            else
+            {
+                // API'den gelen hata mesajını oku
+                var errorMsg = await response.Content.ReadAsStringAsync();
+                _errorMessage = "Doğrulama yapılamadı. Bağlantının süresi dolmuş olabilir.";
+                Snackbar.Add("Doğrulama başarısız.", Severity.Error);
+            }
+        }
+        catch (Exception)
+        {
+            _errorMessage = "Sunucuya bağlanırken bir hata oluştu.";
+        }
+        finally
+        {
+            _isLoading = false;
+            StateHasChanged(); // Arayüzü güncelle
+        }
+    }
+}
