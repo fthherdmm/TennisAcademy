@@ -1,55 +1,63 @@
 ﻿@using KirikkaleTenisAkademi.Web.Models
-@using MudBlazor 
+@using MudBlazor
 @inject NavigationManager Navigation
 
-<MudDialog>
+<MudDialog Class="mobile-dialog-fix">
     <DialogContent>
-        <MudGrid Class="pa-2">
-            <MudItem xs="12" sm="5" Class="d-flex justify-center align-start">
-                <MudImage Src="@Coach.ImageUrl" 
-                          Alt="@Coach.FirstName" 
-                          ObjectFit="ObjectFit.Cover" 
-                          Class="rounded-lg elevation-4" 
-                          Style="width:100%; max-height:300px;" />
-            </MudItem>
 
-            <MudItem xs="12" sm="7">
-                <MudText Typo="Typo.h4" Color="Color.Primary" Style="font-weight:800;">
-                    @Coach.FirstName @Coach.LastName
-                </MudText>
-                
-                <MudChip T="string" Color="Color.Secondary" Size="Size.Small" Class="mt-2 mb-4 fw-bold">
-                    @Coach.Specialty
-                </MudChip>
+        <div class="dialog-scroll-area">
+            <MudGrid Class="pa-1" Spacing="2">
 
-                <MudText Typo="Typo.body1" Class="text-muted mb-4" Style="line-height:1.6;">
-                    @Coach.Bio
-                </MudText>
+                <MudItem xs="12" sm="5" Class="d-flex justify-center align-start">
+                    <MudImage Src="@Coach.ImageUrl"
+                              Alt="@Coach.FirstName"
+                              ObjectFit="ObjectFit.Cover"
+                              Class="rounded-lg elevation-4 coach-image" />
+                </MudItem>
 
-                <div class="d-flex gap-4 mt-4">
-                    <div class="text-center">
-                        <MudText Typo="Typo.h6" Color="Color.Primary"><b>50+</b></MudText>
-                        <MudText Typo="Typo.caption">Öğrenci</MudText>
+                <MudItem xs="12" sm="7">
+                    <div class="d-flex flex-column align-start">
+
+                        <MudText Typo="Typo.h5" Color="Color.Primary" Class="fw-bold">
+                            @Coach.FirstName @Coach.LastName
+                        </MudText>
+
+                        <MudChip T="string" Color="Color.Secondary" Size="Size.Small" Class="mt-1 mb-3 fw-bold">
+                            @Coach.Specialty
+                        </MudChip>
+
+                        <div class="d-flex gap-4 mb-4 pa-3 rounded-lg w-100 stats-box">
+                            <div class="text-center flex-grow-1">
+                                <MudText Typo="Typo.h6" Color="Color.Primary" Class="fw-bold">50+</MudText>
+                                <MudText Typo="Typo.caption" Class="text-muted">Öğrenci</MudText>
+                            </div>
+                            <MudDivider Vertical="true" FlexItem="true"/>
+                            <div class="text-center flex-grow-1">
+                                <MudText Typo="Typo.h6" Color="Color.Primary" Class="fw-bold">4.9</MudText>
+                                <MudText Typo="Typo.caption" Class="text-muted">Puan</MudText>
+                            </div>
+                        </div>
+
+                        <MudText Typo="Typo.body2" Class="text-muted bio-text">
+                            @Coach.Bio
+                        </MudText>
                     </div>
-                    <div class="text-center">
-                        <MudText Typo="Typo.h6" Color="Color.Primary"><b>4.9</b></MudText>
-                        <MudText Typo="Typo.caption">Puan</MudText>
-                    </div>
-                </div>
-            </MudItem>
-        </MudGrid>
+                </MudItem>
+            </MudGrid>
+        </div>
+
     </DialogContent>
-    
+
     <DialogActions>
-        <MudButton OnClick="Cancel" Color="Color.Inherit">Kapat</MudButton>
-        
+        <MudButton OnClick="Cancel" Variant="Variant.Text" Color="Color.Default">Kapat</MudButton>
+
         <AuthorizeView Roles="Student">
             <Authorized>
-                <MudButton Variant="Variant.Filled" 
-                           Color="Color.Primary" 
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Primary"
                            StartIcon="@Icons.Material.Filled.DateRange"
                            OnClick="GoToBooking"
-                           Class="rounded-pill px-6">
+                           Class="rounded-lg px-6">
                     Hemen Ders Al
                 </MudButton>
             </Authorized>
@@ -57,18 +65,95 @@
     </DialogActions>
 </MudDialog>
 
-@code {
-    // 👇 DÜZELTME BURADA: 'MudDialogInstance' yerine 'IMudDialogInstance' yaptık.
-    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+<style>
+    .fw-bold { font-weight: 800; }
+    .text-muted { color: #616161; }
+    .stats-box { background-color: #f5f5f5; }
+    .bio-text { line-height: 1.6; text-align: justify; }
 
-    [Parameter] public CoachDto Coach { get; set; } = new();
-
-    private void Cancel() => MudDialog.Cancel();
-
-    private void GoToBooking()
-    {
-        // DialogResult.Ok(true) kullanımı v7'de de geçerlidir
-        MudDialog.Close(DialogResult.Ok(true));
-        Navigation.NavigateTo($"/booking/{Coach.Id}");
+    /* --- MASAÜSTÜ VARSAYILAN --- */
+    .mobile-dialog-fix {
+        width: 700px; /* Geniş bir kart */
+        max-width: 100%;
+        overflow: visible !important;
     }
+
+    .coach-image {
+        width: 100%;
+        max-height: 300px;
+    }
+
+    .dialog-scroll-area {
+        /* Masaüstünde scroll gerekmez ama önlem */
+        max-height: 75vh;
+        overflow-y: auto;
+        padding-right: 5px;
+    }
+
+    /* --- 🔥 MOBİL GÜNCELLEMESİ (YÜZEN KART) 🔥 --- */
+    @@media (max-width: 600px) {
+
+        /* 1. Container: Ekranın ortasına hizala ve kenar boşluğu ver */
+        .mud-dialog-container {
+            align-items: center !important;
+            padding: 20px !important;
+        }
+
+        /* 2. Dialog Kutusu */
+        .mud-dialog.mobile-dialog-fix {
+            width: 100% !important;
+            max-width: 100% !important;
+            margin: auto !important;
+            border-radius: 20px !important;
+            max-height: 85vh !important;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            bottom: auto;
+        }
+
+        /* 3. İçerik Alanı */
+        .mud-dialog-content {
+            overflow-y: hidden !important;
+            display: flex;
+            flex-direction: column;
+            padding-bottom: 0 !important;
+        }
+
+        .dialog-scroll-area {
+            overflow-y: auto;
+            max-height: 60vh; /* İçerik çok uzunsa kaydır */
+            padding-bottom: 10px;
+        }
+
+        /* 4. Resim Ayarı */
+        .coach-image {
+            max-height: 200px; /* Mobilde resmi çok büyütme */
+            object-fit: cover;
+        }
+
+        /* 5. Buton Alanı */
+        .mud-dialog-actions {
+            padding: 16px !important;
+            border-top: 1px solid #eee;
+            background: white;
+            border-bottom-left-radius: 20px;
+            border-bottom-right-radius: 20px;
+            justify-content: space-between;
+        }
+    }
+</style>
+
+@code {
+[CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+
+[Parameter] public CoachDto Coach { get; set; } = new();
+
+private void Cancel() => MudDialog.Cancel();
+
+private void GoToBooking()
+{
+MudDialog.Close(DialogResult.Ok(true));
+Navigation.NavigateTo($"/booking/{Coach.Id}");
+}
 }

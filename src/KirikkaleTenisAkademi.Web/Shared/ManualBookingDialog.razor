@@ -20,65 +20,67 @@
             İlgili krediden 1 adet düşülecektir.
         </MudAlert>
 
-        <MudGrid Spacing="2">
-            <MudItem xs="12">
-                <MudDatePicker Label="Tarih" 
-                               @bind-Date="SelectedDate" 
-                               MinDate="DateTime.Today" 
-                               Variant="Variant.Outlined" 
-                               Margin="Margin.Dense"
-                               Class="mb-1" />
-            </MudItem>
+        <div class="dialog-scroll-area">
+            <MudGrid Spacing="2">
+                <MudItem xs="12">
+                    <MudDatePicker Label="Tarih" 
+                                   @bind-Date="SelectedDate" 
+                                   MinDate="DateTime.Today" 
+                                   Variant="Variant.Outlined" 
+                                   Margin="Margin.Dense"
+                                   Class="mb-1" />
+                </MudItem>
 
-            <MudItem xs="6">
-                <MudTimePicker Label="Başlangıç" 
-                               @bind-Time="SelectedTime" 
+                <MudItem xs="6">
+                    <MudTimePicker Label="Başlangıç" 
+                                   @bind-Time="SelectedTime" 
+                                   Variant="Variant.Outlined" 
+                                   Margin="Margin.Dense" 
+                                   AmPm="false" />
+                </MudItem>
+                
+                <MudItem xs="6">
+                     <MudSelect T="int" 
+                                Label="Süre" 
+                                @bind-Value="DurationHours" 
+                                Variant="Variant.Outlined" 
+                                Margin="Margin.Dense" 
+                                AnchorOrigin="Origin.BottomCenter"
+                                TransformOrigin="Origin.TopCenter"
+                                OffsetY="true"
+                                LockScroll="true">
+                         <MudSelectItem Value="1">1 Saat</MudSelectItem>
+                         <MudSelectItem Value="2">2 Saat</MudSelectItem>
+                     </MudSelect>
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudSelect T="string" 
+                               Label="Ders Tipi" 
+                               @bind-Value="LessonType" 
                                Variant="Variant.Outlined" 
                                Margin="Margin.Dense" 
-                               AmPm="false" />
-            </MudItem>
-            
-            <MudItem xs="6">
-                 <MudSelect T="int" 
-                            Label="Süre" 
-                            @bind-Value="DurationHours" 
-                            Variant="Variant.Outlined" 
-                            Margin="Margin.Dense" 
-                            AnchorOrigin="Origin.BottomCenter"
-                            TransformOrigin="Origin.TopCenter"
-                            OffsetY="true"
-                            LockScroll="true">
-                     <MudSelectItem Value="1">1 Saat</MudSelectItem>
-                     <MudSelectItem Value="2">2 Saat</MudSelectItem>
-                 </MudSelect>
-            </MudItem>
-
-            <MudItem xs="12">
-                <MudSelect T="string" 
-                           Label="Ders Tipi" 
-                           @bind-Value="LessonType" 
-                           Variant="Variant.Outlined" 
-                           Margin="Margin.Dense" 
-                           AnchorOrigin="Origin.BottomCenter"
-                           TransformOrigin="Origin.TopCenter"
-                           OffsetY="true"
-                           LockScroll="true">
-                    <MudSelectItem Value="@("Private")">Bireysel Özel Ders (1 Kredi)</MudSelectItem>
-                    <MudSelectItem Value="@("Group")">Grup Dersi (1 Grup Kredisi)</MudSelectItem>
-                </MudSelect>
-            </MudItem>
-            
-            @if(LessonType == "Group")
-            {
-                <MudItem xs="12">
-                    <MudTextField @bind-Value="GroupTitle" 
-                                  Label="Grup Başlığı" 
-                                  Placeholder="Örn: Başlangıç Seviye Grubu" 
-                                  Variant="Variant.Outlined" 
-                                  Margin="Margin.Dense"/>
+                               AnchorOrigin="Origin.BottomCenter"
+                               TransformOrigin="Origin.TopCenter"
+                               OffsetY="true"
+                               LockScroll="true">
+                        <MudSelectItem Value="@("Private")">Bireysel Özel Ders (1 Kredi)</MudSelectItem>
+                        <MudSelectItem Value="@("Group")">Grup Dersi (1 Grup Kredisi)</MudSelectItem>
+                    </MudSelect>
                 </MudItem>
-            }
-        </MudGrid>
+                
+                @if(LessonType == "Group")
+                {
+                    <MudItem xs="12">
+                        <MudTextField @bind-Value="GroupTitle" 
+                                      Label="Grup Başlığı" 
+                                      Placeholder="Örn: Başlangıç Seviye Grubu" 
+                                      Variant="Variant.Outlined" 
+                                      Margin="Margin.Dense"/>
+                    </MudItem>
+                }
+            </MudGrid>
+        </div>
 
     </DialogContent>
     
@@ -91,35 +93,67 @@
 <style>
     .text-muted { color: #757575; }
     
-    /* --- KAYMAYI ÖNLEYEN KRİTİK CSS --- */
-    
-    /* 1. Masaüstü için standart genişlik */
+    /* --- MASAÜSTÜ VARSAYILAN --- */
     .mobile-dialog-fix {
         width: 500px; 
         max-width: 100%;
-        overflow: visible !important; /* Dropdown'lar kesilmesin */
+        overflow: visible !important; 
     }
 
-    /* 2. MOBİL İÇİN BOTTOM SHEET GÖRÜNÜMÜ */
+    .dialog-scroll-area {
+        max-height: 70vh;
+        overflow-y: auto;
+        padding-right: 5px; 
+    }
+
+    /* --- 🔥 MOBİL GÜNCELLEMESİ (YÜZEN KART) 🔥 --- */
     @@media (max-width: 600px) {
+        
+        /* 1. Container: Ekranın ortasına hizala ve kenar boşluğu ver */
         .mud-dialog-container {
-            align-items: flex-end !important; /* Dialog'u en alta yasla */
-            padding-bottom: 0 !important;
+            align-items: center !important; 
+            padding: 20px !important; 
         }
 
+        /* 2. Dialog Kutusu: Yuvarlak köşeler ve sınırlar */
         .mud-dialog.mobile-dialog-fix {
             width: 100% !important;
             max-width: 100% !important;
-            margin: 0 !important;
-            border-bottom-left-radius: 0 !important;
-            border-bottom-right-radius: 0 !important;
-            border-top-left-radius: 16px !important;
-            border-top-right-radius: 16px !important;
+            margin: auto !important;
             
-            /* Klavye açılınca yukarı kaymasın diye */
+            /* Dört tarafı da yuvarlak yap */
+            border-radius: 20px !important;
+            
+            /* Yükseklik sınırla */
+            max-height: 85vh !important; 
+            display: flex;
+            flex-direction: column;
+            
             position: relative;
-            bottom: 0;
-            padding-bottom: 20px; /* iPhone alt çizgi payı */
+            bottom: auto;
+        }
+        
+        /* 3. İçerik Alanı */
+        .mud-dialog-content {
+            overflow-y: hidden !important;
+            display: flex;
+            flex-direction: column;
+            padding-bottom: 0 !important;
+        }
+
+        .dialog-scroll-area {
+            overflow-y: auto;
+            max-height: 55vh; /* Form yüksekliği */
+            padding-bottom: 10px;
+        }
+
+        /* 4. Buton Alanı */
+        .mud-dialog-actions {
+            padding: 16px !important;
+            border-top: 1px solid #eee;
+            background: white;
+            border-bottom-left-radius: 20px;
+            border-bottom-right-radius: 20px;
         }
     }
 </style>

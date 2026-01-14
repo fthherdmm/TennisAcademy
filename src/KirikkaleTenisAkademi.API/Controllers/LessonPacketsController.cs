@@ -101,5 +101,45 @@ namespace KirikkaleTenisAkademi.API.Controllers
                 newGroupBalance = user.GroupCredits
             });
         }
+        
+        [HttpPut("{id}")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> UpdatePacket(int id, [FromBody] LessonPacket packet)
+        {
+            if (id != packet.Id)
+            {
+                return BadRequest("ID uyuşmazlığı.");
+            }
+
+            // Veritabanındaki halini bulalım
+            var existingPacket = await _context.LessonPackets.FindAsync(id);
+            if (existingPacket == null) return NotFound("Paket bulunamadı.");
+
+            // Alanları güncelle
+            existingPacket.Name = packet.Name;
+            existingPacket.Description = packet.Description;
+            existingPacket.Price = packet.Price;
+            existingPacket.CreditAmount = packet.CreditAmount;
+            existingPacket.Type = packet.Type;
+            existingPacket.IsActive = packet.IsActive;
+
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                if (!_context.LessonPackets.Any(e => e.Id == id))
+                {
+                    return NotFound();
+                }
+                else
+                {
+                    throw;
+                }
+            }
+
+            return NoContent();
+        }
     }
 }

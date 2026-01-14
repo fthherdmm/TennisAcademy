@@ -5,7 +5,7 @@
 #if DEBUG
         public const string ApiBaseUrl = "https://localhost:7111"; // ÖRNEKTİR: Kendi Frontend portunu yaz
 #else
-        public const string ApiBaseUrl = "https://api.winnertenis.com/";
+        public const string ApiBaseUrl = "https://api.winnertenis.com";
 #endif
     }
 }

@@ -1,0 +1,184 @@
+﻿@using MudBlazor
+@using KirikkaleTenisAkademi.Domain.Entities
+@using KirikkaleTenisAkademi.Domain.Enums
+@using System.Net.Http.Json
+@inject HttpClient HttpClient
+@inject ISnackbar Snackbar
+
+<MudDialog Class="mobile-dialog-fix">
+    <DialogContent>
+        <div class="d-flex align-center mb-2">
+            <MudIcon Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" Class="mr-3"/>
+            <MudText Typo="Typo.h6" Class="fw-bold">Paketi Düzenle</MudText>
+        </div>
+
+        <div class="dialog-scroll-area">
+            <MudForm @ref="form" @bind-IsValid="@success">
+                <MudGrid Spacing="2">
+
+                    <MudItem xs="12">
+                        <MudTextField @bind-Value="Model.Name" Label="Paket Adı" Variant="Variant.Outlined" Margin="Margin.Dense" Required="true"/>
+                    </MudItem>
+
+                    <MudItem xs="12">
+                        <MudTextField @bind-Value="Model.Description" Label="Açıklama" Variant="Variant.Outlined" Lines="3" Margin="Margin.Dense"/>
+                    </MudItem>
+
+                    <MudItem xs="6">
+                        <MudNumericField @bind-Value="Model.Price" Label="Fiyat (TL)" Variant="Variant.Outlined" Margin="Margin.Dense" Min="0" />
+                    </MudItem>
+
+                    <MudItem xs="6">
+                        <MudNumericField @bind-Value="Model.CreditAmount" Label="Kredi" Variant="Variant.Outlined" Margin="Margin.Dense" Min="1" />
+                    </MudItem>
+
+                    <MudItem xs="12">
+                        <MudSelect T="LessonType"
+                                   Label="Tür"
+                                   @bind-Value="Model.Type"
+                                   Variant="Variant.Outlined"
+                                   Margin="Margin.Dense"
+                                   AnchorOrigin="Origin.BottomCenter"
+                                   TransformOrigin="Origin.TopCenter"
+                                   OffsetY="true"
+                                   LockScroll="true">
+                            <MudSelectItem Value="LessonType.Private">Bireysel</MudSelectItem>
+                            <MudSelectItem Value="LessonType.Group">Grup</MudSelectItem>
+                        </MudSelect>
+                    </MudItem>
+
+                    <MudItem xs="12">
+                        <MudPaper Class="pa-3 d-flex justify-space-between align-center rounded-lg" Elevation="0" Style="background:#f5f5f5;">
+                            <MudText Typo="Typo.body2">Paket Satışta mı?</MudText>
+                            <MudSwitch @bind-Value="Model.IsActive" Color="Color.Success" Class="ma-0" />
+                        </MudPaper>
+                    </MudItem>
+
+                </MudGrid>
+            </MudForm>
+        </div>
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton OnClick="Cancel" Variant="Variant.Text">İptal</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit" Disabled="@(!success)" Class="rounded-lg">Kaydet</MudButton>
+    </DialogActions>
+</MudDialog>
+
+<style>
+    .fw-bold { font-weight: 700; }
+
+    /* --- MASAÜSTÜ VARSAYILAN --- */
+    .mobile-dialog-fix {
+        width: 450px;
+        max-width: 100%;
+        overflow: visible !important;
+    }
+
+    .dialog-scroll-area {
+        max-height: 70vh;
+        overflow-y: auto;
+        padding-right: 5px;
+    }
+
+    /* --- 🔥 MOBİL GÜNCELLEMESİ (YÜZEN KART) 🔥 --- */
+    @@media (max-width: 600px) {
+
+        /* 1. Container: Ekranın ortasına hizala ve kenar boşluğu ver */
+        .mud-dialog-container {
+            align-items: center !important; /* Dikeyde Ortala (Alta yapışmasın) */
+            padding: 20px !important; /* Sağdan/Soldan boşluk bırak */
+        }
+
+        /* 2. Dialog Kutusu: Yuvarlak köşeler ve sınırlar */
+        .mud-dialog.mobile-dialog-fix {
+            width: 100% !important;
+            max-width: 100% !important;
+            margin: auto !important; /* Ortala */
+
+            /* Dört tarafı da yuvarlak yap */
+            border-radius: 20px !important;
+
+            /* Yükseklik sınırla */
+            max-height: 85vh !important;
+            display: flex;
+            flex-direction: column;
+
+            /* Alta yapışmayı engelle */
+            position: relative;
+            bottom: auto;
+        }
+
+        /* 3. İçerik Alanı */
+        .mud-dialog-content {
+            overflow-y: hidden !important;
+            display: flex;
+            flex-direction: column;
+            padding-bottom: 0 !important;
+        }
+
+        .dialog-scroll-area {
+            overflow-y: auto;
+            max-height: 55vh; /* Form yüksekliği */
+            padding-bottom: 10px;
+        }
+
+        /* 4. Buton Alanı */
+        .mud-dialog-actions {
+            padding: 16px !important;
+            border-top: 1px solid #eee;
+            background: white;
+            /* Köşelerin yuvarlaklığını korumak için */
+            border-bottom-left-radius: 20px;
+            border-bottom-right-radius: 20px;
+        }
+    }
+</style>
+
+@code {
+[CascadingParameter] IMudDialogInstance MudDialog { get; set; }
+
+[Parameter] public LessonPacket Packet { get; set; }
+
+private LessonPacket Model { get; set; } = new();
+
+bool success;
+MudForm form;
+
+protected override void OnInitialized()
+{
+Model = new LessonPacket
+{
+Id = Packet.Id,
+Name = Packet.Name,
+Description = Packet.Description,
+Price = Packet.Price,
+CreditAmount = Packet.CreditAmount,
+Type = Packet.Type,
+IsActive = Packet.IsActive
+};
+}
+
+private void Cancel() => MudDialog.Cancel();
+
+private async Task Submit()
+{
+try
+{
+var response = await HttpClient.PutAsJsonAsync($"api/LessonPackets/{Model.Id}", Model);
+if (response.IsSuccessStatusCode)
+{
+Snackbar.Add("Paket güncellendi.", Severity.Success);
+MudDialog.Close(DialogResult.Ok(true));
+}
+else
+{
+Snackbar.Add("Güncelleme başarısız.", Severity.Error);
+}
+}
+catch
+{
+Snackbar.Add("Hata oluştu.", Severity.Error);
+}
+}
+}

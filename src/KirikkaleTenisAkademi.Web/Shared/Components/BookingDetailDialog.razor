@@ -1,70 +1,123 @@
 ﻿@using KirikkaleTenisAkademi.Web.Models
 @using MudBlazor
 
-<MudDialog>
+<MudDialog Class="mobile-dialog-fix">
     <DialogContent>
-        <MudGrid>
-            <MudItem xs="12" Class="d-flex align-center justify-center flex-column">
-                <MudAvatar Color="Color.Primary" Size="Size.Large" Class="mb-2">
-                    @(string.IsNullOrEmpty(Booking.CoachName) ? "?" : Booking.CoachName.Substring(0,1))
-                </MudAvatar>
-                <MudText Typo="Typo.h6">@Booking.CoachName</MudText>
-
+        
+        <div class="d-flex flex-column align-center justify-center pt-2 pb-4">
+            <MudAvatar Color="Color.Primary" Style="height:80px; width:80px; font-size:2rem;" Class="mb-3 elevation-4">
+                @(string.IsNullOrEmpty(Booking.CoachName) ? "?" : Booking.CoachName.Substring(0,1))
+            </MudAvatar>
+            
+            <MudText Typo="Typo.h5" Class="fw-bold text-center">@Booking.CoachName</MudText>
+            
+            <div class="d-flex gap-2 mt-2">
                 @if(Booking.LessonType == "Group")
                 {
-                <MudChip T="string" Color="Color.Info" Size="Size.Small" Icon="@Icons.Material.Filled.Groups">Grup Dersi</MudChip>
+                    <MudChip T="string" Color="Color.Info" Size="Size.Small" Icon="@Icons.Material.Filled.Groups" Class="ma-0">Grup Dersi</MudChip>
                 }
                 else
                 {
-                <MudChip T="string" Color="Color.Primary" Size="Size.Small" Icon="@Icons.Material.Filled.Person">Özel Ders</MudChip>
+                    <MudChip T="string" Color="Color.Success" Size="Size.Small" Icon="@Icons.Material.Filled.Person" Class="ma-0">Özel Ders</MudChip>
                 }
+                
+                <MudChip T="string" Color="@GetColor(Booking.Status)" Size="Size.Small" Variant="Variant.Outlined" Class="ma-0">@GetStatusText(Booking.Status)</MudChip>
+            </div>
+        </div>
 
-                <MudChip T="string" Color="@GetColor(Booking.Status)" Size="Size.Small" Class="mt-1" Variant="Variant.Outlined">@GetStatusText(Booking.Status)</MudChip>
-            </MudItem>
+        <MudPaper Elevation="0" Class="pa-4 rounded-xl mt-2" Style="background-color: #F5F5F5;">
+            <div class="d-flex align-center mb-3">
+                <MudIcon Icon="@Icons.Material.Filled.CalendarMonth" Color="Color.Primary" Class="mr-3"/>
+                <div>
+                    <MudText Typo="Typo.caption" Class="text-muted">TARİH</MudText>
+                    <MudText Typo="Typo.body1" Class="fw-bold">@Booking.StartTime.ToString("d MMMM yyyy, dddd", new System.Globalization.CultureInfo("tr-TR"))</MudText>
+                </div>
+            </div>
+            
+            <MudDivider Class="my-2"/>
 
-            <MudItem xs="12">
-                <MudList T="string" Dense="true">
-                    <MudListItem Icon="@Icons.Material.Filled.CalendarToday">
-                        <b>Tarih:</b> @Booking.StartTime.ToString("dd.MM.yyyy dddd")
-                    </MudListItem>
-                    <MudListItem Icon="@Icons.Material.Filled.AccessTime">
-                        <b>Saat:</b> @Booking.StartTime.ToString("HH:mm") - @Booking.EndTime.ToString("HH:mm")
-                    </MudListItem>
-                </MudList>
-            </MudItem>
-        </MudGrid>
+            <div class="d-flex align-center mt-2">
+                <MudIcon Icon="@Icons.Material.Filled.AccessTimeFilled" Color="Color.Secondary" Class="mr-3"/>
+                <div>
+                    <MudText Typo="Typo.caption" Class="text-muted">SAAT ARALIĞI</MudText>
+                    <MudText Typo="Typo.body1" Class="fw-bold">@Booking.StartTime.ToString("HH:mm") - @Booking.EndTime.ToString("HH:mm")</MudText>
+                </div>
+            </div>
+        </MudPaper>
+
     </DialogContent>
+    
     <DialogActions>
-        <MudButton OnClick="Close" Color="Color.Inherit">Kapat</MudButton>
+        <MudButton OnClick="Close" Variant="Variant.Text" Color="Color.Default">Kapat</MudButton>
         @if (Booking.Status != "Cancelled" && Booking.StartTime > DateTime.Now)
         {
-        <MudButton Color="Color.Error" Variant="Variant.Filled" OnClick="CancelLesson">Dersi İptal Et</MudButton>
+            <MudButton Color="Color.Error" Variant="Variant.Filled" OnClick="CancelLesson" StartIcon="@Icons.Material.Filled.Cancel" Class="rounded-lg">İptal Et</MudButton>
         }
     </DialogActions>
 </MudDialog>
 
+<style>
+    .fw-bold { font-weight: 700; }
+    .text-muted { color: #757575; }
+
+    /* --- MASAÜSTÜ VARSAYILAN --- */
+    .mobile-dialog-fix { 
+        width: 400px; 
+        max-width: 100%; 
+        overflow: visible !important; 
+    }
+
+    /* --- MOBİL YÜZEN KART TASARIMI --- */
+    @@media (max-width: 600px) {
+        .mud-dialog-container {
+            align-items: center !important; /* Dikeyde Ortala */
+            padding: 20px !important; /* Kenar boşluğu */
+        }
+
+        .mud-dialog.mobile-dialog-fix {
+            width: 100% !important;
+            max-width: 100% !important;
+            margin: auto !important;
+            
+            /* Yuvarlak Köşeler */
+            border-radius: 24px !important;
+            
+            /* Yükseklik ve Pozisyon */
+            max-height: 85vh !important; 
+            position: relative;
+            bottom: auto;
+        }
+
+        /* Buton alanı */
+        .mud-dialog-actions {
+            padding: 16px !important;
+            justify-content: space-between; /* Butonları ayır */
+            border-bottom-left-radius: 24px;
+            border-bottom-right-radius: 24px;
+        }
+    }
+</style>
+
 @code {
-[CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public MyBookingDto Booking { get; set; } = new();
 
-[Parameter] public MyBookingDto Booking { get; set; } = new();
+    void Close() => MudDialog.Cancel();
+    void CancelLesson() => MudDialog.Close(DialogResult.Ok(true));
 
-void Close() => MudDialog.Cancel();
+    private Color GetColor(string status) => status switch
+    {
+        "Confirmed" => Color.Success,
+        "Pending" => Color.Warning,
+        "Cancelled" => Color.Error,
+        _ => Color.Default
+    };
 
-void CancelLesson() => MudDialog.Close(DialogResult.Ok(true));
-
-private Color GetColor(string status) => status switch
-{
-"Confirmed" => Color.Success,
-"Pending" => Color.Warning,
-"Cancelled" => Color.Error,
-_ => Color.Default
-};
-
-private string GetStatusText(string status) => status switch
-{
-"Confirmed" => "Onaylandı",
-"Pending" => "Bekliyor",
-"Cancelled" => "İptal Edildi",
-_ => status
-};
+    private string GetStatusText(string status) => status switch
+    {
+        "Confirmed" => "Onaylandı",
+        "Pending" => "Bekliyor",
+        "Cancelled" => "İptal Edildi",
+        _ => status
+    };
 }
