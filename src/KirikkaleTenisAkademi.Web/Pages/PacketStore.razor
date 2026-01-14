@@ -16,119 +16,124 @@
 
     @if (_loading)
     {
-        <div class="d-flex justify-center mt-12">
-            <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Large" />
-        </div>
+    <div class="d-flex justify-center mt-12">
+        <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Large" />
+    </div>
     }
     else
     {
-        <MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="tab-content" Centered="true" Color="Color.Primary">
-            
-            <MudTabPanel Text="Bireysel Özel Dersler" Icon="@Icons.Material.Filled.Person">
-                @if (_privatePackets == null || !_privatePackets.Any())
-                {
-                    <MudAlert Severity="Severity.Info" Class="mt-4">Şu an satışta olan bireysel paket bulunmamaktadır.</MudAlert>
-                }
-                else
-                {
-                    <MudGrid Justify="Justify.Center" Spacing="4" Class="mt-4 card-grid">
-                        @foreach (var packet in _privatePackets)
-                        {
-                            @RenderPacketCard(packet)
-                        }
-                    </MudGrid>
-                }
-            </MudTabPanel>
+    <MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="tab-content" Centered="true" Color="Color.Primary">
 
-            <MudTabPanel Text="Grup Dersleri (Klinik)" Icon="@Icons.Material.Filled.Groups">
-                @if (_groupPackets == null || !_groupPackets.Any())
+        <MudTabPanel Text="Bireysel Özel Dersler" Icon="@Icons.Material.Filled.Person">
+            @if (_privatePackets == null || !_privatePackets.Any())
+            {
+            <MudAlert Severity="Severity.Info" Class="mt-4">Şu an satışta olan bireysel paket bulunmamaktadır.</MudAlert>
+            }
+            else
+            {
+            <MudGrid Justify="Justify.Center" Spacing="4" Class="mt-4 card-grid">
+                @foreach (var packet in _privatePackets)
                 {
-                    <MudAlert Severity="Severity.Info" Class="mt-4">Şu an satışta olan grup paketi bulunmamaktadır.</MudAlert>
+                @RenderPacketCard(packet)
                 }
-                else
-                {
-                    <MudGrid Justify="Justify.Center" Spacing="4" Class="mt-4 card-grid">
-                        @foreach (var packet in _groupPackets)
-                        {
-                            @RenderPacketCard(packet)
-                        }
-                    </MudGrid>
-                }
-            </MudTabPanel>
+            </MudGrid>
+            }
+        </MudTabPanel>
 
-        </MudTabs>
+        <MudTabPanel Text="Grup Dersleri (Klinik)" Icon="@Icons.Material.Filled.Groups">
+            @if (_groupPackets == null || !_groupPackets.Any())
+            {
+            <MudAlert Severity="Severity.Info" Class="mt-4">Şu an satışta olan grup paketi bulunmamaktadır.</MudAlert>
+            }
+            else
+            {
+            <MudGrid Justify="Justify.Center" Spacing="4" Class="mt-4 card-grid">
+                @foreach (var packet in _groupPackets)
+                {
+                @RenderPacketCard(packet)
+                }
+            </MudGrid>
+            }
+        </MudTabPanel>
+
+    </MudTabs>
     }
 </MudContainer>
 
 @code {
-    // KART TASARIMI
-    RenderFragment RenderPacketCard(LessonPacket packet) => __builder =>
-    {
-        // 🔥 DÜZELTME: Sadece 8 veya 10 kredilik paketlere "Popüler" de.
-        // Böylece 4'lük veya 5'lik paketlerde bu yazı çıkmaz.
-        var isPopular = packet.CreditAmount == 8 || packet.CreditAmount == 10;
-        
-        var isGroup = packet.Type == LessonType.Group;
-        
-        // WhatsApp Mesajı
-        string message = $"Merhaba, {packet.Name} paketi ({packet.Price} TL) hakkında bilgi almak ve satın almak istiyorum.";
-        // 👇 NUMARANI BURADAN GÜNCELLEYEBİLİRSİN
-        string whatsappUrl = $"https://wa.me/905373965073?text={Uri.EscapeDataString(message)}"; 
+// KART TASARIMI
+RenderFragment RenderPacketCard(LessonPacket packet) => __builder =>
+{
+// 🔥 DÜZELTME: Grup derslerinde popülerlik iptal edildi.
+bool isPopular = false;
 
-        <MudItem xs="12" sm="6" md="4">
-            <MudPaper Elevation="@(isPopular ? 12 : 4)"
-                      Class="@($"pa-8 rounded-xl text-center hover-scale d-flex flex-column align-center packet-card {(isPopular ? "border-popular" : "")}")"
-                      Height="100%"
-                      Style="@(isPopular ? "position:relative; border: 2px solid #76FF03" : "")">
+// Sadece Özel Ders (Private) ise ve 8 ya da 10 krediyse Popüler yap.
+if (packet.Type == LessonType.Private)
+{
+isPopular = packet.CreditAmount == 8 || packet.CreditAmount == 10;
+}
+// Grup dersleri (else) için isPopular zaten false kalıyor.
 
-                @if (isPopular)
-                {
-                    <MudChip T="string" Color="Color.Secondary" Class="absolute-top-center fw-bold">EN POPÜLER</MudChip>
-                }
+var isGroup = packet.Type == LessonType.Group;
 
-                <MudIcon Icon="@(isGroup ? Icons.Material.Filled.Groups : GetIconForPacket(packet.CreditAmount))"
-                         Class="packet-icon"
-                         Color="@GetColorForPacket(packet.CreditAmount)" />
+// WhatsApp Mesajı
+string message = $"Merhaba, {packet.Name} paketi ({packet.Price} TL) hakkında bilgi almak ve satın almak istiyorum.";
+string whatsappUrl = $"https://wa.me/905373965073?text={Uri.EscapeDataString(message)}";
 
-                <MudText Typo="Typo.h5" Class="mt-4 fw-bold packet-name">@packet.Name</MudText>
-                
-                @if(isGroup)
-                {
-                    <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="Color.Info" Class="mt-1">Grup Dersi</MudChip>
-                }
+<MudItem xs="12" sm="6" md="4">
+    <MudPaper Elevation="@(isPopular ? 12 : 4)"
+              Class="@($"pa-8 rounded-xl text-center hover-scale d-flex flex-column align-center packet-card {(isPopular ? "border-popular" : "")}")"
+              Height="100%"
+              Style="@(isPopular ? "position:relative; border: 2px solid #76FF03" : "")">
 
-                <MudText Typo="Typo.body2" Class="text-muted mt-2 description-text">
-                    @(string.IsNullOrEmpty(packet.Description) ? (isGroup ? "Sosyal ortamda tenis öğrenin." : "Birebir koçluk hizmeti.") : packet.Description)
-                </MudText>
+        @if (isPopular)
+        {
+        <MudChip T="string" Color="Color.Secondary" Class="absolute-top-center fw-bold">EN POPÜLER</MudChip>
+        }
 
-                <MudText Typo="@(isPopular ? Typo.h3 : Typo.h4)" Color="Color.Primary" Class="mt-6 fw-bold price-text">
-                    @packet.Price.ToString("N0") ₺
-                </MudText>
+        <MudIcon Icon="@(isGroup ? Icons.Material.Filled.Groups : GetIconForPacket(packet.CreditAmount))"
+                 Class="packet-icon"
+                 Color="@GetColorForPacket(packet.CreditAmount)" />
 
-                <div class="mt-4 mb-6 feature-list">
-                    <MudText Typo="Typo.h6" Class="credit-text">
-                        ✅ <b>@packet.CreditAmount</b> @(isGroup ? "Grup Kredisi" : "Özel Ders")
-                    </MudText>
+        <MudText Typo="Typo.h5" Class="mt-4 fw-bold packet-name">@packet.Name</MudText>
 
-                    <MudText Typo="Typo.caption" Class="text-muted unit-price">
-                        (Ders Başına: @((packet.Price / packet.CreditAmount).ToString("N0")) ₺)
-                    </MudText>
-                </div>
+        @if(isGroup)
+        {
+        <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="Color.Info" Class="mt-1">Grup Dersi</MudChip>
+        }
 
-                <MudSpacer />
+        <MudText Typo="Typo.body2" Class="text-muted mt-2 description-text">
+            @(string.IsNullOrEmpty(packet.Description) ? (isGroup ? "Sosyal ortamda tenis öğrenin." : "Birebir koçluk hizmeti.") : packet.Description)
+        </MudText>
 
-                <MudButton Variant="Variant.Filled"
-                           StartIcon="@Icons.Custom.Brands.WhatsApp"
-                           Color="Color.Success"
-                           Size="Size.Large"
-                           Class="rounded-pill px-8 py-2 w-100 whatsapp-btn"
-                           Href="@whatsappUrl"
-                           Target="_blank">
-                    SATIN AL (WHATSAPP)
-                </MudButton>
-            </MudPaper>
-        </MudItem>
-    };
+        <MudText Typo="@(isPopular ? Typo.h3 : Typo.h4)" Color="Color.Primary" Class="mt-6 fw-bold price-text">
+            @packet.Price.ToString("N0") ₺
+        </MudText>
+
+        <div class="mt-4 mb-6 feature-list">
+            <MudText Typo="Typo.h6" Class="credit-text">
+                ✅ <b>@packet.CreditAmount</b> @(isGroup ? "Grup Kredisi" : "Özel Ders")
+            </MudText>
+
+            <MudText Typo="Typo.caption" Class="text-muted unit-price">
+                (Ders Başına: @((packet.Price / packet.CreditAmount).ToString("N0")) ₺)
+            </MudText>
+        </div>
+
+        <MudSpacer />
+
+        <MudButton Variant="Variant.Filled"
+                   StartIcon="@Icons.Custom.Brands.WhatsApp"
+                   Color="Color.Success"
+                   Size="Size.Large"
+                   Class="rounded-pill px-8 py-2 w-100 whatsapp-btn"
+                   Href="@whatsappUrl"
+                   Target="_blank">
+            SATIN AL (WHATSAPP)
+        </MudButton>
+    </MudPaper>
+</MudItem>
+};
 }
 
 <style>
@@ -139,7 +144,7 @@
     .hover-scale:hover { transform: translateY(-10px); }
     .border-popular { border-color: #76FF03 !important; }
     .fw-bold { font-weight: 700 !important; }
-    
+
     .packet-icon { font-size: 5rem; }
     .packet-name { font-size: 1.5rem; }
     .price-text { font-size: 2.5rem; }
@@ -153,7 +158,7 @@
         .header-section { margin-bottom: 1.5rem !important; }
         .tab-content { padding: 16px !important; }
         .card-grid { margin-top: 0 !important; }
-        
+
         .packet-card {
             padding: 1.5rem !important;
             margin-bottom: 1rem;
@@ -162,10 +167,10 @@
         .packet-icon { font-size: 3.5rem !important; }
         .packet-name { font-size: 1.25rem !important; margin-top: 0.5rem !important; }
         .price-text { font-size: 2rem !important; margin-top: 1rem !important; }
-        
-        .description-text { 
-            font-size: 0.85rem !important; 
-            min-height: auto !important; 
+
+        .description-text {
+            font-size: 0.85rem !important;
+            min-height: auto !important;
             margin-bottom: 0.5rem;
         }
         .credit-text { font-size: 1.1rem !important; }
@@ -175,51 +180,51 @@
 </style>
 
 @code {
-    private List<LessonPacket>? _privatePackets;
-    private List<LessonPacket>? _groupPackets;
-    private bool _loading = true;
+private List<LessonPacket>? _privatePackets;
+private List<LessonPacket>? _groupPackets;
+private bool _loading = true;
 
-    protected override async Task OnInitializedAsync()
-    {
-        await LoadPackets();
-    }
+protected override async Task OnInitializedAsync()
+{
+await LoadPackets();
+}
 
-    private async Task LoadPackets()
-    {
-        try
-        {
-            var allPackets = await Http.GetFromJsonAsync<List<LessonPacket>>("api/LessonPackets");
-            
-            if (allPackets != null)
-            {
-                // 🔥 DÜZELTME: Fiyata göre sırala (OrderBy Price)
-                var activePackets = allPackets.Where(p => p.IsActive).OrderBy(p => p.Price).ToList();
-                
-                _privatePackets = activePackets.Where(p => p.Type == LessonType.Private).ToList();
-                _groupPackets = activePackets.Where(p => p.Type == LessonType.Group).ToList();
-            }
-        }
-        catch (Exception ex)
-        {
-            Snackbar.Add("Paketler yüklenirken hata oluştu.", Severity.Error);
-        }
-        finally
-        {
-            _loading = false;
-        }
-    }
+private async Task LoadPackets()
+{
+try
+{
+var allPackets = await Http.GetFromJsonAsync<List<LessonPacket>>("api/LessonPackets");
 
-    private string GetIconForPacket(int credits)
-    {
-        if (credits < 5) return Icons.Material.Filled.SportsTennis;
-        if (credits < 10) return Icons.Material.Filled.EmojiEvents;
-        return Icons.Material.Filled.WorkspacePremium;
-    }
+if (allPackets != null)
+{
+// Fiyata göre sırala
+var activePackets = allPackets.Where(p => p.IsActive).OrderBy(p => p.Price).ToList();
 
-    private Color GetColorForPacket(int credits)
-    {
-        if (credits < 5) return Color.Primary;
-        if (credits < 10) return Color.Secondary;
-        return Color.Warning;
-    }
+_privatePackets = activePackets.Where(p => p.Type == LessonType.Private).ToList();
+_groupPackets = activePackets.Where(p => p.Type == LessonType.Group).ToList();
+}
+}
+catch (Exception ex)
+{
+Snackbar.Add("Paketler yüklenirken hata oluştu.", Severity.Error);
+}
+finally
+{
+_loading = false;
+}
+}
+
+private string GetIconForPacket(int credits)
+{
+if (credits < 5) return Icons.Material.Filled.SportsTennis;
+if (credits < 10) return Icons.Material.Filled.EmojiEvents;
+return Icons.Material.Filled.WorkspacePremium;
+}
+
+private Color GetColorForPacket(int credits)
+{
+if (credits < 5) return Color.Primary;
+if (credits < 10) return Color.Secondary;
+return Color.Warning;
+}
 }
